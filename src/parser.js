@@ -13,7 +13,11 @@ class Parser {
 
   peek(offset = 0) {
     const pos = this.pos + offset;
-    return pos < this.tokens.length ? this.tokens[pos] : this.tokens[this.tokens.length - 1];
+    if (pos < this.tokens.length) {
+      return this.tokens[pos];
+    }
+    // Return EOF token if out of bounds
+    return this.tokens.length > 0 ? this.tokens[this.tokens.length - 1] : { type: TOKEN_TYPES.EOF };
   }
 
   advance() {
@@ -391,8 +395,20 @@ class Parser {
   }
 
   parseUnary() {
-    if (this.peek().type === TOKEN_TYPES.NOT || this.peek().type === TOKEN_TYPES.MINUS) {
-      const operator = this.advance().value || 'not';
+    if (this.peek().type === TOKEN_TYPES.NOT) {
+      const operator = 'not';
+      this.advance();
+      const argument = this.parseUnary();
+      return {
+        type: 'UnaryExpression',
+        operator,
+        argument
+      };
+    }
+    
+    if (this.peek().type === TOKEN_TYPES.MINUS) {
+      const operator = '-';
+      this.advance();
       const argument = this.parseUnary();
       return {
         type: 'UnaryExpression',

@@ -11,11 +11,35 @@ class CodeGenerator {
     this.globalVariables = [];
     this.functions = [];
     this.indent = 0;
+    this.needsSerial = false;
   }
 
   generate() {
+    // First pass: analyze the AST to detect features we need
+    this.analyzeAST(this.ast);
+    
+    // Second pass: process and generate code
     this.processProgram(this.ast);
     return this.buildArduinoCode();
+  }
+
+  analyzeAST(node) {
+    if (!node) return;
+    
+    if (node.type === 'CallExpression' && node.callee.name === 'print') {
+      this.needsSerial = true;
+    }
+    
+    // Recursively check all nodes
+    if (Array.isArray(node)) {
+      node.forEach(n => this.analyzeAST(n));
+    } else if (typeof node === 'object') {
+      Object.values(node).forEach(value => {
+        if (value && typeof value === 'object') {
+          this.analyzeAST(value);
+        }
+      });
+    }
   }
 
   processProgram(program) {
@@ -69,6 +93,12 @@ class CodeGenerator {
     // Setup function
     code += 'void setup() {\n';
     this.indent = 1;
+    
+    // Add Serial.begin if print() is used
+    if (this.needsSerial) {
+      code += this.getIndent() + 'Serial.begin(9600);\n';
+    }
+    
     if (this.setupStatements.length > 0) {
       for (const stmt of this.setupStatements) {
         code += this.generateStatement(stmt);
@@ -328,10 +358,9 @@ class CodeGenerator {
     
     const funcName = builtinMap[callee] || callee;
     
-    // Special handling for Serial initialization
-    if (callee === 'print' && !this.serialInitialized) {
-      this.serialInitialized = true;
-      // We'll add Serial.begin to setup automatically
+    // Mark that we need Serial if print is used
+    if (callee === 'print') {
+      this.needsSerial = true;
     }
     
     return `${funcName}(${args})`;

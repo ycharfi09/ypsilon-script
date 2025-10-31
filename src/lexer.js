@@ -116,9 +116,20 @@ class Lexer {
 
   readNumber() {
     let num = '';
+    let hasDecimal = false;
+    
     while (this.peek() && /[0-9.]/.test(this.peek())) {
+      const char = this.peek();
+      if (char === '.') {
+        if (hasDecimal) {
+          // Already has a decimal point, stop here
+          break;
+        }
+        hasDecimal = true;
+      }
       num += this.advance();
     }
+    
     return {
       type: TOKEN_TYPES.NUMBER,
       value: parseFloat(num),

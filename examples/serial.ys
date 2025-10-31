@@ -1,0 +1,12 @@
+# Serial Print Example
+# Demonstrates Serial communication
+
+const SENSOR_PIN = 0
+
+function setup():
+    print("Starting sensor monitoring...")
+
+function loop():
+    var value = analogRead(SENSOR_PIN)
+    print(value)
+    delay(500)

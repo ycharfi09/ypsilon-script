@@ -189,4 +189,33 @@ const LED_PIN = 13`;
     expect(result.success).toBe(false);
     expect(result.error).toBeDefined();
   });
+
+  test('should auto-add Serial.begin when print is used', () => {
+    const source = `function setup():
+    print("Hello")`;
+    
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('Serial.begin(9600)');
+    expect(result.code).toContain('Serial.println');
+  });
+
+  test('should handle multiple decimal points correctly', () => {
+    const source = 'var x = 1.5';
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('int x = 1.5');
+  });
+
+  test('should handle negative numbers in expressions', () => {
+    const source = `function loop():
+    var x = -5`;
+    
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('-(5)');
+  });
 });
