@@ -1,0 +1,18 @@
+# Fade LED using PWM
+# This example shows analog output control
+
+const LED_PIN = 9
+
+function setup():
+    pinMode(LED_PIN, OUTPUT)
+
+function loop():
+    # Fade in
+    for brightness in range(0, 256, 5):
+        analogWrite(LED_PIN, brightness)
+        delay(30)
+    
+    # Fade out
+    for brightness in range(255, -1, -5):
+        analogWrite(LED_PIN, brightness)
+        delay(30)
