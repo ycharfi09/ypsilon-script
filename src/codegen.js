@@ -92,7 +92,11 @@ class CodeGenerator {
   }
 
   generateFunctionDeclaration(func) {
-    let code = `void ${func.name}(`;
+    // Check if function has a return statement with a value
+    const hasReturnValue = this.hasReturnValue(func.body);
+    const returnType = hasReturnValue ? 'int' : 'void';
+    
+    let code = `${returnType} ${func.name}(`;
     code += func.params.map(p => `int ${p}`).join(', ');
     code += ') {\n';
     
@@ -104,6 +108,23 @@ class CodeGenerator {
     
     code += '}';
     return code;
+  }
+
+  hasReturnValue(body) {
+    for (const stmt of body) {
+      if (stmt.type === 'ReturnStatement' && stmt.argument) {
+        return true;
+      }
+      // Check nested blocks
+      if (stmt.type === 'IfStatement') {
+        if (this.hasReturnValue(stmt.consequent)) return true;
+        if (stmt.alternate && this.hasReturnValue(stmt.alternate)) return true;
+      }
+      if (stmt.type === 'WhileStatement' || stmt.type === 'ForStatement') {
+        if (this.hasReturnValue(stmt.body)) return true;
+      }
+    }
+    return false;
   }
 
   generateStatement(stmt) {

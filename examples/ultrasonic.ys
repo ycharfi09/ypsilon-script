@@ -1,0 +1,37 @@
+# Ultrasonic Distance Sensor Example
+# Demonstrates sensor reading, calculations, and conditional logic
+
+const TRIG_PIN = 9
+const ECHO_PIN = 10
+const LED_PIN = 13
+
+const THRESHOLD_DISTANCE = 20
+
+function setup():
+    pinMode(TRIG_PIN, OUTPUT)
+    pinMode(ECHO_PIN, INPUT)
+    pinMode(LED_PIN, OUTPUT)
+
+function getDistance():
+    # Trigger pulse
+    digitalWrite(TRIG_PIN, LOW)
+    delay(2)
+    digitalWrite(TRIG_PIN, HIGH)
+    delay(10)
+    digitalWrite(TRIG_PIN, LOW)
+    
+    # Read echo and return distance
+    # In real code, this would use pulseIn()
+    # Simplified for demonstration
+    return 15
+
+function loop():
+    var distance = getDistance()
+    
+    # Turn on LED if object is close
+    if distance < THRESHOLD_DISTANCE:
+        digitalWrite(LED_PIN, HIGH)
+    else:
+        digitalWrite(LED_PIN, LOW)
+    
+    delay(100)

@@ -8,6 +8,7 @@
   },
   "scripts": {
     "test": "jest",
+    "test:coverage": "jest --coverage",
     "build": "echo 'Build complete'",
     "example": "node bin/ysc.js examples/blink.ys"
   },
@@ -27,5 +28,10 @@
   "dependencies": {},
   "engines": {
     "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ycharfi09/ypsilon-script.git"
   }
 }
+
