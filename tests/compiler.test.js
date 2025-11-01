@@ -412,4 +412,26 @@ const float THRESHOLD = 3.5;`;
     expect(result.code).toContain('digitalWrite(LED, HIGH);');
     expect(result.code).toContain('delay(1000);');
   });
+
+  test('should infer float return type from float literal', () => {
+    const source = `function getPi() {
+      return 3.14
+    }`;
+    
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('float getPi()');
+  });
+
+  test('should infer bool return type from comparison', () => {
+    const source = `function isGreater(int a, int b) {
+      return a > b
+    }`;
+    
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('bool isGreater(int a, int b)');
+  });
 });

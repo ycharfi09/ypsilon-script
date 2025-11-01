@@ -319,14 +319,27 @@ class Parser {
         } else if (expr.valueType === 'string') {
           return 'string';
         }
+        // Default for unknown literal types
         return 'int';
       case 'BinaryExpression':
-        // For now, assume arithmetic operations return int
+        // Try to infer from operands - if either is float, result is float
+        const leftType = this.inferExpressionType(expr.left);
+        const rightType = this.inferExpressionType(expr.right);
+        if (leftType === 'float' || rightType === 'float') {
+          return 'float';
+        }
+        // Boolean operations
+        if (['==', '!=', '<', '>', '<=', '>='].includes(expr.operator)) {
+          return 'bool';
+        }
+        // Default to int for arithmetic operations
         return 'int';
       case 'CallExpression':
-        // Can't easily infer, default to int
+        // Can't easily infer without function signature tracking
+        // Default to int as the most common return type
         return 'int';
       default:
+        // For unknown expression types, default to int
         return 'int';
     }
   }

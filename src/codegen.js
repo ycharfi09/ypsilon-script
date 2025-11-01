@@ -311,7 +311,7 @@ class CodeGenerator {
   generateRepeatStatement(stmt) {
     const count = this.generateExpression(stmt.count);
     
-    // Generate a for loop: for (int _i = 0; _i < count; _i++)
+    // Generate a for loop: for (int _repeat_i = 0; _repeat_i < count; _repeat_i++)
     let code = this.getIndent() + `for (int _repeat_i = 0; _repeat_i < ${count}; _repeat_i++) {\n`;
     
     this.indent++;
