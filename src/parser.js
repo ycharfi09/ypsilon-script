@@ -349,6 +349,12 @@ class Parser {
     }
     this.expect(TOKEN_TYPES.RPAREN);
     
+    // Check for -> return type
+    if (this.peek().type === TOKEN_TYPES.ARROW) {
+      this.advance();
+      returnType = this.parseType();
+    }
+    
     const body = this.parseBlock();
 
     // If return type wasn't specified, infer it from return statements
@@ -436,6 +442,11 @@ class Parser {
     if (isTypeToken(token.type)) {
       this.advance();
       return tokenTypeToString(token.type);
+    }
+    // Allow identifiers as types (for structs, enums, and classes)
+    if (token.type === TOKEN_TYPES.IDENTIFIER) {
+      this.advance();
+      return token.value;
     }
     throw new Error(`Expected type but got ${token.type} at line ${token.line}`);
   }
@@ -1213,7 +1224,21 @@ class Parser {
     while (this.peek().type !== TOKEN_TYPES.RBRACE && this.peek().type !== TOKEN_TYPES.EOF) {
       const key = this.expect(TOKEN_TYPES.IDENTIFIER).value;
       this.expect(TOKEN_TYPES.COLON);
-      const value = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+      
+      // Value can be identifier or number (or number+identifier like 16MHz)
+      let value = '';
+      if (this.peek().type === TOKEN_TYPES.NUMBER) {
+        value = String(this.advance().value);
+        // Check if followed by an identifier (like MHz)
+        if (this.peek().type === TOKEN_TYPES.IDENTIFIER) {
+          value += this.advance().value;
+        }
+      } else if (this.peek().type === TOKEN_TYPES.IDENTIFIER) {
+        value = this.advance().value;
+      } else {
+        throw new Error(`Unexpected token in config block: ${this.peek().type} at line ${this.peek().line}`);
+      }
+      
       options[key] = value;
       
       if (this.peek().type === TOKEN_TYPES.COMMA) {

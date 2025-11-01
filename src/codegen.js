@@ -495,7 +495,7 @@ class CodeGenerator {
       case 'CallExpression':
         return this.generateCallExpression(expr);
       case 'MemberExpression':
-        return this.generateExpression(expr.object) + '.' + expr.property;
+        return this.generateMemberExpression(expr);
       case 'ThisExpression':
         return 'this';
       case 'NewExpression':
@@ -503,6 +503,15 @@ class CodeGenerator {
       default:
         return '';
     }
+  }
+
+  generateMemberExpression(expr) {
+    const object = this.generateExpression(expr.object);
+    // Use -> for pointer access (this is a pointer in C++)
+    if (expr.object.type === 'ThisExpression') {
+      return `this->${expr.property}`;
+    }
+    return `${object}.${expr.property}`;
   }
 
   generateLiteral(expr) {

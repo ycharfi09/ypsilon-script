@@ -336,6 +336,13 @@ class Lexer {
         continue;
       }
       
+      if (char === '-' && this.peek(1) === '>') {
+        this.advance();
+        this.advance();
+        tokens.push({ type: TOKEN_TYPES.ARROW, value: '->', line: this.line, column: this.column - 2 });
+        continue;
+      }
+      
       if (char === '=' && this.peek(1) === '=') {
         this.advance();
         this.advance();

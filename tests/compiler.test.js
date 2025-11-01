@@ -435,3 +435,319 @@ const float THRESHOLD = 3.5;`;
     expect(result.code).toContain('bool isGreater(int a, int b)');
   });
 });
+
+describe('New YS Syntax Features', () => {
+  test('should compile mut keyword for mutable variables', () => {
+    const source = `mut int counter = 0
+    
+    on loop {
+      counter = counter + 1
+    }`;
+    
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('int counter = 0;');
+  });
+
+  test('should compile fn keyword for functions', () => {
+    const source = `fn add(int a, int b) -> int {
+      return a + b
+    }`;
+    
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('int add(int a, int b)');
+  });
+
+  test('should compile self keyword in classes', () => {
+    const source = `class Motor {
+      mut int speed
+      
+      constructor(int s) {
+        self.speed = s
+      }
+      
+      fn run() {
+        print(self.speed)
+      }
+    }`;
+    
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('class Motor');
+    expect(result.code).toContain('this->speed');
+  });
+
+  test('should compile enum declarations', () => {
+    const source = `enum Mode { AUTO, MANUAL, IDLE }
+    
+    mut Mode currentMode = AUTO`;
+    
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('enum Mode');
+    expect(result.code).toContain('AUTO');
+    expect(result.code).toContain('MANUAL');
+    expect(result.code).toContain('IDLE');
+  });
+
+  test('should compile struct declarations', () => {
+    const source = `struct Point { x: int, y: int }
+    
+    mut Point pos`;
+    
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('struct Point');
+    expect(result.code).toContain('int x;');
+    expect(result.code).toContain('int y;');
+  });
+
+  test('should compile match expressions', () => {
+    const source = `fn test() {
+      mut int x = 1
+      match x {
+        1 => print("one"),
+        2 => print("two"),
+        _ => print("other")
+      }
+    }`;
+    
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('if');
+    expect(result.code).toContain('else');
+  });
+
+  test('should compile switch statements', () => {
+    const source = `fn test() {
+      mut int x = 1
+      switch x {
+        case 1 { print("one") }
+        case 2 { print("two") }
+        default { print("other") }
+      }
+    }`;
+    
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('switch');
+    expect(result.code).toContain('case 1:');
+    expect(result.code).toContain('default:');
+  });
+
+  test('should compile on start blocks', () => {
+    const source = `on start {
+      pinMode(13, OUTPUT)
+    }
+    
+    on loop {
+      digitalWrite(13, HIGH)
+    }`;
+    
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('void setup()');
+    expect(result.code).toContain('void loop()');
+    expect(result.code).toContain('pinMode(13, OUTPUT)');
+    expect(result.code).toContain('digitalWrite(13, HIGH)');
+  });
+
+  test('should compile signal declarations and emit', () => {
+    const source = `signal buttonPress
+    
+    on start {
+      emit buttonPress
+    }`;
+    
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('volatile bool _signal_buttonPress');
+    expect(result.code).toContain('_signal_buttonPress = true');
+  });
+
+  test('should compile task with interval', () => {
+    const source = `task blink every 500ms {
+      digitalWrite(13, HIGH)
+    }`;
+    
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('_task_blink_last');
+    expect(result.code).toContain('millis()');
+    expect(result.code).toContain('500');
+  });
+
+  test('should compile background task', () => {
+    const source = `task monitor background {
+      print("monitoring")
+    }`;
+    
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('// Background task: monitor');
+  });
+
+  test('should compile wait statement with time units', () => {
+    const source = `fn test() {
+      wait 100ms
+      wait 2s
+    }`;
+    
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('delay(100)');
+    expect(result.code).toContain('delay(2000)');
+  });
+
+  test('should compile timeout statement', () => {
+    const source = `fn test() {
+      timeout 5s {
+        print("waiting")
+      }
+    }`;
+    
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('while');
+    expect(result.code).toContain('millis()');
+    expect(result.code).toContain('5000');
+  });
+
+  test('should compile atomic blocks', () => {
+    const source = `fn test() {
+      atomic {
+        digitalWrite(13, HIGH)
+      }
+    }`;
+    
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('noInterrupts()');
+    expect(result.code).toContain('interrupts()');
+  });
+
+  test('should compile use statements', () => {
+    const source = `use I2C1
+    use SPI`;
+    
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    // Use statements are tracked but may not generate direct code
+  });
+
+  test('should compile load statements', () => {
+    const source = `load <servo>
+    load <wifi>`;
+    
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('#include <servo.h>');
+    expect(result.code).toContain('#include <wifi.h>');
+  });
+
+  test('should compile alias statements', () => {
+    const source = `alias LED = D13
+    alias BUTTON = D2`;
+    
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('#define LED D13');
+    expect(result.code).toContain('#define BUTTON D2');
+  });
+
+  test('should compile config block', () => {
+    const source = `config {
+      cpu: atmega328p,
+      clock: 16MHz
+    }`;
+    
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    // Config is tracked but doesn't generate code directly
+  });
+
+  test('should compile react declarations', () => {
+    const source = `react mut rpm: int = 0`;
+    
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('volatile int rpm = 0');
+  });
+
+  test('should compile inline C++ blocks', () => {
+    const source = `fn test() {
+      @cpp {
+        print("debug")
+      }
+    }`;
+    
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('// Inline C++');
+  });
+
+  test('should compile complete modern YS program', () => {
+    const source = `enum Mode { AUTO, MANUAL }
+    struct Point { x: int, y: int }
+    
+    mut Mode mode = AUTO
+    mut int counter = 0
+    
+    class Motor {
+      mut int speed
+      
+      constructor(int s) {
+        self.speed = s
+      }
+      
+      fn run() {
+        print(self.speed)
+      }
+    }
+    
+    mut Motor motor = new Motor(100)
+    
+    on start {
+      pinMode(13, OUTPUT)
+    }
+    
+    on loop {
+      match mode {
+        AUTO => digitalWrite(13, HIGH),
+        MANUAL => digitalWrite(13, LOW)
+      }
+      
+      wait 1s
+    }`;
+    
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('enum Mode');
+    expect(result.code).toContain('struct Point');
+    expect(result.code).toContain('class Motor');
+    expect(result.code).toContain('void setup()');
+    expect(result.code).toContain('void loop()');
+  });
+});
