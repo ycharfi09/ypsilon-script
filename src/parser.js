@@ -1200,12 +1200,22 @@ class Parser {
     };
   }
 
-  // Alias statement: alias led = D13
+  // Alias statement: alias led = D13 or alias led = 13
   parseAliasStatement() {
     this.expect(TOKEN_TYPES.ALIAS);
     const name = this.expect(TOKEN_TYPES.IDENTIFIER).value;
     this.expect(TOKEN_TYPES.ASSIGN);
-    const value = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+    
+    // Value can be identifier or number
+    let value;
+    if (this.peek().type === TOKEN_TYPES.IDENTIFIER) {
+      value = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+    } else if (this.peek().type === TOKEN_TYPES.NUMBER) {
+      value = String(this.expect(TOKEN_TYPES.NUMBER).value);
+    } else {
+      throw new Error(`Expected identifier or number for alias value at line ${this.peek().line}`);
+    }
+    
     this.optionalExpect(TOKEN_TYPES.SEMICOLON);
     
     return {

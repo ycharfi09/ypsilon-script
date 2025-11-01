@@ -639,9 +639,9 @@ class CodeGenerator {
           code += this.generateStatement(s);
         }
         this.indent--;
-        code += this.getIndent() + '}\n';
+        // Don't add closing brace here - it's added at the end
       } else {
-        const condition = `(${this.generateExpression(stmt.discriminant)}) == (${this.generateExpression(matchCase.pattern)})`;
+        const condition = `((${this.generateExpression(stmt.discriminant)}) == (${this.generateExpression(matchCase.pattern)}))`;
         if (isFirst) {
           code += this.getIndent() + `if ${condition} {\n`;
           isFirst = false;
@@ -656,9 +656,8 @@ class CodeGenerator {
       }
     }
     
-    if (!isFirst) {
-      code += this.getIndent() + '}\n';
-    }
+    // Always add final closing brace
+    code += this.getIndent() + '}\n';
     
     return code;
   }

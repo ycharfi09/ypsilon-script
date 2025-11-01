@@ -1,0 +1,18 @@
+# Simple Blink with Modern YS Syntax
+# Demonstrates: mut, on blocks, fn, self, time units
+
+alias LED = 13
+
+mut int blinkDelay = 1000
+
+on start {
+  pinMode(LED, OUTPUT)
+  print("Blink started")
+}
+
+on loop {
+  digitalWrite(LED, HIGH)
+  wait 1s
+  digitalWrite(LED, LOW)  
+  wait 1s
+}

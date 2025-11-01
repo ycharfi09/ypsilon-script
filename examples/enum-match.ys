@@ -1,0 +1,46 @@
+# Enum and Match Example
+# Shows modern pattern matching with enums
+
+enum State { IDLE, RUNNING, STOPPED, ERROR }
+
+mut State currentState = IDLE
+mut int counter = 0
+
+on start {
+  pinMode(13, OUTPUT)
+  print("State machine started")
+}
+
+on loop {
+  counter = counter + 1
+  
+  # State machine using match
+  match currentState {
+    IDLE => {
+      digitalWrite(13, LOW)
+      if (counter > 10) {
+        currentState = RUNNING
+        print("Starting...")
+      }
+    },
+    RUNNING => {
+      digitalWrite(13, HIGH)
+      if (counter > 100) {
+        currentState = STOPPED
+        print("Stopping...")
+      }
+    },
+    STOPPED => {
+      digitalWrite(13, LOW)
+      counter = 0
+      currentState = IDLE
+      print("Reset")
+    },
+    _ => {
+      currentState = ERROR
+      print("Error state")
+    }
+  }
+  
+  wait 100ms
+}
