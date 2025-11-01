@@ -1,0 +1,55 @@
+# Ypsilon Script Syntax Demonstration
+# This example showcases the YS language features
+
+enum Mode { AUTO, MANUAL }
+
+struct Point { x: int, y: int }
+
+class Motor {
+    mut speed: int
+    
+    constructor(speed: int) { 
+        self.speed = speed 
+    }
+    
+    fn run() { 
+        print("Motor running at speed:")
+        print(self.speed)
+    }
+    
+    fn setSpeed(newSpeed: int) {
+        self.speed = newSpeed
+    }
+}
+
+# Global variables
+mut motor: Motor = new Motor(100)
+mut mode: Mode = Mode.AUTO
+mut position: Point = Point { x: 0, y: 0 }
+mut level: int = 2
+
+on start {
+    motor.run()
+    print("System initialized")
+}
+
+on loop {
+    # Pattern matching with enums
+    match mode {
+        AUTO => print("Automatic mode active"),
+        MANUAL => print("Manual control enabled")
+    }
+    
+    # Switch statement with cases
+    switch level {
+        case 1 { print("Low power level") }
+        case 2 { print("Medium power level") }
+        case 3 { print("High power level") }
+        default { print("Maximum power level") }
+    }
+    
+    # Update motor speed
+    motor.setSpeed(150)
+    
+    delay(1000)
+}

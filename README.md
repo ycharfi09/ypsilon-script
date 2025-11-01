@@ -1,20 +1,22 @@
 # Ypsilon Script (YS)
 
-A modern, strictly-typed, object-oriented language for microcontrollers that makes Arduino development easier and more enjoyable.
+A simple high-level language that compiles to C++ for microcontrollers.
 
 ## Overview
 
-Ypsilon Script (YS) is designed to make Arduino development accessible, structured, and type-safe. It provides a modern, OOP-inspired syntax with strict typing that compiles directly to Arduino C++. Write clean, type-safe code with classes and objects, compile to fast AVR C++, and upload normally with the Arduino IDE.
+Ypsilon Script (YS) is designed to make microcontroller development accessible, structured, and type-safe. It provides a modern syntax with strong static typing that compiles directly to C++. Write clean, type-safe code with classes, enums, structs, and pattern matching, then compile to efficient C++ for your microcontroller.
 
 ## Features
 
-- **Object-Oriented Programming**: Full class support with constructors, properties, and methods
-- **Strict Type System**: All variables and functions must be explicitly typed
-- **Brace-Based Syntax**: Modern C-style block syntax with curly braces
-- **Built-in Arduino Functions**: Simple access to pins, sensors, and timing
-- **Direct Arduino Compilation**: Compiles to standard Arduino C++ code
+- **Strong Static Typing**: All variables and functions must be explicitly typed
+- **Object-Oriented Programming**: Classes with constructors and methods
+- **Structs and Enums**: Rust-like enums and C++-like structs
+- **Pattern Matching**: Match expressions like Rust for powerful control flow
+- **Event-Driven Programming**: `on <event> {}` blocks for event handling
+- **Brace-Based Syntax**: Required braces, no semicolons needed
+- **Mutability Control**: `mut` keyword for mutable variables
+- **Direct C++ Compilation**: Compiles to standard C++ code
 - **No Performance Overhead**: Generates efficient C++ code
-- **Type Safety**: Catch errors at compile time, not runtime
 
 ## Installation
 
@@ -33,122 +35,213 @@ npm link
 
 ## Quick Start
 
-Create a simple blink program in `blink.ys`:
+Create a simple program in `example.ys`:
 
 ```javascript
-# Classic Arduino Blink Example
-const int LED_PIN = 13
+# Ypsilon Script Example
 
-function start() {
-    pinMode(LED_PIN, OUTPUT)
+enum Mode { AUTO, MANUAL }
+
+struct Point { x: int, y: int }
+
+class Motor {
+    mut speed: int
+    
+    constructor(speed: int) { 
+        self.speed = speed 
+    }
+    
+    fn run() { 
+        print("Motor running") 
+    }
 }
 
-function loop() {
-    digitalWrite(LED_PIN, HIGH)
-    delay(1000)
-    digitalWrite(LED_PIN, LOW)
-    delay(1000)
+mut motor = new Motor(100)
+
+on start {
+    motor.run()
+}
+
+on loop {
+    match mode {
+        AUTO => print("auto"),
+        MANUAL => print("manual")
+    }
+    
+    switch level {
+        case 1 { print("low") }
+        case 2 { print("mid") }
+        default { print("high") }
+    }
 }
 ```
 
-Compile to Arduino C++:
+Compile to C++:
 
 ```bash
-ysc blink.ys
+ysc example.ys
 ```
 
-This generates `blink.ino` which you can open in the Arduino IDE and upload to your board.
+This generates C++ code ready for your microcontroller.
 
 ## Language Features
 
-### Strict Typing
+### Strong Static Typing
 
-All variables and functions must be explicitly typed:
+All variables must be explicitly typed. Use `mut` for mutable variables:
 
 ```javascript
 const int LED_PIN = 13
-int sensorValue = 0
-float temperature = 23.5
-bool isActive = true
+mut int counter = 0
+mut float temperature = 23.5
+const bool DEBUG = true
 ```
 
-### Functions with Type Signatures and Inference
+### Enums (Rust-style)
 
-Functions can have explicit type signatures or infer return types from return statements:
+Define enumerations with variants:
 
 ```javascript
-# Explicit return type
-function void blink_led(int pin, int duration) {
+enum Mode { 
+    AUTO, 
+    MANUAL 
+}
+
+enum State {
+    IDLE,
+    RUNNING,
+    PAUSED
+}
+
+mut currentMode: Mode = Mode.AUTO
+```
+
+### Structs (C++-style)
+
+Define data structures:
+
+```javascript
+struct Point { 
+    x: int, 
+    y: int 
+}
+
+struct Config {
+    threshold: int,
+    enabled: bool
+}
+
+mut position: Point = Point { x: 0, y: 0 }
+```
+
+### Classes with `self`
+
+Create classes with constructors and methods. Use `self` instead of `this`:
+
+```javascript
+class Motor {
+    mut speed: int
+    const maxSpeed: int
+    
+    constructor(speed: int, max: int) {
+        self.speed = speed
+        self.maxSpeed = max
+    }
+    
+    fn accelerate(amount: int) {
+        self.speed = self.speed + amount
+        if (self.speed > self.maxSpeed) {
+            self.speed = self.maxSpeed
+        }
+    }
+    
+    fn run() {
+        print("Running at speed: ")
+        print(self.speed)
+    }
+}
+
+mut motor = new Motor(100, 255)
+```
+
+### Functions with `fn`
+
+Define functions using the `fn` keyword:
+
+```javascript
+fn add(a: int, b: int) -> int {
+    return a + b
+}
+
+fn blink(pin: int, duration: int) {
     digitalWrite(pin, HIGH)
     delay(duration)
     digitalWrite(pin, LOW)
     delay(duration)
 }
+```
 
-# Type inference - return type inferred as int
-function add(int a, int b) {
-    return a + b
+### Event Blocks
+
+Use `on <event> {}` syntax for event handling:
+
+```javascript
+on start {
+    pinMode(13, OUTPUT)
+    print("System initialized")
+}
+
+on loop {
+    digitalWrite(13, HIGH)
+    delay(1000)
+    digitalWrite(13, LOW)
+    delay(1000)
 }
 ```
 
-### Optional Semicolons
+### Match Expressions (Rust-style)
 
-Semicolons are now optional - write cleaner code without them:
+Pattern matching for control flow:
 
 ```javascript
-const int LED_PIN = 13
+enum Status { OK, ERROR, PENDING }
 
-function loop() {
-    digitalWrite(LED_PIN, HIGH)
-    delay(1000)
-    digitalWrite(LED_PIN, LOW)
-    delay(1000)
+mut status: Status = Status.OK
+
+match status {
+    OK => print("All good"),
+    ERROR => print("Something wrong"),
+    PENDING => print("Waiting")
+}
+
+# Match with values
+mut level: int = 2
+
+match level {
+    1 => print("Low"),
+    2 => print("Medium"),
+    3 => print("High"),
+    _ => print("Unknown")
 }
 ```
 
-### Object-Oriented Programming
+### Switch Statements (C++-style)
 
-Create classes with properties, constructors, and methods:
+Traditional switch-case statements with braces:
 
 ```javascript
-class LED {
-    int pin;
-    int state;
-    
-    constructor(int ledPin) {
-        this.pin = ledPin;
-        this.state = LOW
-        pinMode(this.pin, OUTPUT)
-    }
-    
-    void turnOn() {
-        this.state = HIGH
-        digitalWrite(this.pin, HIGH)
-    }
-    
-    void turnOff() {
-        this.state = LOW
-        digitalWrite(this.pin, LOW)
-    }
-    
-    void toggle() {
-        if (this.state == HIGH) {
-            this.turnOff()
-        } else {
-            this.turnOn()
-        }
-    }
-}
+mut value: int = 1
 
-LED redLED
-
-function start() {
-    redLED = new LED(13)
-}
-
-function loop() {
-    redLED.toggle()
-    delay(1000)
+switch value {
+    case 1 { 
+        print("One") 
+    }
+    case 2 { 
+        print("Two") 
+    }
+    default { 
+        print("Other") 
+    }
 }
 ```
 
@@ -172,120 +265,149 @@ while (digitalRead(BUTTON_PIN) == HIGH) {
 
 **For Loops:**
 ```javascript
-for (int i = 0; i < 10; i = i + 1) {
+for (mut i: int = 0; i < 10; i = i + 1) {
     print(i)
-}
-
-for (int brightness = 0; brightness < 256; brightness = brightness + 5) {
-    analogWrite(LED_PIN, brightness)
-    delay(30)
-}
-```
-
-**Repeat Loops:**
-```javascript
-# Repeat a block of code N times
-repeat(5) {
-    digitalWrite(LED_PIN, HIGH)
-    delay(100)
-    digitalWrite(LED_PIN, LOW)
-    delay(100)
 }
 ```
 
 ### Built-in Functions
 
-Ypsilon Script includes all standard Arduino functions:
+YS provides access to standard microcontroller functions:
 
 - **Pin Control**: `pinMode()`, `digitalWrite()`, `digitalRead()`
 - **Analog I/O**: `analogRead()`, `analogWrite()`
 - **Timing**: `delay()`, `millis()`
-- **Serial**: `print()` (maps to `Serial.println()`)
+- **Serial**: `print()` (outputs to serial)
 - **Constants**: `HIGH`, `LOW`, `INPUT`, `OUTPUT`, `INPUT_PULLUP`
 
-### Comments
+## Syntax Summary
 
-```javascript
-# Single-line comments start with #
-```
+YS syntax:
+
+- **Braces required**: All blocks use `{` and `}`
+- **No semicolons**: Semicolons are not used
+- **Strong static typing**: All variables and functions must be typed
+- **Classes**: Support constructors and methods
+- **Object creation**: Use `new` keyword
+- **Member access**: Use `self` (not `this`)
+- **Mutability**: Use `mut` keyword for mutable variables
+- **Structs**: Like C++
+- **Enums**: Like Rust
+- **Event blocks**: `on <event> {}` syntax
+- **Match expressions**: Like Rust
+- **Switch statements**: Like C++
+- **Functions**: Use `fn` keyword
+- **No async**: Not supported yet
+- **No imports**: Not supported yet
 
 ## Examples
 
-### Button Input with OOP
+### Complete Example
 
 ```javascript
-class Button {
-    int pin;
-    int lastState;
+enum Mode { AUTO, MANUAL }
+
+struct Point { x: int, y: int }
+
+class Motor {
+    mut speed: int
     
-    constructor(int buttonPin) {
-        this.pin = buttonPin;
-        this.lastState = HIGH;
-        pinMode(this.pin, INPUT_PULLUP);
+    constructor(speed: int) { 
+        self.speed = speed 
     }
     
-    bool isPressed() {
-        int currentState = digitalRead(this.pin);
-        return currentState == LOW;
+    fn run() { 
+        print("Motor running at speed:")
+        print(self.speed)
+    }
+    
+    fn setSpeed(newSpeed: int) {
+        self.speed = newSpeed
     }
 }
 
-const int LED_PIN = 13;
-Button button;
+mut motor = new Motor(100)
+mut currentMode: Mode = Mode.AUTO
+mut position: Point = Point { x: 0, y: 0 }
 
-function void setup() {
-    pinMode(LED_PIN, OUTPUT);
-    button = new Button(2);
+on start {
+    motor.run()
+    print("Initialized")
 }
 
-function void loop() {
-    if (button.isPressed()) {
-        digitalWrite(LED_PIN, HIGH);
-    } else {
-        digitalWrite(LED_PIN, LOW);
+on loop {
+    match currentMode {
+        AUTO => {
+            motor.setSpeed(200)
+            print("Auto mode")
+        },
+        MANUAL => {
+            motor.setSpeed(100)
+            print("Manual mode")
+        }
     }
-    delay(10);
+    
+    mut level: int = analogRead(0) / 256
+    
+    switch level {
+        case 1 { print("Low power") }
+        case 2 { print("Medium power") }
+        case 3 { print("High power") }
+        default { print("Max power") }
+    }
+    
+    delay(1000)
 }
 ```
 
-### PWM Fade
+### Enum Example
 
 ```javascript
-const int LED_PIN = 9;
+enum State { IDLE, RUNNING, STOPPED }
 
-function void setup() {
-    pinMode(LED_PIN, OUTPUT);
+mut machineState: State = State.IDLE
+
+fn updateState(newState: State) {
+    machineState = newState
 }
 
-function void loop() {
-    # Fade in
-    for (int brightness = 0; brightness < 256; brightness = brightness + 5) {
-        analogWrite(LED_PIN, brightness);
-        delay(30);
+on loop {
+    match machineState {
+        IDLE => print("Waiting..."),
+        RUNNING => print("Running..."),
+        STOPPED => print("Stopped")
     }
-    
-    # Fade out
-    for (int brightness = 255; brightness > 0; brightness = brightness - 5) {
-        analogWrite(LED_PIN, brightness);
-        delay(30);
-    }
+}
+```
+
+### Struct Example
+
+```javascript
+struct Config {
+    threshold: int,
+    sensitivity: float,
+    enabled: bool
+}
+
+mut config: Config = Config {
+    threshold: 512,
+    sensitivity: 0.75,
+    enabled: true
+}
+
+fn checkThreshold(value: int) -> bool {
+    return value > config.threshold
 }
 ```
 
 ## CLI Usage
 
 ```bash
-# Compile a YS file to Arduino C++
+# Compile a YS file to C++
 ysc input.ys
 
 # Specify output file
-ysc input.ys output.ino
-
-# View tokens (for debugging)
-ysc input.ys --tokens
-
-# View AST (for debugging)
-ysc input.ys --ast
+ysc input.ys output.cpp
 
 # Show help
 ysc --help
@@ -298,107 +420,79 @@ ysc --version
 
 1. **Lexer**: Tokenizes YS source code
 2. **Parser**: Builds an Abstract Syntax Tree (AST) with type information
-3. **Type Checker**: Validates types and structure (future enhancement)
-4. **Code Generator**: Transpiles AST to Arduino C++
-5. **Output**: Standard `.ino` file ready for Arduino IDE
+3. **Type Checker**: Validates types and structure
+4. **Code Generator**: Transpiles AST to C++
+5. **Output**: Standard C++ code ready for compilation
 
 ## Syntax Highlights
 
-- **Brace-based blocks** (like C/C++/Java)
-- **Optional semicolons**: Write clean code without semicolons
-- **Type inference**: Function return types can be inferred from return statements
-- **start() function**: Use `start()` instead of `setup()` (both supported)
-- **repeat loop**: Simple syntax for repeating code N times
-- **Strict type annotations**: Variables must declare their type
+- **Brace-based blocks** (like C/C++/Rust)
+- **No semicolons**: Clean, readable code
+- **`fn` keyword**: For function definitions
+- **`self` keyword**: For class member access (not `this`)
+- **`mut` keyword**: Explicit mutability
+- **Strong typing**: All variables and functions must declare types
+- **Enums**: Rust-style enumerations
+- **Structs**: C++-style data structures
+- **Pattern matching**: `match` expressions for control flow
+- **Switch statements**: C++-style switch with braces
+- **Event blocks**: `on <event> {}` syntax
 - **OOP support**: Classes, constructors, methods, and object instantiation
-- **Logical operators**: Use `and`, `or`, `not` instead of `&&`, `||`, `!`
-- **Auto-generated boilerplate**: `#include <Arduino.h>`, proper C++ class structure
+- **No async**: Async/await not supported yet
+- **No imports**: Module system not supported yet
 
 ## Why Ypsilon Script?
 
-**Before (Arduino C++):**
+**Traditional approach:**
 ```cpp
+// Verbose, less structured
 const int LED_PIN = 13;
-const int BUTTON_PIN = 2;
+int state = 0;
 
 void setup() {
   pinMode(LED_PIN, OUTPUT);
-  pinMode(BUTTON_PIN, INPUT_PULLUP);
 }
 
 void loop() {
-  int buttonState = digitalRead(BUTTON_PIN);
-  if (buttonState == LOW) {
-    digitalWrite(LED_PIN, HIGH);
-  } else {
-    digitalWrite(LED_PIN, LOW);
+  switch(state) {
+    case 0:
+      digitalWrite(LED_PIN, HIGH);
+      break;
+    case 1:
+      digitalWrite(LED_PIN, LOW);
+      break;
   }
-  delay(10);
+  delay(1000);
 }
 ```
 
-**After (Ypsilon Script):**
+**Ypsilon Script:**
 ```javascript
-const int LED_PIN = 13
-const int BUTTON_PIN = 2
+# Clean, type-safe, expressive
+enum LedState { ON, OFF }
 
-function start() {
+mut state: LedState = LedState.ON
+const LED_PIN: int = 13
+
+on start {
     pinMode(LED_PIN, OUTPUT)
-    pinMode(BUTTON_PIN, INPUT_PULLUP)
 }
 
-function loop() {
-    int buttonState = digitalRead(BUTTON_PIN)
-    if (buttonState == LOW) {
-        digitalWrite(LED_PIN, HIGH)
-    } else {
-        digitalWrite(LED_PIN, LOW)
+on loop {
+    match state {
+        ON => digitalWrite(LED_PIN, HIGH),
+        OFF => digitalWrite(LED_PIN, LOW)
     }
-    delay(10)
+    delay(1000)
 }
 ```
 
-With OOP, even cleaner:
-```javascript
-class LED {
-    int pin
-    
-    constructor(int p) {
-        this.pin = p
-        pinMode(this.pin, OUTPUT)
-    }
-    
-    void setOn(bool on) {
-        digitalWrite(this.pin, on ? HIGH : LOW)
-    }
-}
-
-class Button {
-    int pin
-    
-    constructor(int p) {
-        this.pin = p
-        pinMode(this.pin, INPUT_PULLUP)
-    }
-    
-    bool isPressed() {
-        return digitalRead(this.pin) == LOW
-    }
-}
-
-LED led
-Button button
-
-function start() {
-    led = new LED(13)
-    button = new Button(2)
-}
-
-function loop() {
-    led.setOn(button.isPressed())
-    delay(10)
-}
-```
+YS provides:
+- **Better type safety** with strong static typing
+- **Cleaner syntax** with no semicolons and modern features
+- **Better code organization** with classes, structs, and enums
+- **Pattern matching** for expressive control flow
+- **Event-driven syntax** that's intuitive and readable
 
 ## Development
 
@@ -413,9 +507,8 @@ npm install
 # Run tests
 npm test
 
-# Try examples
-node bin/ysc.js examples/blink.ys
-node bin/ysc.js examples/led_class.ys
+# Try examples (if implemented)
+node bin/ysc.js examples/motor.ys
 ```
 
 ## Project Structure
@@ -425,17 +518,13 @@ ypsilon-script/
 ├── bin/
 │   └── ysc.js          # CLI tool
 ├── src/
-│   ├── lexer.js        # Tokenizer with type keywords
-│   ├── parser.js       # AST builder with OOP support
+│   ├── lexer.js        # Tokenizer with YS keywords
+│   ├── parser.js       # AST builder with full YS support
 │   ├── codegen.js      # C++ code generator
 │   ├── compiler.js     # Main compiler
 │   └── index.js        # Package entry point
 ├── examples/
-│   ├── blink.ys        # LED blink example
-│   ├── button.ys       # Button input example
-│   ├── led_class.ys    # OOP LED class example
-│   ├── fade.ys         # PWM fade example
-│   └── sensor.ys       # Sensor reading example
+│   └── ...             # YS example files
 └── tests/
     └── ...             # Test files
 ```
