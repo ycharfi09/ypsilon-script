@@ -1,19 +1,23 @@
 # Sensor Reading Example
 # Read analog sensor and control LED based on threshold
 
-const SENSOR_PIN = 0
-const LED_PIN = 13
-const THRESHOLD = 512
+const int SENSOR_PIN = 0;
+const int LED_PIN = 13;
+const int THRESHOLD = 512;
 
-function setup():
-    pinMode(LED_PIN, OUTPUT)
+function void setup() {
+    pinMode(LED_PIN, OUTPUT);
+}
 
-function loop():
-    var sensorValue = analogRead(SENSOR_PIN)
+function void loop() {
+    int sensorValue = analogRead(SENSOR_PIN);
     
-    if sensorValue > THRESHOLD:
-        digitalWrite(LED_PIN, HIGH)
-    else:
-        digitalWrite(LED_PIN, LOW)
+    if (sensorValue > THRESHOLD) {
+        digitalWrite(LED_PIN, HIGH);
+    } else {
+        digitalWrite(LED_PIN, LOW);
+    }
     
-    delay(100)
+    delay(100);
+}
+

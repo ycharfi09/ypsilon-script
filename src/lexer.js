@@ -19,6 +19,17 @@ const TOKEN_TYPES = {
   RETURN: 'RETURN',
   VAR: 'VAR',
   CONST: 'CONST',
+  CLASS: 'CLASS',
+  NEW: 'NEW',
+  THIS: 'THIS',
+  CONSTRUCTOR: 'CONSTRUCTOR',
+  
+  // Type Keywords
+  TYPE_INT: 'TYPE_INT',
+  TYPE_FLOAT: 'TYPE_FLOAT',
+  TYPE_BOOL: 'TYPE_BOOL',
+  TYPE_STRING: 'TYPE_STRING',
+  TYPE_VOID: 'TYPE_VOID',
   
   // Operators
   PLUS: 'PLUS',
@@ -51,8 +62,6 @@ const TOKEN_TYPES = {
   
   // Special
   NEWLINE: 'NEWLINE',
-  INDENT: 'INDENT',
-  DEDENT: 'DEDENT',
   EOF: 'EOF',
   COMMENT: 'COMMENT'
 };
@@ -66,6 +75,15 @@ const KEYWORDS = {
   'return': TOKEN_TYPES.RETURN,
   'var': TOKEN_TYPES.VAR,
   'const': TOKEN_TYPES.CONST,
+  'class': TOKEN_TYPES.CLASS,
+  'new': TOKEN_TYPES.NEW,
+  'this': TOKEN_TYPES.THIS,
+  'constructor': TOKEN_TYPES.CONSTRUCTOR,
+  'int': TOKEN_TYPES.TYPE_INT,
+  'float': TOKEN_TYPES.TYPE_FLOAT,
+  'bool': TOKEN_TYPES.TYPE_BOOL,
+  'string': TOKEN_TYPES.TYPE_STRING,
+  'void': TOKEN_TYPES.TYPE_VOID,
   'true': TOKEN_TYPES.BOOLEAN,
   'false': TOKEN_TYPES.BOOLEAN,
   'and': TOKEN_TYPES.AND,
@@ -79,7 +97,6 @@ class Lexer {
     this.pos = 0;
     this.line = 1;
     this.column = 1;
-    this.indentStack = [0];
   }
 
   peek(offset = 0) {
@@ -195,47 +212,14 @@ class Lexer {
       
       if (!char) break;
 
-      // Newlines and indentation
+      // Newlines - now just simple tokens, no indentation tracking
       if (char === '\n') {
         this.advance();
-        
-        // Skip empty lines
+        // Skip multiple consecutive newlines
         while (this.peek() === '\n') {
           this.advance();
         }
-        
-        // Calculate indentation
-        let indent = 0;
-        while (this.peek() === ' ') {
-          this.advance();
-          indent++;
-        }
-        
-        // Skip lines with only comments
-        if (this.peek() === '#') {
-          this.skipComment();
-          continue;
-        }
-        
-        // Skip if next line is empty
-        if (this.peek() === '\n' || !this.peek()) {
-          continue;
-        }
-        
-        tokens.push({ type: TOKEN_TYPES.NEWLINE, line: this.line, column: this.column });
-        
-        const currentIndent = this.indentStack[this.indentStack.length - 1];
-        
-        if (indent > currentIndent) {
-          this.indentStack.push(indent);
-          tokens.push({ type: TOKEN_TYPES.INDENT, line: this.line, column: this.column });
-        } else if (indent < currentIndent) {
-          while (this.indentStack.length > 1 && this.indentStack[this.indentStack.length - 1] > indent) {
-            this.indentStack.pop();
-            tokens.push({ type: TOKEN_TYPES.DEDENT, line: this.line, column: this.column });
-          }
-        }
-        continue;
+        continue; // Don't add newline tokens - they're just whitespace now
       }
 
       // Numbers
@@ -314,12 +298,6 @@ class Lexer {
       }
 
       throw new Error(`Unexpected character '${char}' at line ${this.line}, column ${this.column}`);
-    }
-
-    // Add remaining dedents
-    while (this.indentStack.length > 1) {
-      this.indentStack.pop();
-      tokens.push({ type: TOKEN_TYPES.DEDENT, line: this.line, column: this.column });
     }
 
     tokens.push({ type: TOKEN_TYPES.EOF, line: this.line, column: this.column });

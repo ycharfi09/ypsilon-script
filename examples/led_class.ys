@@ -1,0 +1,51 @@
+# LED Class Example - Demonstrates OOP features with strict typing
+# Shows how to create and use a class in the new YS syntax
+
+class LED {
+    int pin;
+    int state;
+    
+    constructor(int ledPin) {
+        this.pin = ledPin;
+        this.state = LOW;
+        pinMode(this.pin, OUTPUT);
+    }
+    
+    void turnOn() {
+        this.state = HIGH;
+        digitalWrite(this.pin, HIGH);
+    }
+    
+    void turnOff() {
+        this.state = LOW;
+        digitalWrite(this.pin, LOW);
+    }
+    
+    void toggle() {
+        if (this.state == HIGH) {
+            this.turnOff();
+        } else {
+            this.turnOn();
+        }
+    }
+    
+    int getState() {
+        return this.state;
+    }
+}
+
+# Global instances
+LED redLED;
+LED greenLED;
+
+function void setup() {
+    redLED = new LED(12);
+    greenLED = new LED(11);
+}
+
+function void loop() {
+    redLED.toggle();
+    delay(500);
+    greenLED.toggle();
+    delay(500);
+}

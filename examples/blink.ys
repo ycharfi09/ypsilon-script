@@ -1,13 +1,16 @@
 # Blink Example - Classic Arduino LED Blink
 # This demonstrates basic pin control and timing
 
-const LED_PIN = 13
+const int LED_PIN = 13;
 
-function setup():
-    pinMode(LED_PIN, OUTPUT)
+function void setup() {
+    pinMode(LED_PIN, OUTPUT);
+}
 
-function loop():
-    digitalWrite(LED_PIN, HIGH)
-    delay(1000)
-    digitalWrite(LED_PIN, LOW)
-    delay(1000)
+function void loop() {
+    digitalWrite(LED_PIN, HIGH);
+    delay(1000);
+    digitalWrite(LED_PIN, LOW);
+    delay(1000);
+}
+

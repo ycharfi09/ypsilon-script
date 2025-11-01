@@ -1,9 +1,32 @@
 /**
- * Ypsilon Script Parser
+ * Ypsilon Script Parser - OOP, Strictly-Typed, Brace-Based
  * Builds an Abstract Syntax Tree (AST) from tokens
  */
 
 const { TOKEN_TYPES } = require('./lexer');
+
+// Helper to check if token is a type keyword
+function isTypeToken(tokenType) {
+  return [
+    TOKEN_TYPES.TYPE_INT,
+    TOKEN_TYPES.TYPE_FLOAT,
+    TOKEN_TYPES.TYPE_BOOL,
+    TOKEN_TYPES.TYPE_STRING,
+    TOKEN_TYPES.TYPE_VOID
+  ].includes(tokenType);
+}
+
+// Convert token type to string representation
+function tokenTypeToString(tokenType) {
+  const typeMap = {
+    [TOKEN_TYPES.TYPE_INT]: 'int',
+    [TOKEN_TYPES.TYPE_FLOAT]: 'float',
+    [TOKEN_TYPES.TYPE_BOOL]: 'bool',
+    [TOKEN_TYPES.TYPE_STRING]: 'string',
+    [TOKEN_TYPES.TYPE_VOID]: 'void'
+  };
+  return typeMap[tokenType] || 'int';
+}
 
 class Parser {
   constructor(tokens) {
@@ -16,7 +39,6 @@ class Parser {
     if (pos < this.tokens.length) {
       return this.tokens[pos];
     }
-    // Return EOF token if out of bounds
     return this.tokens.length > 0 ? this.tokens[this.tokens.length - 1] : { type: TOKEN_TYPES.EOF };
   }
 
@@ -32,38 +54,241 @@ class Parser {
     return this.advance();
   }
 
-  skipNewlines() {
-    while (this.peek().type === TOKEN_TYPES.NEWLINE) {
-      this.advance();
-    }
-  }
-
   parse() {
     const ast = {
       type: 'Program',
       body: []
     };
 
-    this.skipNewlines();
-
     while (this.peek().type !== TOKEN_TYPES.EOF) {
-      const stmt = this.parseStatement();
+      const stmt = this.parseTopLevelStatement();
       if (stmt) {
         ast.body.push(stmt);
       }
-      this.skipNewlines();
     }
 
     return ast;
   }
 
-  parseStatement() {
-    this.skipNewlines();
+  parseTopLevelStatement() {
     const token = this.peek();
 
     switch (token.type) {
+      case TOKEN_TYPES.CLASS:
+        return this.parseClassDeclaration();
       case TOKEN_TYPES.FUNCTION:
         return this.parseFunctionDeclaration();
+      case TOKEN_TYPES.CONST:
+        return this.parseVariableDeclaration();
+      default:
+        // Check if it's a typed variable declaration (e.g., "int x;")
+        if (isTypeToken(token.type)) {
+          return this.parseTypedVariableDeclaration();
+        }
+        // Check for class type (identifier that could be a class name)
+        if (token.type === TOKEN_TYPES.IDENTIFIER) {
+          return this.parseClassInstanceDeclaration();
+        }
+        throw new Error(`Unexpected top-level token ${token.type} at line ${token.line}`);
+    }
+  }
+
+  parseClassInstanceDeclaration() {
+    const className = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+    const varName = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+    
+    let init = null;
+    if (this.peek().type === TOKEN_TYPES.ASSIGN) {
+      this.advance();
+      init = this.parseExpression();
+    }
+    this.expect(TOKEN_TYPES.SEMICOLON);
+
+    return {
+      type: 'VariableDeclaration',
+      kind: 'var',
+      varType: className, // class type
+      name: varName,
+      init
+    };
+  }
+
+  parseClassDeclaration() {
+    this.expect(TOKEN_TYPES.CLASS);
+    const name = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+    this.expect(TOKEN_TYPES.LBRACE);
+
+    const properties = [];
+    const methods = [];
+    let constructor = null;
+
+    while (this.peek().type !== TOKEN_TYPES.RBRACE && this.peek().type !== TOKEN_TYPES.EOF) {
+      const token = this.peek();
+      
+      if (token.type === TOKEN_TYPES.CONSTRUCTOR) {
+        if (constructor) {
+          throw new Error(`Class ${name} cannot have multiple constructors at line ${token.line}`);
+        }
+        constructor = this.parseConstructor();
+      } else if (isTypeToken(token.type)) {
+        // Could be a property or method
+        const typeToken = this.advance();
+        const memberName = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+        
+        if (this.peek().type === TOKEN_TYPES.LPAREN) {
+          // It's a method
+          methods.push(this.parseMethodDeclaration(typeToken, memberName));
+        } else {
+          // It's a property
+          properties.push(this.parsePropertyDeclaration(typeToken, memberName));
+        }
+      } else {
+        throw new Error(`Unexpected token ${token.type} in class body at line ${token.line}`);
+      }
+    }
+
+    this.expect(TOKEN_TYPES.RBRACE);
+
+    return {
+      type: 'ClassDeclaration',
+      name,
+      properties,
+      methods,
+      constructor
+    };
+  }
+
+  parseConstructor() {
+    this.expect(TOKEN_TYPES.CONSTRUCTOR);
+    this.expect(TOKEN_TYPES.LPAREN);
+    
+    const params = [];
+    while (this.peek().type !== TOKEN_TYPES.RPAREN) {
+      const paramType = this.parseType();
+      const paramName = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+      params.push({ type: paramType, name: paramName });
+      
+      if (this.peek().type === TOKEN_TYPES.COMMA) {
+        this.advance();
+      }
+    }
+    this.expect(TOKEN_TYPES.RPAREN);
+    
+    const body = this.parseBlock();
+
+    return {
+      type: 'Constructor',
+      params,
+      body
+    };
+  }
+
+  parsePropertyDeclaration(typeToken, name) {
+    const propType = tokenTypeToString(typeToken.type);
+    
+    let init = null;
+    if (this.peek().type === TOKEN_TYPES.ASSIGN) {
+      this.advance();
+      init = this.parseExpression();
+    }
+    
+    this.expect(TOKEN_TYPES.SEMICOLON);
+
+    return {
+      type: 'PropertyDeclaration',
+      propertyType: propType,
+      name,
+      init
+    };
+  }
+
+  parseMethodDeclaration(typeToken, name) {
+    const returnType = tokenTypeToString(typeToken.type);
+    this.expect(TOKEN_TYPES.LPAREN);
+    
+    const params = [];
+    while (this.peek().type !== TOKEN_TYPES.RPAREN) {
+      const paramType = this.parseType();
+      const paramName = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+      params.push({ type: paramType, name: paramName });
+      
+      if (this.peek().type === TOKEN_TYPES.COMMA) {
+        this.advance();
+      }
+    }
+    this.expect(TOKEN_TYPES.RPAREN);
+    
+    const body = this.parseBlock();
+
+    return {
+      type: 'MethodDeclaration',
+      returnType,
+      name,
+      params,
+      body
+    };
+  }
+
+  parseFunctionDeclaration() {
+    this.expect(TOKEN_TYPES.FUNCTION);
+    
+    // Parse return type
+    const returnType = this.parseType();
+    
+    const name = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+    this.expect(TOKEN_TYPES.LPAREN);
+    
+    const params = [];
+    while (this.peek().type !== TOKEN_TYPES.RPAREN) {
+      const paramType = this.parseType();
+      const paramName = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+      params.push({ type: paramType, name: paramName });
+      
+      if (this.peek().type === TOKEN_TYPES.COMMA) {
+        this.advance();
+      }
+    }
+    this.expect(TOKEN_TYPES.RPAREN);
+    
+    const body = this.parseBlock();
+
+    return {
+      type: 'FunctionDeclaration',
+      returnType,
+      name,
+      params,
+      body
+    };
+  }
+
+  parseType() {
+    const token = this.peek();
+    if (isTypeToken(token.type)) {
+      this.advance();
+      return tokenTypeToString(token.type);
+    }
+    throw new Error(`Expected type but got ${token.type} at line ${token.line}`);
+  }
+
+  parseBlock() {
+    this.expect(TOKEN_TYPES.LBRACE);
+    const statements = [];
+    
+    while (this.peek().type !== TOKEN_TYPES.RBRACE && this.peek().type !== TOKEN_TYPES.EOF) {
+      const stmt = this.parseStatement();
+      if (stmt) {
+        statements.push(stmt);
+      }
+    }
+    
+    this.expect(TOKEN_TYPES.RBRACE);
+    return statements;
+  }
+
+  parseStatement() {
+    const token = this.peek();
+
+    switch (token.type) {
       case TOKEN_TYPES.IF:
         return this.parseIfStatement();
       case TOKEN_TYPES.WHILE:
@@ -72,91 +297,33 @@ class Parser {
         return this.parseForStatement();
       case TOKEN_TYPES.RETURN:
         return this.parseReturnStatement();
-      case TOKEN_TYPES.VAR:
       case TOKEN_TYPES.CONST:
         return this.parseVariableDeclaration();
       default:
+        // Check if it's a typed variable declaration
+        if (isTypeToken(token.type)) {
+          return this.parseTypedVariableDeclaration();
+        }
         return this.parseExpressionStatement();
     }
   }
 
-  parseFunctionDeclaration() {
-    this.expect(TOKEN_TYPES.FUNCTION);
-    const name = this.expect(TOKEN_TYPES.IDENTIFIER);
-    this.expect(TOKEN_TYPES.LPAREN);
-    
-    const params = [];
-    while (this.peek().type !== TOKEN_TYPES.RPAREN) {
-      params.push(this.expect(TOKEN_TYPES.IDENTIFIER).value);
-      if (this.peek().type === TOKEN_TYPES.COMMA) {
-        this.advance();
-      }
-    }
-    this.expect(TOKEN_TYPES.RPAREN);
-    this.expect(TOKEN_TYPES.COLON);
-    this.expect(TOKEN_TYPES.NEWLINE);
-    this.expect(TOKEN_TYPES.INDENT);
-
-    const body = [];
-    while (this.peek().type !== TOKEN_TYPES.DEDENT && this.peek().type !== TOKEN_TYPES.EOF) {
-      const stmt = this.parseStatement();
-      if (stmt) {
-        body.push(stmt);
-      }
-      this.skipNewlines();
-    }
-
-    if (this.peek().type === TOKEN_TYPES.DEDENT) {
-      this.advance();
-    }
-
-    return {
-      type: 'FunctionDeclaration',
-      name: name.value,
-      params,
-      body
-    };
-  }
-
   parseIfStatement() {
     this.expect(TOKEN_TYPES.IF);
+    this.expect(TOKEN_TYPES.LPAREN);
     const test = this.parseExpression();
-    this.expect(TOKEN_TYPES.COLON);
-    this.expect(TOKEN_TYPES.NEWLINE);
-    this.expect(TOKEN_TYPES.INDENT);
-
-    const consequent = [];
-    while (this.peek().type !== TOKEN_TYPES.DEDENT && this.peek().type !== TOKEN_TYPES.EOF) {
-      const stmt = this.parseStatement();
-      if (stmt) {
-        consequent.push(stmt);
-      }
-      this.skipNewlines();
-    }
-
-    if (this.peek().type === TOKEN_TYPES.DEDENT) {
-      this.advance();
-    }
-
+    this.expect(TOKEN_TYPES.RPAREN);
+    
+    const consequent = this.parseBlock();
+    
     let alternate = null;
-    this.skipNewlines();
     if (this.peek().type === TOKEN_TYPES.ELSE) {
       this.advance();
-      this.expect(TOKEN_TYPES.COLON);
-      this.expect(TOKEN_TYPES.NEWLINE);
-      this.expect(TOKEN_TYPES.INDENT);
-
-      alternate = [];
-      while (this.peek().type !== TOKEN_TYPES.DEDENT && this.peek().type !== TOKEN_TYPES.EOF) {
-        const stmt = this.parseStatement();
-        if (stmt) {
-          alternate.push(stmt);
-        }
-        this.skipNewlines();
-      }
-
-      if (this.peek().type === TOKEN_TYPES.DEDENT) {
-        this.advance();
+      if (this.peek().type === TOKEN_TYPES.IF) {
+        // else if
+        alternate = [this.parseIfStatement()];
+      } else {
+        alternate = this.parseBlock();
       }
     }
 
@@ -170,23 +337,11 @@ class Parser {
 
   parseWhileStatement() {
     this.expect(TOKEN_TYPES.WHILE);
+    this.expect(TOKEN_TYPES.LPAREN);
     const test = this.parseExpression();
-    this.expect(TOKEN_TYPES.COLON);
-    this.expect(TOKEN_TYPES.NEWLINE);
-    this.expect(TOKEN_TYPES.INDENT);
-
-    const body = [];
-    while (this.peek().type !== TOKEN_TYPES.DEDENT && this.peek().type !== TOKEN_TYPES.EOF) {
-      const stmt = this.parseStatement();
-      if (stmt) {
-        body.push(stmt);
-      }
-      this.skipNewlines();
-    }
-
-    if (this.peek().type === TOKEN_TYPES.DEDENT) {
-      this.advance();
-    }
+    this.expect(TOKEN_TYPES.RPAREN);
+    
+    const body = this.parseBlock();
 
     return {
       type: 'WhileStatement',
@@ -197,47 +352,42 @@ class Parser {
 
   parseForStatement() {
     this.expect(TOKEN_TYPES.FOR);
+    this.expect(TOKEN_TYPES.LPAREN);
+    
+    // Simple for loop: for (int i = 0; i < 10; i = i + 1)
+    const varType = this.parseType();
     const variable = this.expect(TOKEN_TYPES.IDENTIFIER).value;
-    // For now, support simple range-based for loops
-    // for i in range(10):
-    if (this.peek().type === TOKEN_TYPES.IDENTIFIER && this.peek().value === 'in') {
-      this.advance(); // consume 'in'
-      const iterator = this.parseExpression();
-      this.expect(TOKEN_TYPES.COLON);
-      this.expect(TOKEN_TYPES.NEWLINE);
-      this.expect(TOKEN_TYPES.INDENT);
+    this.expect(TOKEN_TYPES.ASSIGN);
+    const init = this.parseExpression();
+    this.expect(TOKEN_TYPES.SEMICOLON);
+    
+    const test = this.parseExpression();
+    this.expect(TOKEN_TYPES.SEMICOLON);
+    
+    const update = this.parseExpression();
+    this.expect(TOKEN_TYPES.RPAREN);
+    
+    const body = this.parseBlock();
 
-      const body = [];
-      while (this.peek().type !== TOKEN_TYPES.DEDENT && this.peek().type !== TOKEN_TYPES.EOF) {
-        const stmt = this.parseStatement();
-        if (stmt) {
-          body.push(stmt);
-        }
-        this.skipNewlines();
-      }
-
-      if (this.peek().type === TOKEN_TYPES.DEDENT) {
-        this.advance();
-      }
-
-      return {
-        type: 'ForStatement',
-        variable,
-        iterator,
-        body
-      };
-    }
-
-    throw new Error('Invalid for loop syntax');
+    return {
+      type: 'ForStatement',
+      varType,
+      variable,
+      init,
+      test,
+      update,
+      body
+    };
   }
 
   parseReturnStatement() {
     this.expect(TOKEN_TYPES.RETURN);
     let argument = null;
     
-    if (this.peek().type !== TOKEN_TYPES.NEWLINE && this.peek().type !== TOKEN_TYPES.EOF) {
+    if (this.peek().type !== TOKEN_TYPES.SEMICOLON && this.peek().type !== TOKEN_TYPES.EOF) {
       argument = this.parseExpression();
     }
+    this.expect(TOKEN_TYPES.SEMICOLON);
 
     return {
       type: 'ReturnStatement',
@@ -246,7 +396,8 @@ class Parser {
   }
 
   parseVariableDeclaration() {
-    const kind = this.advance().type === TOKEN_TYPES.CONST ? 'const' : 'var';
+    this.expect(TOKEN_TYPES.CONST);
+    const varType = this.parseType();
     const name = this.expect(TOKEN_TYPES.IDENTIFIER).value;
     
     let init = null;
@@ -254,10 +405,32 @@ class Parser {
       this.advance();
       init = this.parseExpression();
     }
+    this.expect(TOKEN_TYPES.SEMICOLON);
 
     return {
       type: 'VariableDeclaration',
-      kind,
+      kind: 'const',
+      varType,
+      name,
+      init
+    };
+  }
+
+  parseTypedVariableDeclaration() {
+    const varType = this.parseType();
+    const name = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+    
+    let init = null;
+    if (this.peek().type === TOKEN_TYPES.ASSIGN) {
+      this.advance();
+      init = this.parseExpression();
+    }
+    this.expect(TOKEN_TYPES.SEMICOLON);
+
+    return {
+      type: 'VariableDeclaration',
+      kind: 'var',
+      varType,
       name,
       init
     };
@@ -265,6 +438,7 @@ class Parser {
 
   parseExpressionStatement() {
     const expression = this.parseExpression();
+    this.expect(TOKEN_TYPES.SEMICOLON);
     return {
       type: 'ExpressionStatement',
       expression
@@ -295,7 +469,8 @@ class Parser {
     let left = this.parseLogicalAnd();
 
     while (this.peek().type === TOKEN_TYPES.OR) {
-      const operator = this.advance().value || 'or';
+      const operator = 'or';
+      this.advance();
       const right = this.parseLogicalAnd();
       left = {
         type: 'BinaryExpression',
@@ -312,7 +487,8 @@ class Parser {
     let left = this.parseEquality();
 
     while (this.peek().type === TOKEN_TYPES.AND) {
-      const operator = this.advance().value || 'and';
+      const operator = 'and';
+      this.advance();
       const right = this.parseEquality();
       left = {
         type: 'BinaryExpression',
@@ -425,6 +601,7 @@ class Parser {
 
     while (true) {
       if (this.peek().type === TOKEN_TYPES.LPAREN) {
+        // Function call
         this.advance();
         const args = [];
         
@@ -442,6 +619,7 @@ class Parser {
           arguments: args
         };
       } else if (this.peek().type === TOKEN_TYPES.DOT) {
+        // Member access
         this.advance();
         const property = this.expect(TOKEN_TYPES.IDENTIFIER).value;
         expr = {
@@ -473,6 +651,13 @@ class Parser {
         this.advance();
         return { type: 'Literal', value: token.value, valueType: 'boolean' };
       
+      case TOKEN_TYPES.THIS:
+        this.advance();
+        return { type: 'ThisExpression' };
+      
+      case TOKEN_TYPES.NEW:
+        return this.parseNewExpression();
+      
       case TOKEN_TYPES.IDENTIFIER:
         this.advance();
         return { type: 'Identifier', name: token.value };
@@ -486,6 +671,27 @@ class Parser {
       default:
         throw new Error(`Unexpected token ${token.type} at line ${token.line}`);
     }
+  }
+
+  parseNewExpression() {
+    this.expect(TOKEN_TYPES.NEW);
+    const className = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+    this.expect(TOKEN_TYPES.LPAREN);
+    
+    const args = [];
+    while (this.peek().type !== TOKEN_TYPES.RPAREN) {
+      args.push(this.parseExpression());
+      if (this.peek().type === TOKEN_TYPES.COMMA) {
+        this.advance();
+      }
+    }
+    this.expect(TOKEN_TYPES.RPAREN);
+
+    return {
+      type: 'NewExpression',
+      className,
+      arguments: args
+    };
   }
 }
 
