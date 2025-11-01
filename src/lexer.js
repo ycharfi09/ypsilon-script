@@ -12,6 +12,7 @@ const TOKEN_TYPES = {
   // Identifiers and Keywords
   IDENTIFIER: 'IDENTIFIER',
   FUNCTION: 'FUNCTION',
+  FN: 'FN',
   IF: 'IF',
   ELSE: 'ELSE',
   WHILE: 'WHILE',
@@ -19,11 +20,48 @@ const TOKEN_TYPES = {
   REPEAT: 'REPEAT',
   RETURN: 'RETURN',
   VAR: 'VAR',
+  MUT: 'MUT',
   CONST: 'CONST',
   CLASS: 'CLASS',
   NEW: 'NEW',
   THIS: 'THIS',
+  SELF: 'SELF',
   CONSTRUCTOR: 'CONSTRUCTOR',
+  ENUM: 'ENUM',
+  STRUCT: 'STRUCT',
+  MATCH: 'MATCH',
+  SWITCH: 'SWITCH',
+  CASE: 'CASE',
+  DEFAULT: 'DEFAULT',
+  
+  // Event Keywords
+  ON: 'ON',
+  START: 'START',
+  LOOP: 'LOOP',
+  
+  // Reactive Keywords
+  REACT: 'REACT',
+  EMIT: 'EMIT',
+  SIGNAL: 'SIGNAL',
+  
+  // Task Keywords
+  TASK: 'TASK',
+  EVERY: 'EVERY',
+  BACKGROUND: 'BACKGROUND',
+  WAIT: 'WAIT',
+  TIMEOUT: 'TIMEOUT',
+  
+  // Safety Keywords
+  ATOMIC: 'ATOMIC',
+  USE: 'USE',
+  
+  // Config/Import Keywords
+  LOAD: 'LOAD',
+  ALIAS: 'ALIAS',
+  CONFIG: 'CONFIG',
+  
+  // C++ Inline
+  CPP: 'CPP',
   
   // Type Keywords
   TYPE_INT: 'TYPE_INT',
@@ -48,6 +86,9 @@ const TOKEN_TYPES = {
   AND: 'AND',
   OR: 'OR',
   NOT: 'NOT',
+  ARROW: 'ARROW',
+  QUESTION: 'QUESTION',
+  AT: 'AT',
   
   // Punctuation
   LPAREN: 'LPAREN',
@@ -56,6 +97,8 @@ const TOKEN_TYPES = {
   RBRACE: 'RBRACE',
   LBRACKET: 'LBRACKET',
   RBRACKET: 'RBRACKET',
+  LANGLE: 'LANGLE',
+  RANGLE: 'RANGLE',
   COMMA: 'COMMA',
   DOT: 'DOT',
   COLON: 'COLON',
@@ -69,6 +112,7 @@ const TOKEN_TYPES = {
 
 const KEYWORDS = {
   'function': TOKEN_TYPES.FUNCTION,
+  'fn': TOKEN_TYPES.FN,
   'if': TOKEN_TYPES.IF,
   'else': TOKEN_TYPES.ELSE,
   'while': TOKEN_TYPES.WHILE,
@@ -76,11 +120,33 @@ const KEYWORDS = {
   'repeat': TOKEN_TYPES.REPEAT,
   'return': TOKEN_TYPES.RETURN,
   'var': TOKEN_TYPES.VAR,
+  'mut': TOKEN_TYPES.MUT,
   'const': TOKEN_TYPES.CONST,
   'class': TOKEN_TYPES.CLASS,
   'new': TOKEN_TYPES.NEW,
   'this': TOKEN_TYPES.THIS,
+  'self': TOKEN_TYPES.SELF,
   'constructor': TOKEN_TYPES.CONSTRUCTOR,
+  'enum': TOKEN_TYPES.ENUM,
+  'struct': TOKEN_TYPES.STRUCT,
+  'match': TOKEN_TYPES.MATCH,
+  'switch': TOKEN_TYPES.SWITCH,
+  'case': TOKEN_TYPES.CASE,
+  'default': TOKEN_TYPES.DEFAULT,
+  'on': TOKEN_TYPES.ON,
+  'react': TOKEN_TYPES.REACT,
+  'emit': TOKEN_TYPES.EMIT,
+  'signal': TOKEN_TYPES.SIGNAL,
+  'task': TOKEN_TYPES.TASK,
+  'every': TOKEN_TYPES.EVERY,
+  'background': TOKEN_TYPES.BACKGROUND,
+  'wait': TOKEN_TYPES.WAIT,
+  'timeout': TOKEN_TYPES.TIMEOUT,
+  'atomic': TOKEN_TYPES.ATOMIC,
+  'use': TOKEN_TYPES.USE,
+  'load': TOKEN_TYPES.LOAD,
+  'alias': TOKEN_TYPES.ALIAS,
+  'config': TOKEN_TYPES.CONFIG,
   'int': TOKEN_TYPES.TYPE_INT,
   'float': TOKEN_TYPES.TYPE_FLOAT,
   'bool': TOKEN_TYPES.TYPE_BOOL,
@@ -149,9 +215,29 @@ class Lexer {
       num += this.advance();
     }
     
+    // Check for time unit suffix (ms, s, us)
+    let unit = null;
+    if (this.peek() && /[a-z]/.test(this.peek())) {
+      const start = this.pos;
+      let suffix = '';
+      while (this.peek() && /[a-z]/.test(this.peek())) {
+        suffix += this.peek();
+        this.advance();
+      }
+      
+      // Check if it's a valid time unit
+      if (['ms', 's', 'us', 'min', 'h'].includes(suffix)) {
+        unit = suffix;
+      } else {
+        // Not a valid time unit, rewind
+        this.pos = start;
+      }
+    }
+    
     return {
       type: TOKEN_TYPES.NUMBER,
       value: parseFloat(num),
+      unit: unit,
       line: this.line,
       column: this.column - num.length
     };
@@ -243,6 +329,13 @@ class Lexer {
       }
 
       // Two-character operators
+      if (char === '=' && this.peek(1) === '>') {
+        this.advance();
+        this.advance();
+        tokens.push({ type: TOKEN_TYPES.ARROW, value: '=>', line: this.line, column: this.column - 2 });
+        continue;
+      }
+      
       if (char === '=' && this.peek(1) === '=') {
         this.advance();
         this.advance();
@@ -290,7 +383,9 @@ class Lexer {
         ',': TOKEN_TYPES.COMMA,
         '.': TOKEN_TYPES.DOT,
         ':': TOKEN_TYPES.COLON,
-        ';': TOKEN_TYPES.SEMICOLON
+        ';': TOKEN_TYPES.SEMICOLON,
+        '?': TOKEN_TYPES.QUESTION,
+        '@': TOKEN_TYPES.AT
       };
 
       if (singleChar[char]) {
