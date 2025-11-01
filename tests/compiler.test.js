@@ -340,4 +340,98 @@ const float THRESHOLD = 3.5;`;
     expect(result.success).toBe(true);
     expect(result.code).toContain('int add(int a, int b)');
   });
+
+  test('should work without semicolons', () => {
+    const source = `const int LED = 13
+    
+    function start() {
+      pinMode(LED, OUTPUT)
+    }
+    
+    function loop() {
+      digitalWrite(LED, HIGH)
+      delay(1000)
+    }`;
+    
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('const int LED = 13;');
+    expect(result.code).toContain('pinMode(LED, OUTPUT);');
+  });
+
+  test('should support start() function as alias for setup()', () => {
+    const source = `function start() {
+      pinMode(13, OUTPUT)
+    }`;
+    
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('void setup()');
+    expect(result.code).toContain('pinMode(13, OUTPUT);');
+  });
+
+  test('should infer return type from return statement', () => {
+    const source = `function add(int a, int b) {
+      return a + b
+    }`;
+    
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('int add(int a, int b)');
+  });
+
+  test('should compile repeat loops', () => {
+    const source = `function loop() {
+      repeat(5) {
+        digitalWrite(13, HIGH)
+        delay(100)
+      }
+    }`;
+    
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('for (int _repeat_i = 0; _repeat_i < 5; _repeat_i++)');
+    expect(result.code).toContain('digitalWrite(13, HIGH);');
+  });
+
+  test('should handle mixed semicolons and no semicolons', () => {
+    const source = `const int LED = 13;
+    
+    function loop() {
+      digitalWrite(LED, HIGH);
+      delay(1000)
+    }`;
+    
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('digitalWrite(LED, HIGH);');
+    expect(result.code).toContain('delay(1000);');
+  });
+
+  test('should infer float return type from float literal', () => {
+    const source = `function getPi() {
+      return 3.14
+    }`;
+    
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('float getPi()');
+  });
+
+  test('should infer bool return type from comparison', () => {
+    const source = `function isGreater(int a, int b) {
+      return a > b
+    }`;
+    
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('bool isGreater(int a, int b)');
+  });
 });

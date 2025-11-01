@@ -53,8 +53,8 @@ class CodeGenerator {
     if (stmt.type === 'ClassDeclaration') {
       this.classes.push(stmt);
     } else if (stmt.type === 'FunctionDeclaration') {
-      // Special handling for setup() and loop()
-      if (stmt.name === 'setup') {
+      // Special handling for start()/setup() and loop()
+      if (stmt.name === 'setup' || stmt.name === 'start') {
         this.setupStatements = stmt.body;
       } else if (stmt.name === 'loop') {
         this.loopStatements = stmt.body;
@@ -238,6 +238,8 @@ class CodeGenerator {
         return this.generateWhileStatement(stmt);
       case 'ForStatement':
         return this.generateForStatement(stmt);
+      case 'RepeatStatement':
+        return this.generateRepeatStatement(stmt);
       case 'ReturnStatement':
         return this.generateReturnStatement(stmt);
       default:
@@ -296,6 +298,21 @@ class CodeGenerator {
     const update = this.generateExpression(stmt.update);
     
     let code = this.getIndent() + `for (${varType} ${stmt.variable} = ${init}; ${test}; ${update}) {\n`;
+    
+    this.indent++;
+    for (const s of stmt.body) {
+      code += this.generateStatement(s);
+    }
+    this.indent--;
+    code += this.getIndent() + '}\n';
+    return code;
+  }
+
+  generateRepeatStatement(stmt) {
+    const count = this.generateExpression(stmt.count);
+    
+    // Generate a for loop: for (int _repeat_i = 0; _repeat_i < count; _repeat_i++)
+    let code = this.getIndent() + `for (int _repeat_i = 0; _repeat_i < ${count}; _repeat_i++) {\n`;
     
     this.indent++;
     for (const s of stmt.body) {

@@ -1,23 +1,23 @@
 # Test all Arduino constants and pin modes
 
-const int BUTTON = 2;
-const int LED = 13;
+const int BUTTON = 2
+const int LED = 13
 
-function void setup() {
-    pinMode(BUTTON, INPUT_PULLUP);
-    pinMode(LED, OUTPUT);
+function start() {
+    pinMode(BUTTON, INPUT_PULLUP)
+    pinMode(LED, OUTPUT)
 }
 
-function void loop() {
-    int reading = digitalRead(BUTTON);
+function loop() {
+    int reading = digitalRead(BUTTON)
     
     # Test all constants
     if (reading == HIGH) {
-        digitalWrite(LED, LOW);
+        digitalWrite(LED, LOW)
     }
     
     if (reading == LOW) {
-        digitalWrite(LED, HIGH);
+        digitalWrite(LED, HIGH)
     }
 }
 

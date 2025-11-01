@@ -1,41 +1,45 @@
 # Traffic Light Controller Example
-# Shows multiple pins, timing, and control flow
+# Shows multiple pins, timing, and control flow with repeat loop
 
-const int RED_LED = 11;
-const int YELLOW_LED = 12;
-const int GREEN_LED = 13;
+const int RED_LED = 11
+const int YELLOW_LED = 12
+const int GREEN_LED = 13
 
-const int RED_TIME = 5000;
-const int YELLOW_TIME = 2000;
-const int GREEN_TIME = 5000;
+const int RED_TIME = 5000
+const int YELLOW_TIME = 2000
+const int GREEN_TIME = 5000
 
-function void setup() {
-    pinMode(RED_LED, OUTPUT);
-    pinMode(YELLOW_LED, OUTPUT);
-    pinMode(GREEN_LED, OUTPUT);
+function start() {
+    pinMode(RED_LED, OUTPUT)
+    pinMode(YELLOW_LED, OUTPUT)
+    pinMode(GREEN_LED, OUTPUT)
 }
 
-function void setLights(int red, int yellow, int green) {
-    digitalWrite(RED_LED, red);
-    digitalWrite(YELLOW_LED, yellow);
-    digitalWrite(GREEN_LED, green);
+function setLights(int red, int yellow, int green) {
+    digitalWrite(RED_LED, red)
+    digitalWrite(YELLOW_LED, yellow)
+    digitalWrite(GREEN_LED, green)
 }
 
-function void loop() {
+function loop() {
     # Red light
-    setLights(HIGH, LOW, LOW);
-    delay(RED_TIME);
+    setLights(HIGH, LOW, LOW)
+    delay(RED_TIME)
     
-    # Yellow light
-    setLights(LOW, HIGH, LOW);
-    delay(YELLOW_TIME);
+    # Yellow light (blink 3 times)
+    repeat(3) {
+        setLights(LOW, HIGH, LOW)
+        delay(500)
+        setLights(LOW, LOW, LOW)
+        delay(500)
+    }
     
     # Green light
-    setLights(LOW, LOW, HIGH);
-    delay(GREEN_TIME);
+    setLights(LOW, LOW, HIGH)
+    delay(GREEN_TIME)
     
     # Yellow light again
-    setLights(LOW, HIGH, LOW);
-    delay(YELLOW_TIME);
+    setLights(LOW, HIGH, LOW)
+    delay(YELLOW_TIME)
 }
 
