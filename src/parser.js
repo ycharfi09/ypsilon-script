@@ -55,6 +55,14 @@ class Parser {
     return this.advance();
   }
 
+  // Optional expect - doesn't throw error if not found, just consumes if present
+  optionalExpect(type) {
+    if (this.peek().type === type) {
+      return this.advance();
+    }
+    return null;
+  }
+
   parse() {
     const ast = {
       type: 'Program',
@@ -103,7 +111,7 @@ class Parser {
       this.advance();
       init = this.parseExpression();
     }
-    this.expect(TOKEN_TYPES.SEMICOLON);
+    this.optionalExpect(TOKEN_TYPES.SEMICOLON);
 
     return {
       type: 'VariableDeclaration',
@@ -193,7 +201,7 @@ class Parser {
       init = this.parseExpression();
     }
     
-    this.expect(TOKEN_TYPES.SEMICOLON);
+    this.optionalExpect(TOKEN_TYPES.SEMICOLON);
 
     return {
       type: 'PropertyDeclaration',
@@ -233,8 +241,11 @@ class Parser {
   parseFunctionDeclaration() {
     this.expect(TOKEN_TYPES.FUNCTION);
     
-    // Parse return type
-    const returnType = this.parseType();
+    // Parse return type - now optional
+    let returnType = null;
+    if (isTypeToken(this.peek().type)) {
+      returnType = this.parseType();
+    }
     
     const name = this.expect(TOKEN_TYPES.IDENTIFIER).value;
     this.expect(TOKEN_TYPES.LPAREN);
@@ -253,6 +264,11 @@ class Parser {
     
     const body = this.parseBlock();
 
+    // If return type wasn't specified, infer it from return statements
+    if (!returnType) {
+      returnType = this.inferReturnType(body);
+    }
+
     return {
       type: 'FunctionDeclaration',
       returnType,
@@ -260,6 +276,59 @@ class Parser {
       params,
       body
     };
+  }
+
+  // Infer return type from function body
+  inferReturnType(body) {
+    for (const stmt of body) {
+      if (stmt.type === 'ReturnStatement') {
+        if (stmt.argument) {
+          // Infer type from the return value
+          return this.inferExpressionType(stmt.argument);
+        } else {
+          return 'void';
+        }
+      }
+      // Check nested blocks (if, while, for)
+      if (stmt.consequent) {
+        const type = this.inferReturnType(stmt.consequent);
+        if (type !== 'void') return type;
+      }
+      if (stmt.alternate) {
+        const type = this.inferReturnType(stmt.alternate);
+        if (type !== 'void') return type;
+      }
+      if (stmt.body && Array.isArray(stmt.body)) {
+        const type = this.inferReturnType(stmt.body);
+        if (type !== 'void') return type;
+      }
+    }
+    return 'void';
+  }
+
+  // Infer type from expression
+  inferExpressionType(expr) {
+    if (!expr) return 'void';
+    
+    switch (expr.type) {
+      case 'Literal':
+        if (expr.valueType === 'number') {
+          return Number.isInteger(expr.value) ? 'int' : 'float';
+        } else if (expr.valueType === 'boolean') {
+          return 'bool';
+        } else if (expr.valueType === 'string') {
+          return 'string';
+        }
+        return 'int';
+      case 'BinaryExpression':
+        // For now, assume arithmetic operations return int
+        return 'int';
+      case 'CallExpression':
+        // Can't easily infer, default to int
+        return 'int';
+      default:
+        return 'int';
+    }
   }
 
   parseType() {
@@ -296,6 +365,8 @@ class Parser {
         return this.parseWhileStatement();
       case TOKEN_TYPES.FOR:
         return this.parseForStatement();
+      case TOKEN_TYPES.REPEAT:
+        return this.parseRepeatStatement();
       case TOKEN_TYPES.RETURN:
         return this.parseReturnStatement();
       case TOKEN_TYPES.CONST:
@@ -360,10 +431,10 @@ class Parser {
     const variable = this.expect(TOKEN_TYPES.IDENTIFIER).value;
     this.expect(TOKEN_TYPES.ASSIGN);
     const init = this.parseExpression();
-    this.expect(TOKEN_TYPES.SEMICOLON);
+    this.optionalExpect(TOKEN_TYPES.SEMICOLON);
     
     const test = this.parseExpression();
-    this.expect(TOKEN_TYPES.SEMICOLON);
+    this.optionalExpect(TOKEN_TYPES.SEMICOLON);
     
     const update = this.parseExpression();
     this.expect(TOKEN_TYPES.RPAREN);
@@ -381,6 +452,21 @@ class Parser {
     };
   }
 
+  parseRepeatStatement() {
+    this.expect(TOKEN_TYPES.REPEAT);
+    this.expect(TOKEN_TYPES.LPAREN);
+    const count = this.parseExpression();
+    this.expect(TOKEN_TYPES.RPAREN);
+    
+    const body = this.parseBlock();
+
+    return {
+      type: 'RepeatStatement',
+      count,
+      body
+    };
+  }
+
   parseReturnStatement() {
     this.expect(TOKEN_TYPES.RETURN);
     let argument = null;
@@ -388,7 +474,7 @@ class Parser {
     if (this.peek().type !== TOKEN_TYPES.SEMICOLON && this.peek().type !== TOKEN_TYPES.EOF) {
       argument = this.parseExpression();
     }
-    this.expect(TOKEN_TYPES.SEMICOLON);
+    this.optionalExpect(TOKEN_TYPES.SEMICOLON);
 
     return {
       type: 'ReturnStatement',
@@ -406,7 +492,7 @@ class Parser {
       this.advance();
       init = this.parseExpression();
     }
-    this.expect(TOKEN_TYPES.SEMICOLON);
+    this.optionalExpect(TOKEN_TYPES.SEMICOLON);
 
     return {
       type: 'VariableDeclaration',
@@ -426,7 +512,7 @@ class Parser {
       this.advance();
       init = this.parseExpression();
     }
-    this.expect(TOKEN_TYPES.SEMICOLON);
+    this.optionalExpect(TOKEN_TYPES.SEMICOLON);
 
     return {
       type: 'VariableDeclaration',
@@ -439,7 +525,7 @@ class Parser {
 
   parseExpressionStatement() {
     const expression = this.parseExpression();
-    this.expect(TOKEN_TYPES.SEMICOLON);
+    this.optionalExpect(TOKEN_TYPES.SEMICOLON);
     return {
       type: 'ExpressionStatement',
       expression

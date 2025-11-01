@@ -1,0 +1,33 @@
+# Test new features
+# - No semicolons
+# - Type inference for functions
+# - start instead of setup
+# - repeat loop
+
+const int LED_PIN = 13
+
+# Function with inferred return type (will be int)
+function add(int a, int b) {
+    return a + b
+}
+
+# Function with explicit void return type
+function void blink() {
+    digitalWrite(LED_PIN, HIGH)
+    delay(500)
+    digitalWrite(LED_PIN, LOW)
+    delay(500)
+}
+
+function start() {
+    pinMode(LED_PIN, OUTPUT)
+    int result = add(5, 3)
+}
+
+function loop() {
+    # Repeat 3 times
+    repeat(3) {
+        blink()
+    }
+    delay(1000)
+}
