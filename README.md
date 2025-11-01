@@ -26,11 +26,6 @@ Ypsilon Script (YS) is designed to make microcontroller development accessible, 
 
 ## Installation
 
-```bash
-npm install -g ypsilon-script
-```
-
-Or clone and link locally:
 
 ```bash
 git clone https://github.com/ycharfi09/ypsilon-script.git
@@ -38,7 +33,6 @@ cd ypsilon-script
 npm install
 npm link
 ```
-
 ## Quick Start
 
 Create a simple program in `example.ys`:
