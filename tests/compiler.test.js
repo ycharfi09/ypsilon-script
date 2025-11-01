@@ -662,6 +662,84 @@ describe('New YS Syntax Features', () => {
     expect(result.code).toContain('#include <wifi.h>');
   });
 
+  test('should parse .ys module with as keyword', () => {
+    const source = `load <motor.ys> as m`;
+    
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    expect(result.ast.body[0].type).toBe('LoadStatement');
+    expect(result.ast.body[0].isYsFile).toBe(true);
+    expect(result.ast.body[0].library).toBe('motor.ys');
+    expect(result.ast.body[0].moduleName).toBe('m');
+  });
+
+  test('should parse .ys module without as keyword', () => {
+    const source = `load <motor.ys>`;
+    
+    const result = compile(source);
+    
+    expect(result.success).toBe(true);
+    expect(result.ast.body[0].type).toBe('LoadStatement');
+    expect(result.ast.body[0].isYsFile).toBe(true);
+    expect(result.ast.body[0].library).toBe('motor.ys');
+    expect(result.ast.body[0].moduleName).toBe('motor');
+  });
+
+  test('should compile .ys module into namespace', () => {
+    // Create a simple module
+    const moduleSource = `class Motor {
+      mut int speed
+      constructor(int s) {
+        self.speed = s
+      }
+      fn getSpeed() -> int {
+        return self.speed
+      }
+    }
+    
+    fn helper() {
+      print("helper")
+    }`;
+    
+    const source = `load <motor.ys> as m
+    
+    fn start() {
+      m.Motor motor = new m.Motor(100)
+      m.helper()
+    }`;
+    
+    const result = compile(source, {
+      basePath: '/test',
+      fileReader: (filePath) => {
+        if (filePath.endsWith('motor.ys')) {
+          return moduleSource;
+        }
+        throw new Error('File not found');
+      }
+    });
+    
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('namespace m {');
+    expect(result.code).toContain('class Motor');
+    expect(result.code).toContain('void helper()');
+    expect(result.code).toContain('}'); // namespace closing
+  });
+
+  test('should not generate #include for .ys files', () => {
+    const source = `load <Servo>
+    load <motor.ys>`;
+    
+    const result = compile(source, {
+      fileReader: () => 'fn test() {}'
+    });
+    
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('#include <Servo.h>');
+    expect(result.code).not.toContain('#include <motor.ys.h>');
+    expect(result.code).not.toContain('#include <motor.h>');
+  });
+
   test('should compile alias statements', () => {
     const source = `alias LED = D13
     alias BUTTON = D2`;

@@ -1,0 +1,63 @@
+# Sensor Library Module
+# Provides sensor reading and processing functionality
+
+enum SensorStatus {
+  OK,
+  ERROR,
+  CALIBRATING
+}
+
+struct SensorReading {
+  value: int,
+  timestamp: int,
+  status: SensorStatus
+}
+
+class Sensor {
+  mut int pin
+  mut int lastReading
+  mut SensorStatus status
+  
+  constructor(int p) {
+    self.pin = p
+    self.lastReading = 0
+    self.status = OK
+  }
+  
+  fn read() -> int {
+    self.lastReading = analogRead(self.pin)
+    return self.lastReading
+  }
+  
+  fn getReading() -> SensorReading {
+    SensorReading r
+    r.value = self.read()
+    r.timestamp = millis()
+    r.status = self.status
+    return r
+  }
+  
+  fn calibrate() {
+    self.status = CALIBRATING
+    wait 1s
+    self.status = OK
+  }
+}
+
+fn processSensorData(SensorReading reading) {
+  match reading.status {
+    OK => {
+      print("Sensor OK: ")
+      print(reading.value)
+    },
+    ERROR => {
+      print("Sensor Error!")
+    },
+    CALIBRATING => {
+      print("Calibrating...")
+    }
+  }
+}
+
+const int MIN_VALUE = 0
+const int MAX_VALUE = 1023

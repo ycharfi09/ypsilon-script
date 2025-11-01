@@ -1,0 +1,36 @@
+# Complex Module Loading Example
+# Shows using multiple modules with enums, structs, and classes
+
+load <sensor-lib.ys> as sensors
+load <motor.ys> as motors
+
+const int TEMP_SENSOR_PIN = 0
+const int MOTOR_PIN = 9
+
+fn start() {
+  # Create sensor instance
+  sensors.Sensor tempSensor = new sensors.Sensor(TEMP_SENSOR_PIN)
+  
+  # Create motor instance
+  motors.Motor fan = new motors.Motor(MOTOR_PIN)
+  
+  # Calibrate sensor
+  tempSensor.calibrate()
+  
+  # Get initial reading
+  sensors.SensorReading reading = tempSensor.getReading()
+  sensors.processSensorData(reading)
+  
+  # Control motor based on reading
+  if (reading.value > 500) {
+    fan.setSpeed(motors.MAX_SPEED)
+  } else {
+    fan.setSpeed(100)
+  }
+  
+  print("System initialized")
+}
+
+fn loop() {
+  wait 1s
+}

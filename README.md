@@ -19,7 +19,7 @@ Ypsilon Script (YS) is designed to make microcontroller development accessible, 
 - **Signals**: Event-driven signal/emit system
 - **Time Literals**: `wait 200ms`, `timeout 5s`
 - **Atomic Blocks**: Interrupt-safe critical sections
-- **Library Loading**: `load <Servo>`, `alias LED = 13`
+- **Library Loading**: `load <Servo>`, `load <module.ys> as m`, `alias LED = 13`
 - **Brace-Based Syntax**: Required braces, optional semicolons
 - **Direct C++ Compilation**: Compiles to standard C++ code
 - **No Performance Overhead**: Generates efficient C++ code
@@ -318,7 +318,7 @@ YS syntax:
 - **Reactive vars**: Volatile variables with `react`
 - **Time literals**: `ms`, `s`, `us`, `min`, `h`
 - **Atomic blocks**: Interrupt-safe with `atomic {}`
-- **Library loading**: `load <lib>`, `alias`
+- **Library loading**: `load <lib>` for C++ headers, `load <file.ys> as name` for YS modules
 - **Inline C++**: `@cpp {}` for direct C++ code
 
 ## Examples
@@ -459,8 +459,8 @@ ysc --version
 - **Switch statements**: C++-style switch with braces
 - **Event blocks**: `on <event> {}` syntax
 - **OOP support**: Classes, constructors, methods, and object instantiation
+- **Module system**: Load YS files as namespaced modules with `load <file.ys> as name`
 - **No async**: Async/await not supported yet
-- **No imports**: Module system not supported yet
 
 ## Why Ypsilon Script?
 
