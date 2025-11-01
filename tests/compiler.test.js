@@ -687,9 +687,6 @@ describe('New YS Syntax Features', () => {
   });
 
   test('should compile .ys module into namespace', () => {
-    const fs = require('fs');
-    const path = require('path');
-    
     // Create a simple module
     const moduleSource = `class Motor {
       mut int speed

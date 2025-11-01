@@ -124,15 +124,23 @@ class Parser {
     }
   }
 
-  parseClassInstanceDeclaration() {
-    let className = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+  // Helper to parse namespace-qualified type names (e.g., m.Motor -> m::Motor)
+  parseNamespacedType(baseTypeName) {
+    let typeName = baseTypeName;
     
     // Check for namespace prefix (e.g., m.Motor)
     if (this.peek().type === TOKEN_TYPES.DOT) {
       this.advance(); // consume dot
-      const typeName = this.expect(TOKEN_TYPES.IDENTIFIER).value;
-      className = className + '::' + typeName; // Use C++ namespace syntax
+      const typeIdentifier = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+      typeName = typeName + '::' + typeIdentifier; // Use C++ namespace syntax
     }
+    
+    return typeName;
+  }
+
+  parseClassInstanceDeclaration() {
+    const baseClassName = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+    const className = this.parseNamespacedType(baseClassName);
     
     const varName = this.expect(TOKEN_TYPES.IDENTIFIER).value;
     
@@ -453,17 +461,8 @@ class Parser {
     }
     // Allow identifiers as types (for structs, enums, and classes)
     if (token.type === TOKEN_TYPES.IDENTIFIER) {
-      this.advance();
-      let typeName = token.value;
-      
-      // Check for namespace prefix (e.g., m.Motor)
-      if (this.peek().type === TOKEN_TYPES.DOT) {
-        this.advance(); // consume dot
-        const typeIdentifier = this.expect(TOKEN_TYPES.IDENTIFIER).value;
-        typeName = typeName + '::' + typeIdentifier; // Use C++ namespace syntax
-      }
-      
-      return typeName;
+      const baseTypeName = this.advance().value;
+      return this.parseNamespacedType(baseTypeName);
     }
     throw new Error(`Expected type but got ${token.type} at line ${token.line}`);
   }
@@ -935,14 +934,8 @@ class Parser {
 
   parseNewExpression() {
     this.expect(TOKEN_TYPES.NEW);
-    let className = this.expect(TOKEN_TYPES.IDENTIFIER).value;
-    
-    // Check for namespace prefix (e.g., m.Motor)
-    if (this.peek().type === TOKEN_TYPES.DOT) {
-      this.advance(); // consume dot
-      const typeName = this.expect(TOKEN_TYPES.IDENTIFIER).value;
-      className = className + '::' + typeName; // Use C++ namespace syntax
-    }
+    const baseClassName = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+    const className = this.parseNamespacedType(baseClassName);
     
     this.expect(TOKEN_TYPES.LPAREN);
     

@@ -111,7 +111,12 @@ class CodeGenerator {
     const { Parser } = require('./parser');
     
     for (const load of this.loadStatements) {
-      if (load.isYsFile && this.fileReader) {
+      if (load.isYsFile) {
+        if (!this.fileReader) {
+          // No file reader provided - skip silently (likely in tests)
+          continue;
+        }
+        
         try {
           // Construct the path to the .ys file
           const filePath = path.resolve(this.basePath, load.library);
@@ -131,9 +136,8 @@ class CodeGenerator {
             ast: moduleAst
           });
         } catch (error) {
-          // If file reading fails, it might be in tests with mocked file system
-          // For now, we'll just skip it silently
-          console.warn(`Warning: Could not load module ${load.library}: ${error.message}`);
+          // Re-throw the error with more context for production use
+          throw new Error(`Failed to load module ${load.library}: ${error.message}`);
         }
       }
     }

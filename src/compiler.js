@@ -13,9 +13,11 @@ class Compiler {
   constructor(source, options = {}) {
     this.source = source;
     this.basePath = options.basePath || process.cwd();
-    this.fileReader = options.fileReader || ((filePath) => {
-      return fs.readFileSync(filePath, 'utf8');
-    });
+    // Only set fileReader if explicitly provided, or default to fs.readFileSync
+    // when basePath is explicitly provided (indicating real file compilation)
+    this.fileReader = options.fileReader !== undefined 
+      ? options.fileReader 
+      : (options.basePath ? ((filePath) => fs.readFileSync(filePath, 'utf8')) : null);
   }
 
   compile() {
