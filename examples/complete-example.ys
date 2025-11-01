@@ -6,9 +6,9 @@ enum Mode { AUTO, MANUAL }
 struct Point { x: int, y: int }
 
 class Motor {
-    mut speed: int
+    mut int speed
     
-    constructor(speed: int) { 
+    constructor(int speed) { 
         self.speed = speed 
     }
     
@@ -19,9 +19,9 @@ class Motor {
 }
 
 # Global variables
-mut motor: Motor = new Motor(100)
-mut mode: Mode = Mode.AUTO
-mut level: int = 2
+mut Motor motor = new Motor(100)
+mut Mode mode = AUTO
+mut int level = 2
 
 on start {
     motor.run()
