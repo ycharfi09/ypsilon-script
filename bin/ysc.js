@@ -55,7 +55,8 @@ function main() {
   }
 
   const source = fs.readFileSync(inputFile, 'utf8');
-  const result = compile(source);
+  const basePath = path.dirname(path.resolve(inputFile));
+  const result = compile(source, { basePath });
 
   if (!result.success) {
     console.error('Compilation Error:');

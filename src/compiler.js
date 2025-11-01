@@ -6,10 +6,16 @@
 const { Lexer } = require('./lexer');
 const { Parser } = require('./parser');
 const { CodeGenerator } = require('./codegen');
+const fs = require('fs');
+const path = require('path');
 
 class Compiler {
-  constructor(source) {
+  constructor(source, options = {}) {
     this.source = source;
+    this.basePath = options.basePath || process.cwd();
+    this.fileReader = options.fileReader || ((filePath) => {
+      return fs.readFileSync(filePath, 'utf8');
+    });
   }
 
   compile() {
@@ -23,7 +29,10 @@ class Compiler {
       const ast = parser.parse();
 
       // Generate code
-      const generator = new CodeGenerator(ast);
+      const generator = new CodeGenerator(ast, {
+        basePath: this.basePath,
+        fileReader: this.fileReader
+      });
       const code = generator.generate();
 
       return {
@@ -42,8 +51,8 @@ class Compiler {
   }
 }
 
-function compile(source) {
-  const compiler = new Compiler(source);
+function compile(source, options) {
+  const compiler = new Compiler(source, options);
   return compiler.compile();
 }
 

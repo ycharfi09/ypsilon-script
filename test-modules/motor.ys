@@ -1,0 +1,27 @@
+# Motor Library Module
+# Provides motor control functionality
+
+class Motor {
+  mut int speed
+  mut int pin
+  
+  constructor(int p) {
+    self.pin = p
+    self.speed = 0
+  }
+  
+  fn setSpeed(int s) {
+    self.speed = s
+    analogWrite(self.pin, self.speed)
+  }
+  
+  fn getSpeed() -> int {
+    return self.speed
+  }
+}
+
+fn helper() {
+  print("Motor helper function called")
+}
+
+const int MAX_SPEED = 255

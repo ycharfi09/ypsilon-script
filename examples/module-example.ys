@@ -1,0 +1,25 @@
+# Example demonstrating module loading with .ys files
+# This shows how to use the motor.ys library
+
+load <motor.ys> as m
+
+const int MOTOR_PIN = 9
+
+fn start() {
+  pinMode(MOTOR_PIN, OUTPUT)
+  
+  # Create a motor instance from the module
+  m.Motor motor = new m.Motor(MOTOR_PIN)
+  
+  # Use module function
+  m.helper()
+  
+  # Use module constant
+  motor.setSpeed(m.MAX_SPEED)
+  
+  print("Motor speed set to max")
+}
+
+fn loop() {
+  # Main loop code here
+}

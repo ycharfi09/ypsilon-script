@@ -57,6 +57,7 @@ const TOKEN_TYPES = {
   
   // Config/Import Keywords
   LOAD: 'LOAD',
+  AS: 'AS',
   ALIAS: 'ALIAS',
   CONFIG: 'CONFIG',
   
@@ -145,6 +146,7 @@ const KEYWORDS = {
   'atomic': TOKEN_TYPES.ATOMIC,
   'use': TOKEN_TYPES.USE,
   'load': TOKEN_TYPES.LOAD,
+  'as': TOKEN_TYPES.AS,
   'alias': TOKEN_TYPES.ALIAS,
   'config': TOKEN_TYPES.CONFIG,
   'int': TOKEN_TYPES.TYPE_INT,

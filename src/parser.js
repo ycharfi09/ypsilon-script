@@ -125,7 +125,15 @@ class Parser {
   }
 
   parseClassInstanceDeclaration() {
-    const className = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+    let className = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+    
+    // Check for namespace prefix (e.g., m.Motor)
+    if (this.peek().type === TOKEN_TYPES.DOT) {
+      this.advance(); // consume dot
+      const typeName = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+      className = className + '::' + typeName; // Use C++ namespace syntax
+    }
+    
     const varName = this.expect(TOKEN_TYPES.IDENTIFIER).value;
     
     let init = null;
@@ -446,7 +454,16 @@ class Parser {
     // Allow identifiers as types (for structs, enums, and classes)
     if (token.type === TOKEN_TYPES.IDENTIFIER) {
       this.advance();
-      return token.value;
+      let typeName = token.value;
+      
+      // Check for namespace prefix (e.g., m.Motor)
+      if (this.peek().type === TOKEN_TYPES.DOT) {
+        this.advance(); // consume dot
+        const typeIdentifier = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+        typeName = typeName + '::' + typeIdentifier; // Use C++ namespace syntax
+      }
+      
+      return typeName;
     }
     throw new Error(`Expected type but got ${token.type} at line ${token.line}`);
   }
@@ -501,6 +518,22 @@ class Parser {
         // Check if it's a typed variable declaration
         if (isTypeToken(token.type)) {
           return this.parseTypedVariableDeclaration();
+        }
+        // Check if it's a class instance declaration (e.g., Motor motor = ...)
+        // Look ahead to see if we have: IDENTIFIER IDENTIFIER or IDENTIFIER DOT IDENTIFIER IDENTIFIER
+        if (token.type === TOKEN_TYPES.IDENTIFIER) {
+          const next = this.peek(1);
+          if (next.type === TOKEN_TYPES.DOT) {
+            // Could be namespace.Type varName
+            const afterDot = this.peek(2);
+            const afterType = this.peek(3);
+            if (afterDot.type === TOKEN_TYPES.IDENTIFIER && afterType.type === TOKEN_TYPES.IDENTIFIER) {
+              return this.parseTypedVariableDeclaration();
+            }
+          } else if (next.type === TOKEN_TYPES.IDENTIFIER) {
+            // Could be Type varName
+            return this.parseTypedVariableDeclaration();
+          }
         }
         return this.parseExpressionStatement();
     }
@@ -902,7 +935,15 @@ class Parser {
 
   parseNewExpression() {
     this.expect(TOKEN_TYPES.NEW);
-    const className = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+    let className = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+    
+    // Check for namespace prefix (e.g., m.Motor)
+    if (this.peek().type === TOKEN_TYPES.DOT) {
+      this.advance(); // consume dot
+      const typeName = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+      className = className + '::' + typeName; // Use C++ namespace syntax
+    }
+    
     this.expect(TOKEN_TYPES.LPAREN);
     
     const args = [];
@@ -1190,17 +1231,38 @@ class Parser {
     };
   }
 
-  // Load statement: load <servo>
+  // Load statement: load <servo> or load <foo.ys> as bar
   parseLoadStatement() {
     this.expect(TOKEN_TYPES.LOAD);
     this.expect(TOKEN_TYPES.LESS_THAN);
     const library = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+    
+    // Check if this is a .ys file
+    let isYsFile = false;
+    let fileName = library;
+    if (this.peek().type === TOKEN_TYPES.DOT) {
+      this.advance(); // consume the dot
+      const extension = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+      fileName = library + '.' + extension;
+      isYsFile = (extension === 'ys');
+    }
+    
     this.expect(TOKEN_TYPES.GREATER_THAN);
+    
+    // Check for optional 'as' keyword for .ys files
+    let moduleName = library; // default to file name without extension
+    if (this.peek().type === TOKEN_TYPES.AS) {
+      this.advance(); // consume 'as'
+      moduleName = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+    }
+    
     this.optionalExpect(TOKEN_TYPES.SEMICOLON);
     
     return {
       type: 'LoadStatement',
-      library
+      library: isYsFile ? fileName : library,
+      isYsFile,
+      moduleName: isYsFile ? moduleName : null
     };
   }
 
