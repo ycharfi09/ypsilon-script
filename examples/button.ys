@@ -1,19 +1,23 @@
 # Button and LED Example
 # Read button state and control LED
 
-const BUTTON_PIN = 2
-const LED_PIN = 13
+const int BUTTON_PIN = 2;
+const int LED_PIN = 13;
 
-function setup():
-    pinMode(BUTTON_PIN, INPUT_PULLUP)
-    pinMode(LED_PIN, OUTPUT)
+function void setup() {
+    pinMode(BUTTON_PIN, INPUT_PULLUP);
+    pinMode(LED_PIN, OUTPUT);
+}
 
-function loop():
-    var buttonState = digitalRead(BUTTON_PIN)
+function void loop() {
+    int buttonState = digitalRead(BUTTON_PIN);
     
-    if buttonState == LOW:
-        digitalWrite(LED_PIN, HIGH)
-    else:
-        digitalWrite(LED_PIN, LOW)
+    if (buttonState == LOW) {
+        digitalWrite(LED_PIN, HIGH);
+    } else {
+        digitalWrite(LED_PIN, LOW);
+    }
     
-    delay(10)
+    delay(10);
+}
+

@@ -1,15 +1,16 @@
 /**
- * Ypsilon Script Code Generator
+ * Ypsilon Script Code Generator - OOP, Strictly-Typed, Brace-Based
  * Transpiles AST to Arduino C++ code
  */
 
 class CodeGenerator {
   constructor(ast) {
     this.ast = ast;
-    this.setupStatements = [];
-    this.loopStatements = [];
+    this.classes = [];
     this.globalVariables = [];
     this.functions = [];
+    this.setupStatements = [];
+    this.loopStatements = [];
     this.indent = 0;
     this.needsSerial = false;
   }
@@ -26,7 +27,7 @@ class CodeGenerator {
   analyzeAST(node) {
     if (!node) return;
     
-    if (node.type === 'CallExpression' && node.callee.name === 'print') {
+    if (node.type === 'CallExpression' && node.callee && node.callee.name === 'print') {
       this.needsSerial = true;
     }
     
@@ -49,7 +50,9 @@ class CodeGenerator {
   }
 
   processTopLevelStatement(stmt) {
-    if (stmt.type === 'FunctionDeclaration') {
+    if (stmt.type === 'ClassDeclaration') {
+      this.classes.push(stmt);
+    } else if (stmt.type === 'FunctionDeclaration') {
       // Special handling for setup() and loop()
       if (stmt.name === 'setup') {
         this.setupStatements = stmt.body;
@@ -60,9 +63,6 @@ class CodeGenerator {
       }
     } else if (stmt.type === 'VariableDeclaration') {
       this.globalVariables.push(stmt);
-    } else {
-      // Top-level statements go into setup
-      this.setupStatements.push(stmt);
     }
   }
 
@@ -72,6 +72,14 @@ class CodeGenerator {
     
     // Add Arduino library includes
     code += '#include <Arduino.h>\n\n';
+
+    // Class declarations
+    if (this.classes.length > 0) {
+      code += '// Class Declarations\n';
+      for (const cls of this.classes) {
+        code += this.generateClassDeclaration(cls) + '\n\n';
+      }
+    }
 
     // Global variables
     if (this.globalVariables.length > 0) {
@@ -121,13 +129,79 @@ class CodeGenerator {
     return code;
   }
 
+  generateClassDeclaration(cls) {
+    let code = `class ${cls.name} {\n`;
+    code += 'public:\n';
+    
+    // Generate properties
+    for (const prop of cls.properties) {
+      code += '  ' + this.mapType(prop.propertyType) + ' ' + prop.name;
+      if (prop.init) {
+        // Note: In-class initialization requires C++11
+        code += ' = ' + this.generateExpression(prop.init);
+      }
+      code += ';\n';
+    }
+    
+    if (cls.properties.length > 0 && (cls.constructor || cls.methods.length > 0)) {
+      code += '\n';
+    }
+    
+    // Generate constructor
+    if (cls.constructor) {
+      code += '  ' + cls.name + '(';
+      code += cls.constructor.params.map(p => 
+        this.mapType(p.type) + ' ' + p.name
+      ).join(', ');
+      code += ') {\n';
+      
+      this.indent = 2;
+      for (const stmt of cls.constructor.body) {
+        code += this.generateStatement(stmt);
+      }
+      this.indent = 0;
+      
+      code += '  }\n';
+      
+      if (cls.methods.length > 0) {
+        code += '\n';
+      }
+    }
+    
+    // Generate methods
+    for (let i = 0; i < cls.methods.length; i++) {
+      const method = cls.methods[i];
+      code += '  ' + this.mapType(method.returnType) + ' ' + method.name + '(';
+      code += method.params.map(p => 
+        this.mapType(p.type) + ' ' + p.name
+      ).join(', ');
+      code += ') {\n';
+      
+      this.indent = 2;
+      for (const stmt of method.body) {
+        code += this.generateStatement(stmt);
+      }
+      this.indent = 0;
+      
+      code += '  }';
+      if (i < cls.methods.length - 1) {
+        code += '\n\n';
+      } else {
+        code += '\n';
+      }
+    }
+    
+    code += '};';
+    return code;
+  }
+
   generateFunctionDeclaration(func) {
-    // Check if function has a return statement with a value
-    const hasReturnValue = this.hasReturnValue(func.body);
-    const returnType = hasReturnValue ? 'int' : 'void';
+    const returnType = this.mapType(func.returnType);
     
     let code = `${returnType} ${func.name}(`;
-    code += func.params.map(p => `int ${p}`).join(', ');
+    code += func.params.map(p => 
+      this.mapType(p.type) + ' ' + p.name
+    ).join(', ');
     code += ') {\n';
     
     this.indent++;
@@ -140,21 +214,16 @@ class CodeGenerator {
     return code;
   }
 
-  hasReturnValue(body) {
-    for (const stmt of body) {
-      if (stmt.type === 'ReturnStatement' && stmt.argument) {
-        return true;
-      }
-      // Check nested blocks
-      if (stmt.type === 'IfStatement') {
-        if (this.hasReturnValue(stmt.consequent)) return true;
-        if (stmt.alternate && this.hasReturnValue(stmt.alternate)) return true;
-      }
-      if (stmt.type === 'WhileStatement' || stmt.type === 'ForStatement') {
-        if (this.hasReturnValue(stmt.body)) return true;
-      }
-    }
-    return false;
+  mapType(type) {
+    const typeMap = {
+      'int': 'int',
+      'float': 'float',
+      'bool': 'bool',
+      'string': 'String',
+      'void': 'void'
+    };
+    // If it's not a built-in type, assume it's a class name
+    return typeMap[type] || type;
   }
 
   generateStatement(stmt) {
@@ -177,8 +246,9 @@ class CodeGenerator {
   }
 
   generateVariableDeclaration(varDecl) {
-    const type = varDecl.kind === 'const' ? 'const int' : 'int';
-    let code = `${type} ${varDecl.name}`;
+    const typePrefix = varDecl.kind === 'const' ? 'const ' : '';
+    const type = this.mapType(varDecl.varType);
+    let code = `${typePrefix}${type} ${varDecl.name}`;
     if (varDecl.init) {
       code += ' = ' + this.generateExpression(varDecl.init);
     }
@@ -220,38 +290,12 @@ class CodeGenerator {
   }
 
   generateForStatement(stmt) {
-    // Handle range-based for loops
-    let code = '';
-    const iterator = stmt.iterator;
+    const varType = this.mapType(stmt.varType);
+    const init = this.generateExpression(stmt.init);
+    const test = this.generateExpression(stmt.test);
+    const update = this.generateExpression(stmt.update);
     
-    if (iterator.type === 'CallExpression' && iterator.callee.name === 'range') {
-      const args = iterator.arguments;
-      let start = '0';
-      let end = '0';
-      let step = '1';
-      let comparison = '<';
-      
-      if (args.length === 1) {
-        end = this.generateExpression(args[0]);
-      } else if (args.length === 2) {
-        start = this.generateExpression(args[0]);
-        end = this.generateExpression(args[1]);
-      } else if (args.length === 3) {
-        start = this.generateExpression(args[0]);
-        end = this.generateExpression(args[1]);
-        step = this.generateExpression(args[2]);
-        
-        // Handle negative step (countdown)
-        if (args[2].type === 'UnaryExpression' && args[2].operator === '-') {
-          comparison = '>';
-        }
-      }
-      
-      code = this.getIndent() + `for (int ${stmt.variable} = ${start}; ${stmt.variable} ${comparison} ${end}; ${stmt.variable} += ${step}) {\n`;
-    } else {
-      // Fallback
-      code = this.getIndent() + `for (int ${stmt.variable} = 0; ${stmt.variable} < 10; ${stmt.variable}++) {\n`;
-    }
+    let code = this.getIndent() + `for (${varType} ${stmt.variable} = ${init}; ${test}; ${update}) {\n`;
     
     this.indent++;
     for (const s of stmt.body) {
@@ -286,6 +330,10 @@ class CodeGenerator {
         return this.generateCallExpression(expr);
       case 'MemberExpression':
         return this.generateExpression(expr.object) + '.' + expr.property;
+      case 'ThisExpression':
+        return 'this';
+      case 'NewExpression':
+        return this.generateNewExpression(expr);
       default:
         return '';
     }
@@ -304,7 +352,7 @@ class CodeGenerator {
     const left = this.generateExpression(expr.left);
     const right = this.generateExpression(expr.right);
     
-    // Convert Python/JS operators to C++
+    // Convert operators to C++
     const operatorMap = {
       'and': '&&',
       'or': '||',
@@ -335,7 +383,18 @@ class CodeGenerator {
   }
 
   generateCallExpression(expr) {
-    const callee = expr.callee.name || this.generateExpression(expr.callee);
+    // Safely extract callee name, checking for null
+    if (!expr.callee) {
+      return '';
+    }
+    
+    let callee;
+    if (expr.callee.type === 'MemberExpression') {
+      callee = this.generateExpression(expr.callee);
+    } else {
+      callee = expr.callee.name || this.generateExpression(expr.callee);
+    }
+    
     const args = expr.arguments.map(arg => this.generateExpression(arg)).join(', ');
     
     // Map built-in functions to Arduino equivalents
@@ -347,13 +406,7 @@ class CodeGenerator {
       'digitalWrite': 'digitalWrite',
       'digitalRead': 'digitalRead',
       'analogRead': 'analogRead',
-      'analogWrite': 'analogWrite',
-      'range': 'range', // handled specially in for loops
-      'HIGH': 'HIGH',
-      'LOW': 'LOW',
-      'INPUT': 'INPUT',
-      'OUTPUT': 'OUTPUT',
-      'INPUT_PULLUP': 'INPUT_PULLUP'
+      'analogWrite': 'analogWrite'
     };
     
     const funcName = builtinMap[callee] || callee;
@@ -364,6 +417,11 @@ class CodeGenerator {
     }
     
     return `${funcName}(${args})`;
+  }
+
+  generateNewExpression(expr) {
+    const args = expr.arguments.map(arg => this.generateExpression(arg)).join(', ');
+    return `${expr.className}(${args})`;
   }
 
   getIndent() {

@@ -1,12 +1,15 @@
 # Serial Print Example
 # Demonstrates Serial communication
 
-const SENSOR_PIN = 0
+const int SENSOR_PIN = 0;
 
-function setup():
-    print("Starting sensor monitoring...")
+function void setup() {
+    print("Starting sensor monitoring...");
+}
 
-function loop():
-    var value = analogRead(SENSOR_PIN)
-    print(value)
-    delay(500)
+function void loop() {
+    int value = analogRead(SENSOR_PIN);
+    print(value);
+    delay(500);
+}
+
