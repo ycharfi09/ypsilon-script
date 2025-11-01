@@ -9,12 +9,18 @@ Ypsilon Script (YS) is designed to make microcontroller development accessible, 
 ## Features
 
 - **Strong Static Typing**: All variables and functions must be explicitly typed
+- **Modern Syntax**: Uses `fn`, `mut`, `self` keywords
 - **Object-Oriented Programming**: Classes with constructors and methods
-- **Structs and Enums**: Rust-like enums and C++-like structs
+- **Enums and Structs**: Rust-style enums and C++-like structs
 - **Pattern Matching**: Match expressions like Rust for powerful control flow
-- **Event-Driven Programming**: `on <event> {}` blocks for event handling
-- **Brace-Based Syntax**: Required braces, no semicolons needed
-- **Mutability Control**: `mut` keyword for mutable variables
+- **Event-Driven Programming**: `on start {}`, `on loop {}` blocks
+- **Tasks**: Periodic and background task execution
+- **Reactive Variables**: Volatile reactive variables with `react`
+- **Signals**: Event-driven signal/emit system
+- **Time Literals**: `wait 200ms`, `timeout 5s`
+- **Atomic Blocks**: Interrupt-safe critical sections
+- **Library Loading**: `load <Servo>`, `alias LED = 13`
+- **Brace-Based Syntax**: Required braces, optional semicolons
 - **Direct C++ Compilation**: Compiles to standard C++ code
 - **No Performance Overhead**: Generates efficient C++ code
 
@@ -38,41 +44,40 @@ npm link
 Create a simple program in `example.ys`:
 
 ```javascript
-# Ypsilon Script Example
+# Modern Ypsilon Script Example
 
 enum Mode { AUTO, MANUAL }
-
 struct Point { x: int, y: int }
 
+mut Mode currentMode = AUTO
+mut int counter = 0
+
 class Motor {
-    mut speed: int
+    mut int speed
     
-    constructor(speed: int) { 
-        self.speed = speed 
+    constructor(int s) { 
+        self.speed = s 
     }
     
     fn run() { 
-        print("Motor running") 
+        print(self.speed) 
     }
 }
 
-mut motor = new Motor(100)
+mut Motor motor = new Motor(100)
 
 on start {
+    pinMode(13, OUTPUT)
     motor.run()
 }
 
 on loop {
-    match mode {
-        AUTO => print("auto"),
-        MANUAL => print("manual")
+    match currentMode {
+        AUTO => digitalWrite(13, HIGH),
+        MANUAL => digitalWrite(13, LOW)
     }
     
-    switch level {
-        case 1 { print("low") }
-        case 2 { print("mid") }
-        default { print("high") }
-    }
+    wait 1s
 }
 ```
 
@@ -86,7 +91,7 @@ This generates C++ code ready for your microcontroller.
 
 ## Language Features
 
-### Strong Static Typing
+### Modern Syntax
 
 All variables must be explicitly typed. Use `mut` for mutable variables:
 
@@ -94,7 +99,6 @@ All variables must be explicitly typed. Use `mut` for mutable variables:
 const LED_PIN: int = 13
 mut counter: int = 0
 mut temperature: float = 23.5
-const DEBUG: bool = true
 ```
 
 ### Enums (Rust-style)
@@ -102,18 +106,10 @@ const DEBUG: bool = true
 Define enumerations with variants:
 
 ```javascript
-enum Mode { 
-    AUTO, 
-    MANUAL 
-}
+enum Mode { AUTO, MANUAL, SLEEP }
+enum State { IDLE, RUNNING, PAUSED }
 
-enum State {
-    IDLE,
-    RUNNING,
-    PAUSED
-}
-
-mut currentMode: Mode = Mode.AUTO
+mut Mode currentMode = AUTO
 ```
 
 ### Structs (C++-style)
@@ -121,17 +117,10 @@ mut currentMode: Mode = Mode.AUTO
 Define data structures:
 
 ```javascript
-struct Point { 
-    x: int, 
-    y: int 
-}
+struct Point { x: int, y: int }
+struct Config { threshold: int, enabled: bool }
 
-struct Config {
-    threshold: int,
-    enabled: bool
-}
-
-mut position: Point = Point { x: 0, y: 0 }
+mut Point position = Point { x: 0, y: 0 }
 ```
 
 ### Classes with `self`
@@ -140,28 +129,23 @@ Create classes with constructors and methods. Use `self` instead of `this`:
 
 ```javascript
 class Motor {
-    mut speed: int
-    const maxSpeed: int
+    mut int speed
+    const int maxSpeed
     
-    constructor(speed: int, max: int) {
-        self.speed = speed
+    constructor(int s, int max) {
+        self.speed = s
         self.maxSpeed = max
     }
     
-    fn accelerate(amount: int) {
+    fn accelerate(int amount) {
         self.speed = self.speed + amount
         if (self.speed > self.maxSpeed) {
             self.speed = self.maxSpeed
         }
     }
-    
-    fn run() {
-        print("Running at speed: ")
-        print(self.speed)
-    }
 }
 
-mut motor = new Motor(100, 255)
+mut Motor motor = new Motor(100, 255)
 ```
 
 ### Functions with `fn`
@@ -169,15 +153,13 @@ mut motor = new Motor(100, 255)
 Define functions using the `fn` keyword:
 
 ```javascript
-fn add(a: int, b: int) -> int {
+fn add(int a, int b) -> int {
     return a + b
 }
 
-fn blink(pin: int, duration: int) {
+fn blink(int pin, int duration) {
     digitalWrite(pin, HIGH)
-    delay(duration)
-    digitalWrite(pin, LOW)
-    delay(duration)
+    wait duration
 }
 ```
 
@@ -193,9 +175,9 @@ on start {
 
 on loop {
     digitalWrite(13, HIGH)
-    delay(1000)
+    wait 1s
     digitalWrite(13, LOW)
-    delay(1000)
+    wait 1s
 }
 ```
 
@@ -206,22 +188,12 @@ Pattern matching for control flow:
 ```javascript
 enum Status { OK, ERROR, PENDING }
 
-mut status: Status = Status.OK
+mut Status status = OK
 
 match status {
     OK => print("All good"),
     ERROR => print("Something wrong"),
     PENDING => print("Waiting")
-}
-
-# Match with values
-mut level: int = 2
-
-match level {
-    1 => print("Low"),
-    2 => print("Medium"),
-    3 => print("High"),
-    _ => print("Unknown")
 }
 ```
 
@@ -230,19 +202,69 @@ match level {
 Traditional switch-case statements with braces:
 
 ```javascript
-mut value: int = 1
+mut int value = 1
 
 switch value {
-    case 1 { 
-        print("One") 
-    }
-    case 2 { 
-        print("Two") 
-    }
-    default { 
-        print("Other") 
-    }
+    case 1 { print("One") }
+    case 2 { print("Two") }
+    default { print("Other") }
 }
+```
+
+### Tasks
+
+Periodic and background task execution:
+
+```javascript
+task blink every 500ms {
+    digitalWrite(13, HIGH)
+    wait 250ms
+    digitalWrite(13, LOW)
+}
+
+task monitor background {
+    checkSensors()
+    wait 100ms
+}
+```
+
+### Signals
+
+Event-driven communication:
+
+```javascript
+signal buttonPressed
+
+on start {
+    emit buttonPressed
+}
+```
+
+### Time Literals
+
+Intuitive time units:
+
+```javascript
+wait 200ms
+wait 2s
+timeout 5s { connect() }
+```
+
+### Atomic Blocks
+
+Interrupt-safe critical sections:
+
+```javascript
+atomic {
+    criticalValue = criticalValue + 1
+}
+```
+
+### Library Loading
+
+```javascript
+load <Servo>
+alias LED = 13
 ```
 
 ### Control Flow
@@ -285,20 +307,25 @@ YS provides access to standard microcontroller functions:
 YS syntax:
 
 - **Braces required**: All blocks use `{` and `}`
-- **No semicolons**: Semicolons are not used
+- **Semicolons optional**: Not required, only when multiple statements on one line
 - **Strong static typing**: All variables and functions must be typed
-- **Classes**: Support constructors and methods
-- **Object creation**: Use `new` keyword
-- **Member access**: Use `self` (not `this`)
-- **Mutability**: Use `mut` keyword for mutable variables
-- **Structs**: Like C++
-- **Enums**: Like Rust
-- **Event blocks**: `on <event> {}` syntax
-- **Match expressions**: Like Rust
-- **Switch statements**: Like C++
-- **Functions**: Use `fn` keyword
-- **No async**: Not supported yet
-- **No imports**: Not supported yet
+- **`fn` keyword**: Modern function syntax (also supports `function`)
+- **`self` keyword**: Class member access (also supports `this`)
+- **`mut` keyword**: Mutable variables (immutable by default with `const`)
+- **Enums**: Rust-style enumerations
+- **Structs**: C++-style data structures
+- **Classes**: OOP with constructors and methods
+- **`new` keyword**: Object instantiation
+- **Event blocks**: `on start {}`, `on loop {}`
+- **Match expressions**: Pattern matching with `=>`
+- **Switch statements**: C++-style with braces
+- **Tasks**: Periodic (`every`) and background execution
+- **Signals**: Event-driven with `signal`/`emit`
+- **Reactive vars**: Volatile variables with `react`
+- **Time literals**: `ms`, `s`, `us`, `min`, `h`
+- **Atomic blocks**: Interrupt-safe with `atomic {}`
+- **Library loading**: `load <lib>`, `alias`
+- **Inline C++**: `@cpp {}` for direct C++ code
 
 ## Examples
 

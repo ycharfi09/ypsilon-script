@@ -28,7 +28,6 @@ react mut timestamp: int = 0
 
 # Global state
 mut RobotMode mode = AUTO
-mut Position robotPos = Position { x: 0, y: 0, z: 0 }
 mut int ledState = 0
 
 # Modern class with fn and self

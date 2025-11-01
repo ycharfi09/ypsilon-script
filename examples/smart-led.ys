@@ -50,10 +50,10 @@ class RGBColor {
 # Color presets
 fn getColor(Color c) -> RGBColor {
   match c {
-    RED => return new RGBColor(255, 0, 0),
-    GREEN => return new RGBColor(0, 255, 0),
-    BLUE => return new RGBColor(0, 0, 255),
-    WHITE => return new RGBColor(255, 255, 255)
+    RED => { return new RGBColor(255, 0, 0) },
+    GREEN => { return new RGBColor(0, 255, 0) },
+    BLUE => { return new RGBColor(0, 0, 255) },
+    WHITE => { return new RGBColor(255, 255, 255) }
   }
   return new RGBColor(0, 0, 0)
 }
@@ -86,7 +86,7 @@ task executePattern every 50ms {
     },
     FADE => {
       # Fade in and out
-      repeat 255 {
+      repeat(255) {
         color.setBrightness(brightness)
         color.apply()
         wait 5ms

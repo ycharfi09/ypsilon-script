@@ -1235,18 +1235,24 @@ class Parser {
       const key = this.expect(TOKEN_TYPES.IDENTIFIER).value;
       this.expect(TOKEN_TYPES.COLON);
       
-      // Value can be identifier or number (or number+identifier like 16MHz)
+      // Value can be identifier, number, or keyword (like 'on', 'off')
       let value = '';
-      if (this.peek().type === TOKEN_TYPES.NUMBER) {
+      const token = this.peek();
+      if (token.type === TOKEN_TYPES.NUMBER) {
         value = String(this.advance().value);
         // Check if followed by an identifier (like MHz)
         if (this.peek().type === TOKEN_TYPES.IDENTIFIER) {
           value += this.advance().value;
         }
-      } else if (this.peek().type === TOKEN_TYPES.IDENTIFIER) {
+      } else if (token.type === TOKEN_TYPES.IDENTIFIER) {
         value = this.advance().value;
+      } else if (token.type === TOKEN_TYPES.ON) {
+        this.advance();
+        value = 'on';
       } else {
-        throw new Error(`Unexpected token in config block: ${this.peek().type} at line ${this.peek().line}`);
+        // Try to get token value directly for keywords
+        value = token.value || token.type;
+        this.advance();
       }
       
       options[key] = value;
