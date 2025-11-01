@@ -39,6 +39,7 @@ class Parser {
     if (pos < this.tokens.length) {
       return this.tokens[pos];
     }
+    // Return EOF token if out of bounds to prevent errors when parser looks ahead
     return this.tokens.length > 0 ? this.tokens[this.tokens.length - 1] : { type: TOKEN_TYPES.EOF };
   }
 

@@ -383,6 +383,11 @@ class CodeGenerator {
   }
 
   generateCallExpression(expr) {
+    // Safely extract callee name, checking for null
+    if (!expr.callee) {
+      return '';
+    }
+    
     let callee;
     if (expr.callee.type === 'MemberExpression') {
       callee = this.generateExpression(expr.callee);
