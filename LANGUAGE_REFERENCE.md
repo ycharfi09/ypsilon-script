@@ -641,3 +641,282 @@ Planned for future versions:
 - More advanced pattern matching
 - Inheritance and polymorphism
 - Interfaces/traits
+
+## Advanced Features
+
+### Reactive Variables
+
+Reactive variables are automatically volatile for interrupt safety:
+
+```javascript
+react mut rpm: int = 0
+react mut temperature: int = 0
+
+# Use in interrupt handlers or with volatile access
+on pin D2.rising {
+  rpm = rpm + 1
+}
+```
+
+### Signals
+
+Signals enable event-driven communication:
+
+```javascript
+signal buttonPressed
+signal dataReady
+
+# Emit signals
+on start {
+  emit buttonPressed
+}
+
+# Handler for signals (future feature)
+on buttonPressed {
+  print("Button was pressed")
+}
+```
+
+### Tasks
+
+Tasks enable periodic and background execution:
+
+```javascript
+# Periodic task
+task blink every 500ms {
+  toggle(LED)
+}
+
+# Background task (runs in loop)
+task monitor background {
+  checkSensors()
+  wait 100ms
+}
+```
+
+### Time Literals
+
+Use intuitive time units:
+
+```javascript
+wait 200ms        # Wait 200 milliseconds
+wait 2s           # Wait 2 seconds
+wait 500us        # Wait 500 microseconds
+
+timeout 5s {
+  connect()
+}
+```
+
+Supported units:
+- `ms` - milliseconds
+- `s` - seconds
+- `us` - microseconds
+- `min` - minutes
+- `h` - hours
+
+### Atomic Blocks
+
+Ensure atomic execution (disables interrupts):
+
+```javascript
+atomic {
+  criticalValue = criticalValue + 1
+  updateDisplay()
+}
+```
+
+Compiles to:
+```cpp
+noInterrupts();
+criticalValue = criticalValue + 1;
+updateDisplay();
+interrupts();
+```
+
+### Library Loading
+
+Load Arduino libraries:
+
+```javascript
+load <Servo>
+load <WiFi>
+load <Wire>
+```
+
+### Aliases
+
+Create aliases for pins or constants:
+
+```javascript
+alias LED_PIN = 13
+alias BUTTON = D2
+alias MOTOR_PWM = PWM1
+```
+
+Compiles to C++ `#define` macros.
+
+### Configuration Block
+
+Specify target configuration:
+
+```javascript
+config {
+  cpu: atmega328p,
+  clock: 16MHz,
+  uart: on,
+  i2c: on
+}
+```
+
+### Inline C++
+
+When you need direct C++ code:
+
+```javascript
+@cpp {
+  Serial.println("Direct C++")
+  digitalWrite(13, HIGH)
+}
+```
+
+### Resource Ownership
+
+Declare resource usage (for safety checking):
+
+```javascript
+use I2C1
+use SPI
+use UART0
+```
+
+## Complete Modern Example
+
+```javascript
+load <Servo>
+alias LED_PIN = 13
+
+enum Mode { AUTO, MANUAL }
+struct Point { x: int, y: int }
+
+signal modeChange
+react mut sensorValue: int = 0
+
+mut Mode currentMode = AUTO
+mut int counter = 0
+
+class Motor {
+  mut int speed
+  
+  constructor(int s) {
+    self.speed = s
+  }
+  
+  fn setSpeed(int s) {
+    self.speed = s
+  }
+  
+  fn run() {
+    print(self.speed)
+  }
+}
+
+mut Motor motor = new Motor(100)
+
+on start {
+  pinMode(LED_PIN, OUTPUT)
+  print("System ready")
+}
+
+on loop {
+  atomic {
+    sensorValue = analogRead(0)
+  }
+  
+  match currentMode {
+    AUTO => {
+      motor.setSpeed(sensorValue / 4)
+    },
+    MANUAL => {
+      motor.setSpeed(100)
+    }
+  }
+  
+  wait 10ms
+}
+
+task blink every 500ms {
+  digitalWrite(LED_PIN, HIGH)
+  wait 250ms
+  digitalWrite(LED_PIN, LOW)
+}
+```
+
+## Syntax Comparison
+
+### Traditional Arduino
+```cpp
+const int LED = 13;
+int state = 0;
+
+void setup() {
+  pinMode(LED, OUTPUT);
+}
+
+void loop() {
+  switch(state) {
+    case 0:
+      digitalWrite(LED, HIGH);
+      break;
+    case 1:
+      digitalWrite(LED, LOW);
+      break;
+  }
+  delay(1000);
+}
+```
+
+### Modern Ypsilon Script
+```javascript
+alias LED = 13
+enum State { ON, OFF }
+
+mut State currentState = ON
+
+on start {
+  pinMode(LED, OUTPUT)
+}
+
+on loop {
+  match currentState {
+    ON => digitalWrite(LED, HIGH),
+    OFF => digitalWrite(LED, LOW)
+  }
+  wait 1s
+}
+```
+
+## Updated Syntax Summary
+
+1. **Braces required**: All blocks use `{` and `}`
+2. **No semicolons**: Optional, only when multiple statements on one line
+3. **Strong static typing**: All variables and functions must be typed
+4. **`fn` keyword**: Modern function syntax (also supports `function`)
+5. **`self` keyword**: Class member access (also supports `this`)
+6. **`mut` keyword**: Mutable variables (immutable by default with `const`)
+7. **Enums**: Rust-style enumerations
+8. **Structs**: C++-style data structures
+9. **Classes**: OOP with constructors and methods
+10. **`new` keyword**: Object instantiation
+11. **Event blocks**: `on start {}`, `on loop {}`
+12. **Match expressions**: Pattern matching with `=>`
+13. **Switch statements**: C++-style with braces
+14. **Tasks**: Periodic (`every`) and background execution
+15. **Signals**: Event-driven communication
+16. **Reactive vars**: Volatile variables with `react`
+17. **Time literals**: `ms`, `s`, `us`, `min`, `h`
+18. **Atomic blocks**: Interrupt-safe regions
+19. **Library loading**: `load <lib>`
+20. **Aliases**: `alias name = value`
+21. **Config blocks**: Target configuration
+22. **Inline C++**: `@cpp { }`

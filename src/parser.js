@@ -86,9 +86,31 @@ class Parser {
       case TOKEN_TYPES.CLASS:
         return this.parseClassDeclaration();
       case TOKEN_TYPES.FUNCTION:
+      case TOKEN_TYPES.FN:
         return this.parseFunctionDeclaration();
       case TOKEN_TYPES.CONST:
+      case TOKEN_TYPES.MUT:
         return this.parseVariableDeclaration();
+      case TOKEN_TYPES.ENUM:
+        return this.parseEnumDeclaration();
+      case TOKEN_TYPES.STRUCT:
+        return this.parseStructDeclaration();
+      case TOKEN_TYPES.ON:
+        return this.parseOnBlock();
+      case TOKEN_TYPES.SIGNAL:
+        return this.parseSignalDeclaration();
+      case TOKEN_TYPES.TASK:
+        return this.parseTaskDeclaration();
+      case TOKEN_TYPES.USE:
+        return this.parseUseStatement();
+      case TOKEN_TYPES.LOAD:
+        return this.parseLoadStatement();
+      case TOKEN_TYPES.ALIAS:
+        return this.parseAliasStatement();
+      case TOKEN_TYPES.CONFIG:
+        return this.parseConfigBlock();
+      case TOKEN_TYPES.REACT:
+        return this.parseReactDeclaration();
       default:
         // Check if it's a typed variable declaration (e.g., "int x;")
         if (isTypeToken(token.type)) {
@@ -139,6 +161,66 @@ class Parser {
           throw new Error(`Class ${name} cannot have multiple constructors at line ${token.line}`);
         }
         constructor = this.parseConstructor();
+      } else if (token.type === TOKEN_TYPES.MUT || token.type === TOKEN_TYPES.CONST) {
+        // Property with mut/const prefix
+        const isMut = token.type === TOKEN_TYPES.MUT;
+        this.advance();
+        const propType = this.parseType();
+        const propName = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+        
+        let init = null;
+        if (this.peek().type === TOKEN_TYPES.ASSIGN) {
+          this.advance();
+          init = this.parseExpression();
+        }
+        this.optionalExpect(TOKEN_TYPES.SEMICOLON);
+        
+        properties.push({
+          type: 'PropertyDeclaration',
+          propertyType: propType,
+          name: propName,
+          isMut,
+          init
+        });
+      } else if (token.type === TOKEN_TYPES.FN) {
+        // Method with fn keyword
+        this.advance();
+        const methodName = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+        this.expect(TOKEN_TYPES.LPAREN);
+        
+        const params = [];
+        while (this.peek().type !== TOKEN_TYPES.RPAREN) {
+          const paramType = this.parseType();
+          const paramName = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+          params.push({ type: paramType, name: paramName });
+          
+          if (this.peek().type === TOKEN_TYPES.COMMA) {
+            this.advance();
+          }
+        }
+        this.expect(TOKEN_TYPES.RPAREN);
+        
+        // Optional return type indicator
+        let returnType = 'void';
+        if (this.peek().type === TOKEN_TYPES.ARROW) {
+          this.advance();
+          returnType = this.parseType();
+        }
+        
+        const body = this.parseBlock();
+        
+        // If no explicit return type, infer it
+        if (returnType === 'void') {
+          returnType = this.inferReturnType(body);
+        }
+        
+        methods.push({
+          type: 'MethodDeclaration',
+          returnType,
+          name: methodName,
+          params,
+          body
+        });
       } else if (isTypeToken(token.type)) {
         // Could be a property or method
         const typeToken = this.advance();
@@ -239,7 +321,12 @@ class Parser {
   }
 
   parseFunctionDeclaration() {
-    this.expect(TOKEN_TYPES.FUNCTION);
+    // Accept either 'function' or 'fn'
+    if (this.peek().type === TOKEN_TYPES.FUNCTION) {
+      this.expect(TOKEN_TYPES.FUNCTION);
+    } else {
+      this.expect(TOKEN_TYPES.FN);
+    }
     
     // Parse return type - now optional
     let returnType = null;
@@ -261,6 +348,12 @@ class Parser {
       }
     }
     this.expect(TOKEN_TYPES.RPAREN);
+    
+    // Check for -> return type
+    if (this.peek().type === TOKEN_TYPES.ARROW) {
+      this.advance();
+      returnType = this.parseType();
+    }
     
     const body = this.parseBlock();
 
@@ -350,6 +443,11 @@ class Parser {
       this.advance();
       return tokenTypeToString(token.type);
     }
+    // Allow identifiers as types (for structs, enums, and classes)
+    if (token.type === TOKEN_TYPES.IDENTIFIER) {
+      this.advance();
+      return token.value;
+    }
     throw new Error(`Expected type but got ${token.type} at line ${token.line}`);
   }
 
@@ -383,7 +481,22 @@ class Parser {
       case TOKEN_TYPES.RETURN:
         return this.parseReturnStatement();
       case TOKEN_TYPES.CONST:
+      case TOKEN_TYPES.MUT:
         return this.parseVariableDeclaration();
+      case TOKEN_TYPES.MATCH:
+        return this.parseMatchStatement();
+      case TOKEN_TYPES.SWITCH:
+        return this.parseSwitchStatement();
+      case TOKEN_TYPES.EMIT:
+        return this.parseEmitStatement();
+      case TOKEN_TYPES.WAIT:
+        return this.parseWaitStatement();
+      case TOKEN_TYPES.TIMEOUT:
+        return this.parseTimeoutStatement();
+      case TOKEN_TYPES.ATOMIC:
+        return this.parseAtomicBlock();
+      case TOKEN_TYPES.AT:
+        return this.parseCppBlock();
       default:
         // Check if it's a typed variable declaration
         if (isTypeToken(token.type)) {
@@ -496,7 +609,16 @@ class Parser {
   }
 
   parseVariableDeclaration() {
-    this.expect(TOKEN_TYPES.CONST);
+    // Accept either 'const' or 'mut'
+    let kind = 'const';
+    if (this.peek().type === TOKEN_TYPES.CONST) {
+      this.expect(TOKEN_TYPES.CONST);
+      kind = 'const';
+    } else {
+      this.expect(TOKEN_TYPES.MUT);
+      kind = 'var'; // mut maps to var in C++
+    }
+    
     const varType = this.parseType();
     const name = this.expect(TOKEN_TYPES.IDENTIFIER).value;
     
@@ -509,7 +631,7 @@ class Parser {
 
     return {
       type: 'VariableDeclaration',
-      kind: 'const',
+      kind,
       varType,
       name,
       init
@@ -741,7 +863,11 @@ class Parser {
     switch (token.type) {
       case TOKEN_TYPES.NUMBER:
         this.advance();
-        return { type: 'Literal', value: token.value, valueType: 'number' };
+        const numLiteral = { type: 'Literal', value: token.value, valueType: 'number' };
+        if (token.unit) {
+          numLiteral.unit = token.unit;
+        }
+        return numLiteral;
       
       case TOKEN_TYPES.STRING:
         this.advance();
@@ -752,6 +878,7 @@ class Parser {
         return { type: 'Literal', value: token.value, valueType: 'boolean' };
       
       case TOKEN_TYPES.THIS:
+      case TOKEN_TYPES.SELF:
         this.advance();
         return { type: 'ThisExpression' };
       
@@ -791,6 +918,390 @@ class Parser {
       type: 'NewExpression',
       className,
       arguments: args
+    };
+  }
+
+  // Enum declaration: enum Mode { AUTO, MANUAL }
+  parseEnumDeclaration() {
+    this.expect(TOKEN_TYPES.ENUM);
+    const name = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+    this.expect(TOKEN_TYPES.LBRACE);
+    
+    const values = [];
+    while (this.peek().type !== TOKEN_TYPES.RBRACE && this.peek().type !== TOKEN_TYPES.EOF) {
+      const value = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+      values.push(value);
+      if (this.peek().type === TOKEN_TYPES.COMMA) {
+        this.advance();
+      }
+    }
+    
+    this.expect(TOKEN_TYPES.RBRACE);
+    
+    return {
+      type: 'EnumDeclaration',
+      name,
+      values
+    };
+  }
+
+  // Struct declaration: struct Point { x: int, y: int }
+  parseStructDeclaration() {
+    this.expect(TOKEN_TYPES.STRUCT);
+    const name = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+    this.expect(TOKEN_TYPES.LBRACE);
+    
+    const fields = [];
+    while (this.peek().type !== TOKEN_TYPES.RBRACE && this.peek().type !== TOKEN_TYPES.EOF) {
+      const fieldName = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+      this.expect(TOKEN_TYPES.COLON);
+      const fieldType = this.parseType();
+      fields.push({ name: fieldName, type: fieldType });
+      
+      if (this.peek().type === TOKEN_TYPES.COMMA) {
+        this.advance();
+      }
+    }
+    
+    this.expect(TOKEN_TYPES.RBRACE);
+    
+    return {
+      type: 'StructDeclaration',
+      name,
+      fields
+    };
+  }
+
+  // Match expression: match x { 1 => ..., 2 => ..., _ => ... }
+  parseMatchStatement() {
+    this.expect(TOKEN_TYPES.MATCH);
+    const discriminant = this.parseExpression();
+    this.expect(TOKEN_TYPES.LBRACE);
+    
+    const cases = [];
+    while (this.peek().type !== TOKEN_TYPES.RBRACE && this.peek().type !== TOKEN_TYPES.EOF) {
+      // Parse pattern (can be identifier, number, or _)
+      let pattern;
+      const token = this.peek();
+      if (token.type === TOKEN_TYPES.IDENTIFIER && token.value === '_') {
+        this.advance();
+        pattern = { type: 'Wildcard' };
+      } else {
+        pattern = this.parseExpression();
+      }
+      
+      this.expect(TOKEN_TYPES.ARROW);
+      
+      // Parse consequent (can be a block or expression)
+      let consequent;
+      if (this.peek().type === TOKEN_TYPES.LBRACE) {
+        consequent = this.parseBlock();
+      } else {
+        consequent = [{ type: 'ExpressionStatement', expression: this.parseExpression() }];
+      }
+      
+      cases.push({ pattern, consequent });
+      
+      if (this.peek().type === TOKEN_TYPES.COMMA) {
+        this.advance();
+      }
+    }
+    
+    this.expect(TOKEN_TYPES.RBRACE);
+    
+    return {
+      type: 'MatchStatement',
+      discriminant,
+      cases
+    };
+  }
+
+  // Switch statement: switch x { case 1 { ... } case 2 { ... } default { ... } }
+  parseSwitchStatement() {
+    this.expect(TOKEN_TYPES.SWITCH);
+    const discriminant = this.parseExpression();
+    this.expect(TOKEN_TYPES.LBRACE);
+    
+    const cases = [];
+    let defaultCase = null;
+    
+    while (this.peek().type !== TOKEN_TYPES.RBRACE && this.peek().type !== TOKEN_TYPES.EOF) {
+      if (this.peek().type === TOKEN_TYPES.CASE) {
+        this.advance();
+        const test = this.parseExpression();
+        const consequent = this.parseBlock();
+        cases.push({ test, consequent });
+      } else if (this.peek().type === TOKEN_TYPES.DEFAULT) {
+        this.advance();
+        defaultCase = this.parseBlock();
+      } else {
+        throw new Error(`Unexpected token in switch statement: ${this.peek().type} at line ${this.peek().line}`);
+      }
+    }
+    
+    this.expect(TOKEN_TYPES.RBRACE);
+    
+    return {
+      type: 'SwitchStatement',
+      discriminant,
+      cases,
+      defaultCase
+    };
+  }
+
+  // On block: on start { }, on loop { }, on pin D2.rising { }
+  parseOnBlock() {
+    this.expect(TOKEN_TYPES.ON);
+    const eventToken = this.expect(TOKEN_TYPES.IDENTIFIER);
+    const event = eventToken.value;
+    
+    // Check for event properties like D2.rising
+    let eventProperty = null;
+    if (this.peek().type === TOKEN_TYPES.DOT) {
+      this.advance();
+      eventProperty = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+    }
+    
+    const body = this.parseBlock();
+    
+    return {
+      type: 'OnBlock',
+      event,
+      eventProperty,
+      body
+    };
+  }
+
+  // Signal declaration: signal btnPress
+  parseSignalDeclaration() {
+    this.expect(TOKEN_TYPES.SIGNAL);
+    const name = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+    this.optionalExpect(TOKEN_TYPES.SEMICOLON);
+    
+    return {
+      type: 'SignalDeclaration',
+      name
+    };
+  }
+
+  // Emit statement: emit btnPress
+  parseEmitStatement() {
+    this.expect(TOKEN_TYPES.EMIT);
+    const signal = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+    this.optionalExpect(TOKEN_TYPES.SEMICOLON);
+    
+    return {
+      type: 'EmitStatement',
+      signal
+    };
+  }
+
+  // Task declaration: task blink every 500ms { }, task background { }
+  parseTaskDeclaration() {
+    this.expect(TOKEN_TYPES.TASK);
+    const name = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+    
+    // Check for 'every' or 'background'
+    let interval = null;
+    let isBackground = false;
+    
+    if (this.peek().type === TOKEN_TYPES.EVERY) {
+      this.advance();
+      interval = this.parseExpression(); // Will be a number with time unit
+    } else if (this.peek().type === TOKEN_TYPES.BACKGROUND) {
+      this.advance();
+      isBackground = true;
+    }
+    
+    const body = this.parseBlock();
+    
+    return {
+      type: 'TaskDeclaration',
+      name,
+      interval,
+      isBackground,
+      body
+    };
+  }
+
+  // Wait statement: wait 200ms
+  parseWaitStatement() {
+    this.expect(TOKEN_TYPES.WAIT);
+    const duration = this.parseExpression();
+    this.optionalExpect(TOKEN_TYPES.SEMICOLON);
+    
+    return {
+      type: 'WaitStatement',
+      duration
+    };
+  }
+
+  // Timeout statement: timeout 2s { connect() }
+  parseTimeoutStatement() {
+    this.expect(TOKEN_TYPES.TIMEOUT);
+    const duration = this.parseExpression();
+    const body = this.parseBlock();
+    
+    return {
+      type: 'TimeoutStatement',
+      duration,
+      body
+    };
+  }
+
+  // Atomic block: atomic { pwm.write(200) }
+  parseAtomicBlock() {
+    this.expect(TOKEN_TYPES.ATOMIC);
+    const body = this.parseBlock();
+    
+    return {
+      type: 'AtomicBlock',
+      body
+    };
+  }
+
+  // C++ inline block: @cpp { Serial.println("debug"); }
+  parseCppBlock() {
+    this.expect(TOKEN_TYPES.AT);
+    
+    // Expect 'cpp' identifier
+    const cppToken = this.expect(TOKEN_TYPES.IDENTIFIER);
+    if (cppToken.value !== 'cpp') {
+      throw new Error(`Expected 'cpp' after @ but got '${cppToken.value}' at line ${cppToken.line}`);
+    }
+    
+    const body = this.parseBlock();
+    
+    return {
+      type: 'CppBlock',
+      body
+    };
+  }
+
+  // Use statement: use I2C1
+  parseUseStatement() {
+    this.expect(TOKEN_TYPES.USE);
+    const resource = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+    this.optionalExpect(TOKEN_TYPES.SEMICOLON);
+    
+    return {
+      type: 'UseStatement',
+      resource
+    };
+  }
+
+  // Load statement: load <servo>
+  parseLoadStatement() {
+    this.expect(TOKEN_TYPES.LOAD);
+    this.expect(TOKEN_TYPES.LESS_THAN);
+    const library = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+    this.expect(TOKEN_TYPES.GREATER_THAN);
+    this.optionalExpect(TOKEN_TYPES.SEMICOLON);
+    
+    return {
+      type: 'LoadStatement',
+      library
+    };
+  }
+
+  // Alias statement: alias led = D13 or alias led = 13
+  parseAliasStatement() {
+    this.expect(TOKEN_TYPES.ALIAS);
+    const name = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+    this.expect(TOKEN_TYPES.ASSIGN);
+    
+    // Value can be identifier or number
+    let value;
+    if (this.peek().type === TOKEN_TYPES.IDENTIFIER) {
+      value = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+    } else if (this.peek().type === TOKEN_TYPES.NUMBER) {
+      value = String(this.expect(TOKEN_TYPES.NUMBER).value);
+    } else {
+      throw new Error(`Expected identifier or number for alias value at line ${this.peek().line}`);
+    }
+    
+    this.optionalExpect(TOKEN_TYPES.SEMICOLON);
+    
+    return {
+      type: 'AliasStatement',
+      name,
+      value
+    };
+  }
+
+  // Config block: config { cpu: atmega328p, clock: 16MHz }
+  parseConfigBlock() {
+    this.expect(TOKEN_TYPES.CONFIG);
+    this.expect(TOKEN_TYPES.LBRACE);
+    
+    const options = {};
+    while (this.peek().type !== TOKEN_TYPES.RBRACE && this.peek().type !== TOKEN_TYPES.EOF) {
+      const key = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+      this.expect(TOKEN_TYPES.COLON);
+      
+      // Value can be identifier, number, or keyword (like 'on', 'off')
+      let value = '';
+      const token = this.peek();
+      if (token.type === TOKEN_TYPES.NUMBER) {
+        value = String(this.advance().value);
+        // Check if followed by an identifier (like MHz)
+        if (this.peek().type === TOKEN_TYPES.IDENTIFIER) {
+          value += this.advance().value;
+        }
+      } else if (token.type === TOKEN_TYPES.IDENTIFIER) {
+        value = this.advance().value;
+      } else if (token.type === TOKEN_TYPES.ON) {
+        this.advance();
+        value = 'on';
+      } else {
+        // Try to get token value directly for keywords
+        value = token.value || token.type;
+        this.advance();
+      }
+      
+      options[key] = value;
+      
+      if (this.peek().type === TOKEN_TYPES.COMMA) {
+        this.advance();
+      }
+    }
+    
+    this.expect(TOKEN_TYPES.RBRACE);
+    
+    return {
+      type: 'ConfigBlock',
+      options
+    };
+  }
+
+  // React declaration: react mut rpm: int
+  parseReactDeclaration() {
+    this.expect(TOKEN_TYPES.REACT);
+    
+    // Check for mut
+    let isMut = false;
+    if (this.peek().type === TOKEN_TYPES.MUT) {
+      this.advance();
+      isMut = true;
+    }
+    
+    const name = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+    this.expect(TOKEN_TYPES.COLON);
+    const varType = this.parseType();
+    
+    let init = null;
+    if (this.peek().type === TOKEN_TYPES.ASSIGN) {
+      this.advance();
+      init = this.parseExpression();
+    }
+    this.optionalExpect(TOKEN_TYPES.SEMICOLON);
+    
+    return {
+      type: 'ReactDeclaration',
+      isMut,
+      name,
+      varType,
+      init
     };
   }
 }

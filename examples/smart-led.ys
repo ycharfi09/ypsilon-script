@@ -1,0 +1,125 @@
+# Smart LED Controller with Modern YS Syntax
+# Demonstrates: enums, match, tasks, signals, time units
+
+enum Pattern { SOLID, BLINK, FADE, PULSE }
+enum Color { RED, GREEN, BLUE, WHITE }
+
+struct RGB { r: int, g: int, b: int }
+
+# Configuration
+alias RED_PIN = 9
+alias GREEN_PIN = 10
+alias BLUE_PIN = 11
+alias BUTTON_PIN = 2
+
+# Signals for events
+signal patternChange
+signal colorChange
+
+# State
+mut Pattern currentPattern = BLINK
+mut Color currentColor = WHITE
+mut int brightness = 128
+
+# RGB color class
+class RGBColor {
+  mut int red
+  mut int green
+  mut int blue
+  
+  constructor(int r, int g, int b) {
+    self.red = r
+    self.green = g
+    self.blue = b
+  }
+  
+  fn setBrightness(int b) {
+    mut int factor = b / 255
+    self.red = self.red * factor
+    self.green = self.green * factor
+    self.blue = self.blue * factor
+  }
+  
+  fn apply() {
+    analogWrite(RED_PIN, self.red)
+    analogWrite(GREEN_PIN, self.green)
+    analogWrite(BLUE_PIN, self.blue)
+  }
+}
+
+# Color presets
+fn getColor(Color c) -> RGBColor {
+  match c {
+    RED => { return new RGBColor(255, 0, 0) },
+    GREEN => { return new RGBColor(0, 255, 0) },
+    BLUE => { return new RGBColor(0, 0, 255) },
+    WHITE => { return new RGBColor(255, 255, 255) }
+  }
+  return new RGBColor(0, 0, 0)
+}
+
+on start {
+  pinMode(RED_PIN, OUTPUT)
+  pinMode(GREEN_PIN, OUTPUT)
+  pinMode(BLUE_PIN, OUTPUT)
+  pinMode(BUTTON_PIN, INPUT_PULLUP)
+  
+  print("Smart LED Controller Ready")
+}
+
+# Pattern execution task
+task executePattern every 50ms {
+  mut RGBColor color = getColor(currentColor)
+  
+  match currentPattern {
+    SOLID => {
+      color.apply()
+    },
+    BLINK => {
+      # Implementation would toggle
+      color.apply()
+      wait 500ms
+      analogWrite(RED_PIN, 0)
+      analogWrite(GREEN_PIN, 0)
+      analogWrite(BLUE_PIN, 0)
+      wait 500ms
+    },
+    FADE => {
+      # Fade in and out
+      repeat(255) {
+        color.setBrightness(brightness)
+        color.apply()
+        wait 5ms
+      }
+    },
+    PULSE => {
+      color.setBrightness(brightness)
+      color.apply()
+    }
+  }
+}
+
+# Button handler task
+task handleButton every 10ms {
+  if (digitalRead(BUTTON_PIN) == LOW) {
+    wait 50ms  # Debounce
+    if (digitalRead(BUTTON_PIN) == LOW) {
+      emit patternChange
+      
+      # Cycle through patterns
+      switch currentPattern {
+        case SOLID { currentPattern = BLINK }
+        case BLINK { currentPattern = FADE }
+        case FADE { currentPattern = PULSE }
+        case PULSE { currentPattern = SOLID }
+      }
+      
+      print("Pattern changed")
+    }
+  }
+}
+
+on loop {
+  # Main loop just coordinates
+  wait 100ms
+}

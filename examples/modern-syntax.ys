@@ -1,0 +1,161 @@
+# Modern Ypsilon Script Syntax Demo
+# Showcases all new features: fn, mut, self, enum, struct, match, on blocks
+
+load <servo>
+alias LED_PIN = 13
+alias BUTTON_PIN = 2
+
+# Enum for robot modes
+enum RobotMode { AUTO, MANUAL, CALIBRATE }
+
+# Struct for position
+struct Position { x: int, y: int, z: int }
+
+# Config block
+config {
+  cpu: atmega328p,
+  clock: 16MHz,
+  uart: on
+}
+
+# Signal declarations
+signal buttonPressed
+signal calibrationDone
+
+# Reactive variables
+react mut sensorValue: int = 0
+react mut timestamp: int = 0
+
+# Global state
+mut RobotMode mode = AUTO
+mut int ledState = 0
+
+# Modern class with fn and self
+class Servo {
+  mut int angle
+  mut int pin
+  
+  constructor(int p) {
+    self.pin = p
+    self.angle = 90
+  }
+  
+  fn setAngle(int a) -> bool {
+    if (a >= 0 and a <= 180) {
+      self.angle = a
+      return true
+    }
+    return false
+  }
+  
+  fn getAngle() -> int {
+    return self.angle
+  }
+}
+
+mut Servo armServo = new Servo(9)
+mut Servo gripperServo = new Servo(10)
+
+# Modern function with arrow syntax
+fn calculateDistance(int x1, int y1, int x2, int y2) -> float {
+  mut int dx = x2 - x1
+  mut int dy = y2 - y1
+  return 0.0  # Would use sqrt in real code
+}
+
+fn updateLED() {
+  match mode {
+    AUTO => {
+      digitalWrite(LED_PIN, HIGH)
+      wait 200ms
+    },
+    MANUAL => {
+      digitalWrite(LED_PIN, ledState)
+    },
+    CALIBRATE => {
+      # Blink rapidly during calibration
+      digitalWrite(LED_PIN, HIGH)
+      wait 50ms
+      digitalWrite(LED_PIN, LOW)
+      wait 50ms
+    }
+  }
+}
+
+# Setup using "on start" event block
+on start {
+  pinMode(LED_PIN, OUTPUT)
+  pinMode(BUTTON_PIN, INPUT_PULLUP)
+  
+  armServo.setAngle(90)
+  gripperServo.setAngle(45)
+  
+  print("Robot initialized")
+}
+
+# Main loop using "on loop" event block
+on loop {
+  # Read sensor value atomically
+  atomic {
+    sensorValue = analogRead(0)
+    timestamp = millis()
+  }
+  
+  # Handle button press
+  if (digitalRead(BUTTON_PIN) == LOW) {
+    emit buttonPressed
+  }
+  
+  # Update robot based on mode
+  switch mode {
+    case AUTO {
+      # Automatic mode logic
+      if (sensorValue > 512) {
+        armServo.setAngle(120)
+      } else {
+        armServo.setAngle(60)
+      }
+    }
+    case MANUAL {
+      # Manual control - do nothing
+    }
+    default {
+      # Calibration or other modes
+      print("Unknown mode")
+    }
+  }
+  
+  updateLED()
+  wait 10ms
+}
+
+# Background task for monitoring
+task monitor background {
+  if (millis() % 5000 == 0) {
+    print("Status OK")
+  }
+}
+
+# Periodic task for sensor reading
+task readSensors every 100ms {
+  mut int temp = analogRead(1)
+  if (temp > 700) {
+    print("Temperature high!")
+  }
+}
+
+# Timeout example in a function
+fn connectWifi() -> bool {
+  timeout 5s {
+    # Connection code would go here
+    wait 100ms
+  }
+  return true
+}
+
+# Inline C++ when needed
+fn debugOutput() {
+  @cpp {
+    print("Direct C++ output")
+  }
+}
