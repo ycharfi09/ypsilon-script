@@ -1235,22 +1235,42 @@ class Parser {
   parseLoadStatement() {
     this.expect(TOKEN_TYPES.LOAD);
     this.expect(TOKEN_TYPES.LESS_THAN);
-    const library = this.expect(TOKEN_TYPES.IDENTIFIER).value;
     
-    // Check if this is a .ys file
-    let isYsFile = false;
-    let fileName = library;
-    if (this.peek().type === TOKEN_TYPES.DOT) {
-      this.advance(); // consume the dot
-      const extension = this.expect(TOKEN_TYPES.IDENTIFIER).value;
-      fileName = library + '.' + extension;
-      isYsFile = (extension === 'ys');
+    // Collect all tokens until '>' to build the filename
+    // This handles filenames like sensor-lib.ys or my_module.ys
+    let fileName = '';
+    while (this.peek().type !== TOKEN_TYPES.GREATER_THAN && this.peek().type !== TOKEN_TYPES.EOF) {
+      const token = this.peek();
+      if (token.type === TOKEN_TYPES.IDENTIFIER) {
+        fileName += token.value;
+        this.advance();
+      } else if (token.type === TOKEN_TYPES.DOT) {
+        fileName += '.';
+        this.advance();
+      } else if (token.type === TOKEN_TYPES.MINUS) {
+        fileName += '-';
+        this.advance();
+      } else if (token.type === TOKEN_TYPES.NUMBER) {
+        fileName += token.value;
+        this.advance();
+      } else {
+        throw new Error(`Unexpected token ${token.type} in load statement at line ${token.line}`);
+      }
     }
     
     this.expect(TOKEN_TYPES.GREATER_THAN);
     
+    // Check if this is a .ys file
+    const isYsFile = fileName.endsWith('.ys');
+    
+    // Extract base name (without extension) for default module name
+    let baseName = fileName;
+    if (isYsFile) {
+      baseName = fileName.substring(0, fileName.length - 3); // remove .ys
+    }
+    
     // Check for optional 'as' keyword for .ys files
-    let moduleName = library; // default to file name without extension
+    let moduleName = baseName;
     if (this.peek().type === TOKEN_TYPES.AS) {
       this.advance(); // consume 'as'
       moduleName = this.expect(TOKEN_TYPES.IDENTIFIER).value;
@@ -1260,7 +1280,7 @@ class Parser {
     
     return {
       type: 'LoadStatement',
-      library: isYsFile ? fileName : library,
+      library: fileName,
       isYsFile,
       moduleName: isYsFile ? moduleName : null
     };
