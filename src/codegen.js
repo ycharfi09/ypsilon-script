@@ -641,12 +641,12 @@ class CodeGenerator {
         this.indent--;
         // Don't add closing brace here - it's added at the end
       } else {
-        const condition = `((${this.generateExpression(stmt.discriminant)}) == (${this.generateExpression(matchCase.pattern)}))`;
+        const condition = `${this.generateExpression(stmt.discriminant)} == ${this.generateExpression(matchCase.pattern)}`;
         if (isFirst) {
-          code += this.getIndent() + `if ${condition} {\n`;
+          code += this.getIndent() + `if (${condition}) {\n`;
           isFirst = false;
         } else {
-          code += this.getIndent() + `} else if ${condition} {\n`;
+          code += this.getIndent() + `} else if (${condition}) {\n`;
         }
         this.indent++;
         for (const s of matchCase.consequent) {

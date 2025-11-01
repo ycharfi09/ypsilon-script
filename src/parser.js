@@ -863,7 +863,11 @@ class Parser {
     switch (token.type) {
       case TOKEN_TYPES.NUMBER:
         this.advance();
-        return { type: 'Literal', value: token.value, valueType: 'number', unit: token.unit };
+        const numLiteral = { type: 'Literal', value: token.value, valueType: 'number' };
+        if (token.unit) {
+          numLiteral.unit = token.unit;
+        }
+        return numLiteral;
       
       case TOKEN_TYPES.STRING:
         this.advance();
