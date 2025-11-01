@@ -1,23 +1,23 @@
 # Fade LED using PWM
 # This example shows analog output control
 
-const int LED_PIN = 9;
+const int LED_PIN = 9
 
-function void setup() {
-    pinMode(LED_PIN, OUTPUT);
+function start() {
+    pinMode(LED_PIN, OUTPUT)
 }
 
-function void loop() {
+function loop() {
     # Fade in
     for (int brightness = 0; brightness < 256; brightness = brightness + 5) {
-        analogWrite(LED_PIN, brightness);
-        delay(30);
+        analogWrite(LED_PIN, brightness)
+        delay(30)
     }
     
     # Fade out
     for (int brightness = 255; brightness > 0; brightness = brightness - 5) {
-        analogWrite(LED_PIN, brightness);
-        delay(30);
+        analogWrite(LED_PIN, brightness)
+        delay(30)
     }
 }
 

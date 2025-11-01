@@ -4,9 +4,16 @@
 
 Ypsilon Script is a strictly-typed, object-oriented language with brace-based syntax that compiles to Arduino C++.
 
+## Syntax Features
+
+- **Optional Semicolons**: Semicolons are optional - write clean code without them
+- **Type Inference**: Function return types can be inferred from return statements
+- **start() function**: Use `start()` as an alias for `setup()` (both are supported)
+- **repeat loop**: Simple syntax for repeating code N times
+
 ## Type System
 
-All variables and functions must be explicitly typed.
+All variables must be explicitly typed. Functions can optionally infer return types.
 
 ### Built-in Types
 
@@ -20,69 +27,79 @@ All variables and functions must be explicitly typed.
 
 ### Constant Declaration
 ```javascript
-const int LED_PIN = 13;
-const float PI = 3.14159;
-const bool DEBUG = true;
+const int LED_PIN = 13
+const float PI = 3.14159
+const bool DEBUG = true
 ```
 
 ### Variable Declaration (in functions)
 ```javascript
-int sensorValue = 0;
-float temperature = 23.5;
-bool isActive = false;
+int sensorValue = 0
+float temperature = 23.5
+bool isActive = false
 ```
 
 ### Class Instance Declaration
 ```javascript
-LED myLED;
-Button btn;
+LED myLED
+Button btn
 ```
 
 ## Functions
 
-Functions must specify return type and parameter types.
+Functions can have explicit return types or infer them from return statements.
 
-### Syntax
+### Syntax with Explicit Type
 ```javascript
 function <returnType> <name>(<type> <param1>, <type> <param2>, ...) {
     # function body
 }
 ```
 
+### Syntax with Type Inference
+```javascript
+function <name>(<type> <param1>, <type> <param2>, ...) {
+    return <value>  # Return type inferred
+}
+```
+
 ### Examples
 ```javascript
+# Explicit void type
 function void blink(int pin, int duration) {
-    digitalWrite(pin, HIGH);
-    delay(duration);
-    digitalWrite(pin, LOW);
-    delay(duration);
+    digitalWrite(pin, HIGH)
+    delay(duration)
+    digitalWrite(pin, LOW)
+    delay(duration)
 }
 
-function int add(int a, int b) {
-    return a + b;
+# Type inference - returns int
+function add(int a, int b) {
+    return a + b
 }
 
+# Explicit float type
 function float calculateAverage(int a, int b) {
-    return (a + b) / 2.0;
+    return (a + b) / 2.0
 }
 ```
 
 ### Special Functions
 
-#### setup()
-Runs once at startup (required)
+#### start() or setup()
+Runs once at startup (required). Both names are supported - `start()` is converted to `setup()` in the generated code.
 ```javascript
-function void setup() {
-    pinMode(13, OUTPUT);
+function start() {
+    pinMode(13, OUTPUT)
 }
 ```
 
 #### loop()
 Runs repeatedly (required)
 ```javascript
-function void loop() {
-    digitalWrite(13, HIGH);
-    delay(1000);
+function loop() {
+    digitalWrite(13, HIGH)
+    delay(1000)
 }
 ```
 
@@ -92,8 +109,8 @@ function void loop() {
 
 ```javascript
 class <ClassName> {
-    <type> <property1>;
-    <type> <property2>;
+    <type> <property1>
+    <type> <property2>
     
     constructor(<type> <param1>, ...) {
         # initialization code
@@ -109,27 +126,27 @@ class <ClassName> {
 
 ```javascript
 class LED {
-    int pin;
-    int state;
+    int pin
+    int state
     
     constructor(int ledPin) {
-        this.pin = ledPin;
-        this.state = LOW;
-        pinMode(this.pin, OUTPUT);
+        this.pin = ledPin
+        this.state = LOW
+        pinMode(this.pin, OUTPUT)
     }
     
     void turnOn() {
-        this.state = HIGH;
-        digitalWrite(this.pin, HIGH);
+        this.state = HIGH
+        digitalWrite(this.pin, HIGH)
     }
     
     void turnOff() {
-        this.state = LOW;
-        digitalWrite(this.pin, LOW);
+        this.state = LOW
+        digitalWrite(this.pin, LOW)
     }
     
     int getState() {
-        return this.state;
+        return this.state
     }
 }
 ```
@@ -137,19 +154,19 @@ class LED {
 ### Object Instantiation
 
 ```javascript
-LED myLED;
+LED myLED
 
-function void setup() {
-    myLED = new LED(13);
-    myLED.turnOn();
+function start() {
+    myLED = new LED(13)
+    myLED.turnOn()
 }
 ```
 
 ### Accessing Members
 
 ```javascript
-myLED.turnOn();           # Call method
-int currentState = myLED.getState();  # Get return value
+myLED.turnOn()           # Call method
+int currentState = myLED.getState()  # Get return value
 ```
 
 ## Control Flow
@@ -167,9 +184,9 @@ if (<condition>) {
 Example:
 ```javascript
 if (sensorValue > THRESHOLD) {
-    digitalWrite(LED_PIN, HIGH);
+    digitalWrite(LED_PIN, HIGH)
 } else {
-    digitalWrite(LED_PIN, LOW);
+    digitalWrite(LED_PIN, LOW)
 }
 ```
 
@@ -184,7 +201,7 @@ while (<condition>) {
 Example:
 ```javascript
 while (digitalRead(BUTTON_PIN) == HIGH) {
-    delay(10);
+    delay(10)
 }
 ```
 
@@ -199,18 +216,41 @@ for (<type> <var> = <init>; <condition>; <update>) {
 Examples:
 ```javascript
 for (int i = 0; i < 10; i = i + 1) {
-    print(i);
+    print(i)
 }
 
 for (int brightness = 0; brightness < 256; brightness = brightness + 5) {
-    analogWrite(LED_PIN, brightness);
-    delay(30);
+    analogWrite(LED_PIN, brightness)
+    delay(30)
 }
 
 for (int i = 10; i > 0; i = i - 1) {
-    print(i);
+    print(i)
 }
 ```
+
+### Repeat Loop
+
+The repeat loop provides a simple way to repeat code a specific number of times:
+
+```javascript
+repeat(<count>) {
+    # code
+}
+```
+
+Example:
+```javascript
+# Blink LED 5 times
+repeat(5) {
+    digitalWrite(LED_PIN, HIGH)
+    delay(100)
+    digitalWrite(LED_PIN, LOW)
+    delay(100)
+}
+```
+
+The repeat loop compiles to a standard for loop in C++.
 
 ## Operators
 
@@ -369,30 +409,33 @@ function loop():
     delay(1000)
 ```
 
-### New (Brace-Based, Typed, OOP)
+### New (Brace-Based, Typed, OOP, Modern)
 ```javascript
-const int LED_PIN = 13;
+const int LED_PIN = 13
 
-function void setup() {
-    pinMode(LED_PIN, OUTPUT);
+function start() {
+    pinMode(LED_PIN, OUTPUT)
 }
 
-function void loop() {
-    digitalWrite(LED_PIN, HIGH);
-    delay(1000);
+function loop() {
+    digitalWrite(LED_PIN, HIGH)
+    delay(1000)
 }
 ```
 
 ### Changes Summary
 
-1. **Types required**: All variables and functions must declare types
+1. **Types required**: All variables must declare types
 2. **Braces instead of indentation**: Use `{}` for blocks
 3. **No colons after declarations**: Removed from function/class/control flow
-4. **Semicolons required**: End statements with `;`
-5. **OOP support**: Classes, constructors, methods
-6. **Object instantiation**: Use `new` keyword
-7. **Member access**: Use `.` notation
-8. **This keyword**: Use `this` for class members
+4. **Semicolons optional**: Write clean code without semicolons
+5. **Type inference**: Function return types can be inferred from return statements
+6. **start() function**: Use `start()` instead of `setup()` (both supported)
+7. **repeat loop**: Simple `repeat(N)` syntax for repeating code
+8. **OOP support**: Classes, constructors, methods
+9. **Object instantiation**: Use `new` keyword
+10. **Member access**: Use `.` notation
+11. **This keyword**: Use `this` for class members
 
 ## Future Features
 

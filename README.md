@@ -37,17 +37,17 @@ Create a simple blink program in `blink.ys`:
 
 ```javascript
 # Classic Arduino Blink Example
-const int LED_PIN = 13;
+const int LED_PIN = 13
 
-function void setup() {
-    pinMode(LED_PIN, OUTPUT);
+function start() {
+    pinMode(LED_PIN, OUTPUT)
 }
 
-function void loop() {
-    digitalWrite(LED_PIN, HIGH);
-    delay(1000);
-    digitalWrite(LED_PIN, LOW);
-    delay(1000);
+function loop() {
+    digitalWrite(LED_PIN, HIGH)
+    delay(1000)
+    digitalWrite(LED_PIN, LOW)
+    delay(1000)
 }
 ```
 
@@ -66,24 +66,43 @@ This generates `blink.ino` which you can open in the Arduino IDE and upload to y
 All variables and functions must be explicitly typed:
 
 ```javascript
-const int LED_PIN = 13;
-int sensorValue = 0;
-float temperature = 23.5;
-bool isActive = true;
+const int LED_PIN = 13
+int sensorValue = 0
+float temperature = 23.5
+bool isActive = true
 ```
 
-### Functions with Type Signatures
+### Functions with Type Signatures and Inference
+
+Functions can have explicit type signatures or infer return types from return statements:
 
 ```javascript
+# Explicit return type
 function void blink_led(int pin, int duration) {
-    digitalWrite(pin, HIGH);
-    delay(duration);
-    digitalWrite(pin, LOW);
-    delay(duration);
+    digitalWrite(pin, HIGH)
+    delay(duration)
+    digitalWrite(pin, LOW)
+    delay(duration)
 }
 
-function int add(int a, int b) {
-    return a + b;
+# Type inference - return type inferred as int
+function add(int a, int b) {
+    return a + b
+}
+```
+
+### Optional Semicolons
+
+Semicolons are now optional - write cleaner code without them:
+
+```javascript
+const int LED_PIN = 13
+
+function loop() {
+    digitalWrite(LED_PIN, HIGH)
+    delay(1000)
+    digitalWrite(LED_PIN, LOW)
+    delay(1000)
 }
 ```
 
@@ -98,38 +117,38 @@ class LED {
     
     constructor(int ledPin) {
         this.pin = ledPin;
-        this.state = LOW;
-        pinMode(this.pin, OUTPUT);
+        this.state = LOW
+        pinMode(this.pin, OUTPUT)
     }
     
     void turnOn() {
-        this.state = HIGH;
-        digitalWrite(this.pin, HIGH);
+        this.state = HIGH
+        digitalWrite(this.pin, HIGH)
     }
     
     void turnOff() {
-        this.state = LOW;
-        digitalWrite(this.pin, LOW);
+        this.state = LOW
+        digitalWrite(this.pin, LOW)
     }
     
     void toggle() {
         if (this.state == HIGH) {
-            this.turnOff();
+            this.turnOff()
         } else {
-            this.turnOn();
+            this.turnOn()
         }
     }
 }
 
-LED redLED;
+LED redLED
 
-function void setup() {
-    redLED = new LED(13);
+function start() {
+    redLED = new LED(13)
 }
 
-function void loop() {
-    redLED.toggle();
-    delay(1000);
+function loop() {
+    redLED.toggle()
+    delay(1000)
 }
 ```
 
@@ -138,28 +157,39 @@ function void loop() {
 **If Statements:**
 ```javascript
 if (sensorValue > 512) {
-    digitalWrite(LED_PIN, HIGH);
+    digitalWrite(LED_PIN, HIGH)
 } else {
-    digitalWrite(LED_PIN, LOW);
+    digitalWrite(LED_PIN, LOW)
 }
 ```
 
 **While Loops:**
 ```javascript
 while (digitalRead(BUTTON_PIN) == HIGH) {
-    delay(10);
+    delay(10)
 }
 ```
 
 **For Loops:**
 ```javascript
 for (int i = 0; i < 10; i = i + 1) {
-    print(i);
+    print(i)
 }
 
 for (int brightness = 0; brightness < 256; brightness = brightness + 5) {
-    analogWrite(LED_PIN, brightness);
-    delay(30);
+    analogWrite(LED_PIN, brightness)
+    delay(30)
+}
+```
+
+**Repeat Loops:**
+```javascript
+# Repeat a block of code N times
+repeat(5) {
+    digitalWrite(LED_PIN, HIGH)
+    delay(100)
+    digitalWrite(LED_PIN, LOW)
+    delay(100)
 }
 ```
 
@@ -275,8 +305,11 @@ ysc --version
 ## Syntax Highlights
 
 - **Brace-based blocks** (like C/C++/Java)
-- **Strict type annotations**: Every variable and function must declare its type
-- **No semicolons omitted**: Statements end with semicolons
+- **Optional semicolons**: Write clean code without semicolons
+- **Type inference**: Function return types can be inferred from return statements
+- **start() function**: Use `start()` instead of `setup()` (both supported)
+- **repeat loop**: Simple syntax for repeating code N times
+- **Strict type annotations**: Variables must declare their type
 - **OOP support**: Classes, constructors, methods, and object instantiation
 - **Logical operators**: Use `and`, `or`, `not` instead of `&&`, `||`, `!`
 - **Auto-generated boilerplate**: `#include <Arduino.h>`, proper C++ class structure
@@ -306,64 +339,64 @@ void loop() {
 
 **After (Ypsilon Script):**
 ```javascript
-const int LED_PIN = 13;
-const int BUTTON_PIN = 2;
+const int LED_PIN = 13
+const int BUTTON_PIN = 2
 
-function void setup() {
-    pinMode(LED_PIN, OUTPUT);
-    pinMode(BUTTON_PIN, INPUT_PULLUP);
+function start() {
+    pinMode(LED_PIN, OUTPUT)
+    pinMode(BUTTON_PIN, INPUT_PULLUP)
 }
 
-function void loop() {
-    int buttonState = digitalRead(BUTTON_PIN);
+function loop() {
+    int buttonState = digitalRead(BUTTON_PIN)
     if (buttonState == LOW) {
-        digitalWrite(LED_PIN, HIGH);
+        digitalWrite(LED_PIN, HIGH)
     } else {
-        digitalWrite(LED_PIN, LOW);
+        digitalWrite(LED_PIN, LOW)
     }
-    delay(10);
+    delay(10)
 }
 ```
 
 With OOP, even cleaner:
 ```javascript
 class LED {
-    int pin;
+    int pin
     
     constructor(int p) {
-        this.pin = p;
-        pinMode(this.pin, OUTPUT);
+        this.pin = p
+        pinMode(this.pin, OUTPUT)
     }
     
     void setOn(bool on) {
-        digitalWrite(this.pin, on ? HIGH : LOW);
+        digitalWrite(this.pin, on ? HIGH : LOW)
     }
 }
 
 class Button {
-    int pin;
+    int pin
     
     constructor(int p) {
-        this.pin = p;
-        pinMode(this.pin, INPUT_PULLUP);
+        this.pin = p
+        pinMode(this.pin, INPUT_PULLUP)
     }
     
     bool isPressed() {
-        return digitalRead(this.pin) == LOW;
+        return digitalRead(this.pin) == LOW
     }
 }
 
-LED led;
-Button button;
+LED led
+Button button
 
-function void setup() {
-    led = new LED(13);
-    button = new Button(2);
+function start() {
+    led = new LED(13)
+    button = new Button(2)
 }
 
-function void loop() {
-    led.setOn(button.isPressed());
-    delay(10);
+function loop() {
+    led.setOn(button.isPressed())
+    delay(10)
 }
 ```
 
