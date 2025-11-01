@@ -1,0 +1,43 @@
+# Complete Ypsilon Script Example
+# Demonstrates all key language features from the specification
+
+enum Mode { AUTO, MANUAL }
+
+struct Point { x: int, y: int }
+
+class Motor {
+    mut speed: int
+    
+    constructor(speed: int) { 
+        self.speed = speed 
+    }
+    
+    fn run() { 
+        print("Motor running at speed:")
+        print(self.speed)
+    }
+}
+
+# Global variables
+mut motor: Motor = new Motor(100)
+mut mode: Mode = Mode.AUTO
+mut level: int = 2
+
+on start {
+    motor.run()
+}
+
+on loop {
+    match mode {
+        AUTO => print("auto"),
+        MANUAL => print("manual")
+    }
+    
+    switch level {
+        case 1 { print("low") }
+        case 2 { print("mid") }
+        default { print("high") }
+    }
+    
+    delay(1000)
+}
