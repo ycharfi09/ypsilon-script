@@ -91,10 +91,10 @@ This generates C++ code ready for your microcontroller.
 All variables must be explicitly typed. Use `mut` for mutable variables:
 
 ```javascript
-const int LED_PIN = 13
-mut int counter = 0
-mut float temperature = 23.5
-const bool DEBUG = true
+const LED_PIN: int = 13
+mut counter: int = 0
+mut temperature: float = 23.5
+const DEBUG: bool = true
 ```
 
 ### Enums (Rust-style)
