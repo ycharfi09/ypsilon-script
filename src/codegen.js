@@ -7,12 +7,23 @@ class CodeGenerator {
   constructor(ast) {
     this.ast = ast;
     this.classes = [];
+    this.enums = [];
+    this.structs = [];
     this.globalVariables = [];
     this.functions = [];
     this.setupStatements = [];
     this.loopStatements = [];
+    this.onBlocks = [];
+    this.signals = [];
+    this.tasks = [];
+    this.useStatements = [];
+    this.loadStatements = [];
+    this.aliases = [];
+    this.config = null;
+    this.reactVars = [];
     this.indent = 0;
     this.needsSerial = false;
+    this.timeVarCounter = 0;
   }
 
   generate() {
@@ -52,6 +63,10 @@ class CodeGenerator {
   processTopLevelStatement(stmt) {
     if (stmt.type === 'ClassDeclaration') {
       this.classes.push(stmt);
+    } else if (stmt.type === 'EnumDeclaration') {
+      this.enums.push(stmt);
+    } else if (stmt.type === 'StructDeclaration') {
+      this.structs.push(stmt);
     } else if (stmt.type === 'FunctionDeclaration') {
       // Special handling for start()/setup() and loop()
       if (stmt.name === 'setup' || stmt.name === 'start') {
@@ -63,6 +78,22 @@ class CodeGenerator {
       }
     } else if (stmt.type === 'VariableDeclaration') {
       this.globalVariables.push(stmt);
+    } else if (stmt.type === 'OnBlock') {
+      this.onBlocks.push(stmt);
+    } else if (stmt.type === 'SignalDeclaration') {
+      this.signals.push(stmt);
+    } else if (stmt.type === 'TaskDeclaration') {
+      this.tasks.push(stmt);
+    } else if (stmt.type === 'UseStatement') {
+      this.useStatements.push(stmt);
+    } else if (stmt.type === 'LoadStatement') {
+      this.loadStatements.push(stmt);
+    } else if (stmt.type === 'AliasStatement') {
+      this.aliases.push(stmt);
+    } else if (stmt.type === 'ConfigBlock') {
+      this.config = stmt;
+    } else if (stmt.type === 'ReactDeclaration') {
+      this.reactVars.push(stmt);
     }
   }
 
@@ -71,7 +102,38 @@ class CodeGenerator {
     code += '// https://github.com/ycharfi09/ypsilon-script\n\n';
     
     // Add Arduino library includes
-    code += '#include <Arduino.h>\n\n';
+    code += '#include <Arduino.h>\n';
+    
+    // Add loaded libraries
+    for (const load of this.loadStatements) {
+      code += `#include <${load.library}.h>\n`;
+    }
+    code += '\n';
+    
+    // Add aliases as #define
+    if (this.aliases.length > 0) {
+      code += '// Aliases\n';
+      for (const alias of this.aliases) {
+        code += `#define ${alias.name} ${alias.value}\n`;
+      }
+      code += '\n';
+    }
+
+    // Enum declarations
+    if (this.enums.length > 0) {
+      code += '// Enum Declarations\n';
+      for (const enumDecl of this.enums) {
+        code += this.generateEnumDeclaration(enumDecl) + '\n\n';
+      }
+    }
+
+    // Struct declarations
+    if (this.structs.length > 0) {
+      code += '// Struct Declarations\n';
+      for (const structDecl of this.structs) {
+        code += this.generateStructDeclaration(structDecl) + '\n\n';
+      }
+    }
 
     // Class declarations
     if (this.classes.length > 0) {
@@ -81,11 +143,43 @@ class CodeGenerator {
       }
     }
 
+    // Signals (using volatile bool)
+    if (this.signals.length > 0) {
+      code += '// Signal Declarations\n';
+      for (const signal of this.signals) {
+        code += `volatile bool _signal_${signal.name} = false;\n`;
+      }
+      code += '\n';
+    }
+
+    // React variables (using volatile)
+    if (this.reactVars.length > 0) {
+      code += '// Reactive Variables\n';
+      for (const react of this.reactVars) {
+        const typeStr = this.mapType(react.varType);
+        const constStr = react.isMut ? 'volatile' : 'volatile const';
+        const initStr = react.init ? ' = ' + this.generateExpression(react.init) : '';
+        code += `${constStr} ${typeStr} ${react.name}${initStr};\n`;
+      }
+      code += '\n';
+    }
+
     // Global variables
     if (this.globalVariables.length > 0) {
       code += '// Global Variables\n';
       for (const varDecl of this.globalVariables) {
         code += this.generateVariableDeclaration(varDecl) + '\n';
+      }
+      code += '\n';
+    }
+
+    // Task timing variables
+    if (this.tasks.length > 0) {
+      code += '// Task Timing Variables\n';
+      for (const task of this.tasks) {
+        if (task.interval) {
+          code += `unsigned long _task_${task.name}_last = 0;\n`;
+        }
       }
       code += '\n';
     }
@@ -107,6 +201,15 @@ class CodeGenerator {
       code += this.getIndent() + 'Serial.begin(9600);\n';
     }
     
+    // Handle on start blocks
+    for (const onBlock of this.onBlocks) {
+      if (onBlock.event === 'start') {
+        for (const stmt of onBlock.body) {
+          code += this.generateStatement(stmt);
+        }
+      }
+    }
+    
     if (this.setupStatements.length > 0) {
       for (const stmt of this.setupStatements) {
         code += this.generateStatement(stmt);
@@ -118,6 +221,38 @@ class CodeGenerator {
     // Loop function
     code += 'void loop() {\n';
     this.indent = 1;
+    
+    // Handle on loop blocks
+    for (const onBlock of this.onBlocks) {
+      if (onBlock.event === 'loop') {
+        for (const stmt of onBlock.body) {
+          code += this.generateStatement(stmt);
+        }
+      }
+    }
+    
+    // Handle tasks
+    for (const task of this.tasks) {
+      if (task.interval) {
+        code += this.getIndent() + `// Task: ${task.name}\n`;
+        code += this.getIndent() + `if (millis() - _task_${task.name}_last >= `;
+        code += this.generateTimeValue(task.interval) + ') {\n';
+        this.indent++;
+        code += this.getIndent() + `_task_${task.name}_last = millis();\n`;
+        for (const stmt of task.body) {
+          code += this.generateStatement(stmt);
+        }
+        this.indent--;
+        code += this.getIndent() + '}\n';
+      } else if (task.isBackground) {
+        // Background tasks run in loop
+        code += this.getIndent() + `// Background task: ${task.name}\n`;
+        for (const stmt of task.body) {
+          code += this.generateStatement(stmt);
+        }
+      }
+    }
+    
     if (this.loopStatements.length > 0) {
       for (const stmt of this.loopStatements) {
         code += this.generateStatement(stmt);
@@ -242,6 +377,20 @@ class CodeGenerator {
         return this.generateRepeatStatement(stmt);
       case 'ReturnStatement':
         return this.generateReturnStatement(stmt);
+      case 'MatchStatement':
+        return this.generateMatchStatement(stmt);
+      case 'SwitchStatement':
+        return this.generateSwitchStatement(stmt);
+      case 'EmitStatement':
+        return this.generateEmitStatement(stmt);
+      case 'WaitStatement':
+        return this.generateWaitStatement(stmt);
+      case 'TimeoutStatement':
+        return this.generateTimeoutStatement(stmt);
+      case 'AtomicBlock':
+        return this.generateAtomicBlock(stmt);
+      case 'CppBlock':
+        return this.generateCppBlock(stmt);
       default:
         return '';
     }
@@ -443,6 +592,166 @@ class CodeGenerator {
 
   getIndent() {
     return '  '.repeat(this.indent);
+  }
+
+  // Generate enum declaration
+  generateEnumDeclaration(enumDecl) {
+    let code = `enum ${enumDecl.name} {\n`;
+    code += '  ' + enumDecl.values.join(',\n  ') + '\n';
+    code += '};';
+    return code;
+  }
+
+  // Generate struct declaration
+  generateStructDeclaration(structDecl) {
+    let code = `struct ${structDecl.name} {\n`;
+    for (const field of structDecl.fields) {
+      code += `  ${this.mapType(field.type)} ${field.name};\n`;
+    }
+    code += '};';
+    return code;
+  }
+
+  // Generate match statement (transpile to if-else chain)
+  generateMatchStatement(stmt) {
+    let code = '';
+    let isFirst = true;
+    
+    for (const matchCase of stmt.cases) {
+      if (matchCase.pattern.type === 'Wildcard') {
+        // This is the default case
+        if (!isFirst) {
+          code += this.getIndent() + '} else {\n';
+        } else {
+          code += this.getIndent() + '{\n';
+        }
+        this.indent++;
+        for (const s of matchCase.consequent) {
+          code += this.generateStatement(s);
+        }
+        this.indent--;
+        code += this.getIndent() + '}\n';
+      } else {
+        const condition = `(${this.generateExpression(stmt.discriminant)}) == (${this.generateExpression(matchCase.pattern)})`;
+        if (isFirst) {
+          code += this.getIndent() + `if ${condition} {\n`;
+          isFirst = false;
+        } else {
+          code += this.getIndent() + `} else if ${condition} {\n`;
+        }
+        this.indent++;
+        for (const s of matchCase.consequent) {
+          code += this.generateStatement(s);
+        }
+        this.indent--;
+      }
+    }
+    
+    if (!isFirst) {
+      code += this.getIndent() + '}\n';
+    }
+    
+    return code;
+  }
+
+  // Generate switch statement
+  generateSwitchStatement(stmt) {
+    let code = this.getIndent() + `switch (${this.generateExpression(stmt.discriminant)}) {\n`;
+    
+    for (const caseStmt of stmt.cases) {
+      code += this.getIndent() + `  case ${this.generateExpression(caseStmt.test)}:\n`;
+      this.indent += 2;
+      for (const s of caseStmt.consequent) {
+        code += this.generateStatement(s);
+      }
+      code += this.getIndent() + 'break;\n';
+      this.indent -= 2;
+    }
+    
+    if (stmt.defaultCase) {
+      code += this.getIndent() + '  default:\n';
+      this.indent += 2;
+      for (const s of stmt.defaultCase) {
+        code += this.generateStatement(s);
+      }
+      code += this.getIndent() + 'break;\n';
+      this.indent -= 2;
+    }
+    
+    code += this.getIndent() + '}\n';
+    return code;
+  }
+
+  // Generate emit statement
+  generateEmitStatement(stmt) {
+    return this.getIndent() + `_signal_${stmt.signal} = true;\n`;
+  }
+
+  // Generate wait statement
+  generateWaitStatement(stmt) {
+    const delayValue = this.generateTimeValue(stmt.duration);
+    return this.getIndent() + `delay(${delayValue});\n`;
+  }
+
+  // Generate timeout statement
+  generateTimeoutStatement(stmt) {
+    const timeoutMs = this.generateTimeValue(stmt.duration);
+    const timeVar = `_timeout_${this.timeVarCounter++}`;
+    
+    let code = this.getIndent() + `unsigned long ${timeVar} = millis();\n`;
+    code += this.getIndent() + `while (millis() - ${timeVar} < ${timeoutMs}) {\n`;
+    this.indent++;
+    for (const s of stmt.body) {
+      code += this.generateStatement(s);
+    }
+    this.indent--;
+    code += this.getIndent() + '}\n';
+    
+    return code;
+  }
+
+  // Generate atomic block (use ATOMIC_BLOCK macro or cli/sei)
+  generateAtomicBlock(stmt) {
+    let code = this.getIndent() + 'noInterrupts();\n';
+    for (const s of stmt.body) {
+      code += this.generateStatement(s);
+    }
+    code += this.getIndent() + 'interrupts();\n';
+    return code;
+  }
+
+  // Generate C++ inline block
+  generateCppBlock(stmt) {
+    // For C++ blocks, we just output the statements as-is
+    // This is a simplified version - in a full implementation,
+    // you might want to handle raw C++ code differently
+    let code = this.getIndent() + '// Inline C++\n';
+    for (const s of stmt.body) {
+      code += this.generateStatement(s);
+    }
+    return code;
+  }
+
+  // Helper to convert time literals to milliseconds
+  generateTimeValue(expr) {
+    if (expr.type === 'Literal' && expr.unit) {
+      const value = expr.value;
+      switch (expr.unit) {
+        case 'ms':
+          return String(value);
+        case 's':
+          return String(value * 1000);
+        case 'us':
+          return String(value / 1000);
+        case 'min':
+          return String(value * 60000);
+        case 'h':
+          return String(value * 3600000);
+        default:
+          return String(value);
+      }
+    }
+    return this.generateExpression(expr);
   }
 }
 
