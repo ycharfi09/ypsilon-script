@@ -629,14 +629,12 @@ YS features:
 12. **Match expressions**: Pattern matching like Rust
 13. **Switch statements**: C++-style with braces
 14. **No async**: Async/await not supported yet
-15. **No imports**: Module system not supported yet
 
 ## Future Features
 
 Planned for future versions:
 - Arrays and collections
 - String operations
-- Module system and imports
 - Async/await support
 - More advanced pattern matching
 - Inheritance and polymorphism
@@ -736,13 +734,37 @@ interrupts();
 
 ### Library Loading
 
-Load Arduino libraries:
+Load Arduino C++ libraries:
 
 ```javascript
 load <Servo>
 load <WiFi>
 load <Wire>
 ```
+
+Load YS module files as namespaces:
+
+```javascript
+# Load a YS module with default namespace (filename without extension)
+load <motor.ys>
+motor.Motor m = new motor.Motor(9)
+motor.helper()
+
+# Load with custom namespace using 'as' keyword
+load <motor.ys> as m
+m.Motor myMotor = new m.Motor(9)
+m.helper()
+myMotor.setSpeed(m.MAX_SPEED)
+```
+
+**Module Loading Details:**
+- `.ys` files are loaded and compiled into C++ namespaces
+- All classes, functions, and variables in the module are wrapped in the namespace
+- Default namespace name is the filename without extension
+- Use `as` keyword to specify a custom namespace name
+- Access module members using dot notation: `namespace.Member`
+- Generated C++ uses `::` for namespace access
+- Backward compatible: non-.ys loads still generate `#include` directives
 
 ### Aliases
 
@@ -916,7 +938,7 @@ on loop {
 16. **Reactive vars**: Volatile variables with `react`
 17. **Time literals**: `ms`, `s`, `us`, `min`, `h`
 18. **Atomic blocks**: Interrupt-safe regions
-19. **Library loading**: `load <lib>`
+19. **Library loading**: `load <lib>` and `load <module.ys> as name`
 20. **Aliases**: `alias name = value`
 21. **Config blocks**: Target configuration
 22. **Inline C++**: `@cpp { }`
