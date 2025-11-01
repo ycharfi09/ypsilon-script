@@ -1,19 +1,20 @@
 # Ypsilon Script (YS)
 
-A lightweight, high-level language for microcontrollers that makes Arduino development easier and more enjoyable.
+A modern, strictly-typed, object-oriented language for microcontrollers that makes Arduino development easier and more enjoyable.
 
 ## Overview
 
-Ypsilon Script (YS) is designed to make Arduino development accessible and clean. It provides a modern, Python/JavaScript-inspired syntax that compiles directly to Arduino C++. Write readable code, compile to fast AVR C++, and upload normally with the Arduino IDE.
+Ypsilon Script (YS) is designed to make Arduino development accessible, structured, and type-safe. It provides a modern, OOP-inspired syntax with strict typing that compiles directly to Arduino C++. Write clean, type-safe code with classes and objects, compile to fast AVR C++, and upload normally with the Arduino IDE.
 
 ## Features
 
-- **Clean, Modern Syntax**: Python/JavaScript-inspired syntax without the verbosity of C++
-- **Auto-Generated Setup & Loop**: Focus on your logic, not boilerplate
+- **Object-Oriented Programming**: Full class support with constructors, properties, and methods
+- **Strict Type System**: All variables and functions must be explicitly typed
+- **Brace-Based Syntax**: Modern C-style block syntax with curly braces
 - **Built-in Arduino Functions**: Simple access to pins, sensors, and timing
 - **Direct Arduino Compilation**: Compiles to standard Arduino C++ code
 - **No Performance Overhead**: Generates efficient C++ code
-- **Easy to Learn**: Intuitive syntax for beginners and experts alike
+- **Type Safety**: Catch errors at compile time, not runtime
 
 ## Installation
 
@@ -34,18 +35,20 @@ npm link
 
 Create a simple blink program in `blink.ys`:
 
-```python
+```javascript
 # Classic Arduino Blink Example
-const LED_PIN = 13
+const int LED_PIN = 13;
 
-function setup():
-    pinMode(LED_PIN, OUTPUT)
+function void setup() {
+    pinMode(LED_PIN, OUTPUT);
+}
 
-function loop():
-    digitalWrite(LED_PIN, HIGH)
-    delay(1000)
-    digitalWrite(LED_PIN, LOW)
-    delay(1000)
+function void loop() {
+    digitalWrite(LED_PIN, HIGH);
+    delay(1000);
+    digitalWrite(LED_PIN, LOW);
+    delay(1000);
+}
 ```
 
 Compile to Arduino C++:
@@ -58,50 +61,106 @@ This generates `blink.ino` which you can open in the Arduino IDE and upload to y
 
 ## Language Features
 
-### Variables
+### Strict Typing
 
-```python
-# Variable declaration
-var sensorValue = 0
-const LED_PIN = 13
+All variables and functions must be explicitly typed:
+
+```javascript
+const int LED_PIN = 13;
+int sensorValue = 0;
+float temperature = 23.5;
+bool isActive = true;
 ```
 
-### Functions
+### Functions with Type Signatures
 
-```python
-function blink_led(pin, duration):
-    digitalWrite(pin, HIGH)
-    delay(duration)
-    digitalWrite(pin, LOW)
-    delay(duration)
+```javascript
+function void blink_led(int pin, int duration) {
+    digitalWrite(pin, HIGH);
+    delay(duration);
+    digitalWrite(pin, LOW);
+    delay(duration);
+}
+
+function int add(int a, int b) {
+    return a + b;
+}
+```
+
+### Object-Oriented Programming
+
+Create classes with properties, constructors, and methods:
+
+```javascript
+class LED {
+    int pin;
+    int state;
+    
+    constructor(int ledPin) {
+        this.pin = ledPin;
+        this.state = LOW;
+        pinMode(this.pin, OUTPUT);
+    }
+    
+    void turnOn() {
+        this.state = HIGH;
+        digitalWrite(this.pin, HIGH);
+    }
+    
+    void turnOff() {
+        this.state = LOW;
+        digitalWrite(this.pin, LOW);
+    }
+    
+    void toggle() {
+        if (this.state == HIGH) {
+            this.turnOff();
+        } else {
+            this.turnOn();
+        }
+    }
+}
+
+LED redLED;
+
+function void setup() {
+    redLED = new LED(13);
+}
+
+function void loop() {
+    redLED.toggle();
+    delay(1000);
+}
 ```
 
 ### Control Flow
 
 **If Statements:**
-```python
-if sensorValue > 512:
-    digitalWrite(LED_PIN, HIGH)
-else:
-    digitalWrite(LED_PIN, LOW)
+```javascript
+if (sensorValue > 512) {
+    digitalWrite(LED_PIN, HIGH);
+} else {
+    digitalWrite(LED_PIN, LOW);
+}
 ```
 
 **While Loops:**
-```python
-while digitalRead(BUTTON_PIN) == HIGH:
-    delay(10)
+```javascript
+while (digitalRead(BUTTON_PIN) == HIGH) {
+    delay(10);
+}
 ```
 
 **For Loops:**
-```python
-# Range-based iteration
-for i in range(10):
-    print(i)
+```javascript
+for (int i = 0; i < 10; i = i + 1) {
+    print(i);
+}
 
-# With start and end
-for i in range(0, 256, 5):
-    analogWrite(LED_PIN, i)
-    delay(30)
+for (int brightness = 0; brightness < 256; brightness = brightness + 5) {
+    analogWrite(LED_PIN, brightness);
+    delay(30);
+}
 ```
 
 ### Built-in Functions
@@ -116,72 +175,71 @@ Ypsilon Script includes all standard Arduino functions:
 
 ### Comments
 
-```python
+```javascript
 # Single-line comments start with #
 ```
 
 ## Examples
 
-### Button Input
+### Button Input with OOP
 
-```python
-const BUTTON_PIN = 2
-const LED_PIN = 13
-
-function setup():
-    pinMode(BUTTON_PIN, INPUT_PULLUP)
-    pinMode(LED_PIN, OUTPUT)
-
-function loop():
-    var buttonState = digitalRead(BUTTON_PIN)
+```javascript
+class Button {
+    int pin;
+    int lastState;
     
-    if buttonState == LOW:
-        digitalWrite(LED_PIN, HIGH)
-    else:
-        digitalWrite(LED_PIN, LOW)
+    constructor(int buttonPin) {
+        this.pin = buttonPin;
+        this.lastState = HIGH;
+        pinMode(this.pin, INPUT_PULLUP);
+    }
     
-    delay(10)
+    bool isPressed() {
+        int currentState = digitalRead(this.pin);
+        return currentState == LOW;
+    }
+}
+
+const int LED_PIN = 13;
+Button button;
+
+function void setup() {
+    pinMode(LED_PIN, OUTPUT);
+    button = new Button(2);
+}
+
+function void loop() {
+    if (button.isPressed()) {
+        digitalWrite(LED_PIN, HIGH);
+    } else {
+        digitalWrite(LED_PIN, LOW);
+    }
+    delay(10);
+}
 ```
 
 ### PWM Fade
 
-```python
-const LED_PIN = 9
+```javascript
+const int LED_PIN = 9;
 
-function setup():
-    pinMode(LED_PIN, OUTPUT)
+function void setup() {
+    pinMode(LED_PIN, OUTPUT);
+}
 
-function loop():
+function void loop() {
     # Fade in
-    for brightness in range(0, 256, 5):
-        analogWrite(LED_PIN, brightness)
-        delay(30)
+    for (int brightness = 0; brightness < 256; brightness = brightness + 5) {
+        analogWrite(LED_PIN, brightness);
+        delay(30);
+    }
     
     # Fade out
-    for brightness in range(255, -1, -5):
-        analogWrite(LED_PIN, brightness)
-        delay(30)
-```
-
-### Sensor Reading
-
-```python
-const SENSOR_PIN = 0
-const LED_PIN = 13
-const THRESHOLD = 512
-
-function setup():
-    pinMode(LED_PIN, OUTPUT)
-
-function loop():
-    var sensorValue = analogRead(SENSOR_PIN)
-    
-    if sensorValue > THRESHOLD:
-        digitalWrite(LED_PIN, HIGH)
-    else:
-        digitalWrite(LED_PIN, LOW)
-    
-    delay(100)
+    for (int brightness = 255; brightness > 0; brightness = brightness - 5) {
+        analogWrite(LED_PIN, brightness);
+        delay(30);
+    }
+}
 ```
 
 ## CLI Usage
@@ -209,17 +267,19 @@ ysc --version
 ## How It Works
 
 1. **Lexer**: Tokenizes YS source code
-2. **Parser**: Builds an Abstract Syntax Tree (AST)
-3. **Code Generator**: Transpiles AST to Arduino C++
-4. **Output**: Standard `.ino` file ready for Arduino IDE
+2. **Parser**: Builds an Abstract Syntax Tree (AST) with type information
+3. **Type Checker**: Validates types and structure (future enhancement)
+4. **Code Generator**: Transpiles AST to Arduino C++
+5. **Output**: Standard `.ino` file ready for Arduino IDE
 
 ## Syntax Highlights
 
-- **Indentation-based blocks** (like Python)
-- **Colon after control structures**: `if`, `while`, `for`, `function`
-- **No semicolons required** (added automatically in generated C++)
-- **Simplified operators**: Use `and`, `or`, `not` instead of `&&`, `||`, `!`
-- **Auto-generated boilerplate**: `#include <Arduino.h>`, type declarations
+- **Brace-based blocks** (like C/C++/Java)
+- **Strict type annotations**: Every variable and function must declare its type
+- **No semicolons omitted**: Statements end with semicolons
+- **OOP support**: Classes, constructors, methods, and object instantiation
+- **Logical operators**: Use `and`, `or`, `not` instead of `&&`, `||`, `!`
+- **Auto-generated boilerplate**: `#include <Arduino.h>`, proper C++ class structure
 
 ## Why Ypsilon Script?
 
@@ -245,21 +305,66 @@ void loop() {
 ```
 
 **After (Ypsilon Script):**
-```python
-const LED_PIN = 13
-const BUTTON_PIN = 2
+```javascript
+const int LED_PIN = 13;
+const int BUTTON_PIN = 2;
 
-function setup():
-    pinMode(LED_PIN, OUTPUT)
-    pinMode(BUTTON_PIN, INPUT_PULLUP)
+function void setup() {
+    pinMode(LED_PIN, OUTPUT);
+    pinMode(BUTTON_PIN, INPUT_PULLUP);
+}
 
-function loop():
-    var buttonState = digitalRead(BUTTON_PIN)
-    if buttonState == LOW:
-        digitalWrite(LED_PIN, HIGH)
-    else:
-        digitalWrite(LED_PIN, LOW)
-    delay(10)
+function void loop() {
+    int buttonState = digitalRead(BUTTON_PIN);
+    if (buttonState == LOW) {
+        digitalWrite(LED_PIN, HIGH);
+    } else {
+        digitalWrite(LED_PIN, LOW);
+    }
+    delay(10);
+}
+```
+
+With OOP, even cleaner:
+```javascript
+class LED {
+    int pin;
+    
+    constructor(int p) {
+        this.pin = p;
+        pinMode(this.pin, OUTPUT);
+    }
+    
+    void setOn(bool on) {
+        digitalWrite(this.pin, on ? HIGH : LOW);
+    }
+}
+
+class Button {
+    int pin;
+    
+    constructor(int p) {
+        this.pin = p;
+        pinMode(this.pin, INPUT_PULLUP);
+    }
+    
+    bool isPressed() {
+        return digitalRead(this.pin) == LOW;
+    }
+}
+
+LED led;
+Button button;
+
+function void setup() {
+    led = new LED(13);
+    button = new Button(2);
+}
+
+function void loop() {
+    led.setOn(button.isPressed());
+    delay(10);
+}
 ```
 
 ## Development
@@ -277,6 +382,7 @@ npm test
 
 # Try examples
 node bin/ysc.js examples/blink.ys
+node bin/ysc.js examples/led_class.ys
 ```
 
 ## Project Structure
@@ -286,14 +392,15 @@ ypsilon-script/
 ├── bin/
 │   └── ysc.js          # CLI tool
 ├── src/
-│   ├── lexer.js        # Tokenizer
-│   ├── parser.js       # AST builder
+│   ├── lexer.js        # Tokenizer with type keywords
+│   ├── parser.js       # AST builder with OOP support
 │   ├── codegen.js      # C++ code generator
 │   ├── compiler.js     # Main compiler
 │   └── index.js        # Package entry point
 ├── examples/
 │   ├── blink.ys        # LED blink example
 │   ├── button.ys       # Button input example
+│   ├── led_class.ys    # OOP LED class example
 │   ├── fade.ys         # PWM fade example
 │   └── sensor.ys       # Sensor reading example
 └── tests/
