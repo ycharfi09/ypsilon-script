@@ -39,6 +39,14 @@ const TOKEN_TYPES = {
   START: 'START',
   LOOP: 'LOOP',
   
+  // Interrupt Keywords
+  INTERRUPT: 'INTERRUPT',
+  RISING: 'RISING',
+  FALLING: 'FALLING',
+  CHANGE: 'CHANGE',
+  LOW: 'LOW',
+  HIGH: 'HIGH',
+  
   // Reactive Keywords
   REACT: 'REACT',
   EMIT: 'EMIT',
@@ -135,6 +143,12 @@ const KEYWORDS = {
   'case': TOKEN_TYPES.CASE,
   'default': TOKEN_TYPES.DEFAULT,
   'on': TOKEN_TYPES.ON,
+  'interrupt': TOKEN_TYPES.INTERRUPT,
+  'rising': TOKEN_TYPES.RISING,
+  'falling': TOKEN_TYPES.FALLING,
+  'change': TOKEN_TYPES.CHANGE,
+  'low': TOKEN_TYPES.LOW,
+  'high': TOKEN_TYPES.HIGH,
   'react': TOKEN_TYPES.REACT,
   'emit': TOKEN_TYPES.EMIT,
   'signal': TOKEN_TYPES.SIGNAL,

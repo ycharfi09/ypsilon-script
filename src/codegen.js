@@ -19,6 +19,7 @@ class CodeGenerator {
     this.setupStatements = [];
     this.loopStatements = [];
     this.onBlocks = [];
+    this.interrupts = [];
     this.signals = [];
     this.tasks = [];
     this.useStatements = [];
@@ -94,6 +95,8 @@ class CodeGenerator {
       this.globalVariables.push(stmt);
     } else if (stmt.type === 'OnBlock') {
       this.onBlocks.push(stmt);
+    } else if (stmt.type === 'InterruptBlock') {
+      this.interrupts.push(stmt);
     } else if (stmt.type === 'SignalDeclaration') {
       this.signals.push(stmt);
     } else if (stmt.type === 'TaskDeclaration') {
@@ -238,8 +241,17 @@ class CodeGenerator {
     // Global variables
     if (this.globalVariables.length > 0) {
       code += '// Global Variables\n';
+      
+      // Collect variables used in ISRs
+      const isrVariables = new Set();
+      for (const interrupt of this.interrupts) {
+        const vars = this.collectISRVariables(interrupt.body);
+        vars.forEach(v => isrVariables.add(v));
+      }
+      
       for (const varDecl of this.globalVariables) {
-        code += this.generateVariableDeclaration(varDecl) + '\n';
+        const isVolatile = isrVariables.has(varDecl.name);
+        code += this.generateVariableDeclaration(varDecl, isVolatile) + '\n';
       }
       code += '\n';
     }
@@ -260,6 +272,14 @@ class CodeGenerator {
       code += '// Function Declarations\n';
       for (const func of this.functions) {
         code += this.generateFunctionDeclaration(func) + '\n\n';
+      }
+    }
+
+    // ISR function declarations
+    if (this.interrupts.length > 0) {
+      code += '// Interrupt Service Routines\n';
+      for (let i = 0; i < this.interrupts.length; i++) {
+        code += this.generateISRFunction(this.interrupts[i], i);
       }
     }
 
@@ -286,6 +306,22 @@ class CodeGenerator {
         code += this.generateStatement(stmt);
       }
     }
+    
+    // Attach interrupts
+    if (this.interrupts.length > 0) {
+      code += this.getIndent() + '// Attach Interrupts\n';
+      for (let i = 0; i < this.interrupts.length; i++) {
+        const interrupt = this.interrupts[i];
+        const isrName = interrupt.name || `isr_${i}`;
+        const mode = this.mapInterruptMode(interrupt.mode);
+        const pin = interrupt.pin;
+        
+        // For Arduino, we need to convert pin to interrupt number
+        // digitalPinToInterrupt() is the recommended way
+        code += this.getIndent() + `attachInterrupt(digitalPinToInterrupt(${pin}), ${isrName}, ${mode});\n`;
+      }
+    }
+    
     this.indent = 0;
     code += '}\n\n';
 
@@ -467,10 +503,11 @@ class CodeGenerator {
     }
   }
 
-  generateVariableDeclaration(varDecl) {
+  generateVariableDeclaration(varDecl, isVolatile = false) {
     const typePrefix = varDecl.kind === 'const' ? 'const ' : '';
+    const volatilePrefix = isVolatile && varDecl.kind !== 'const' ? 'volatile ' : '';
     const type = this.mapType(varDecl.varType);
-    let code = `${typePrefix}${type} ${varDecl.name}`;
+    let code = `${typePrefix}${volatilePrefix}${type} ${varDecl.name}`;
     if (varDecl.init) {
       code += ' = ' + this.generateExpression(varDecl.init);
     }
@@ -895,6 +932,114 @@ class CodeGenerator {
       }
     }
     return this.generateExpression(expr);
+  }
+
+  // Helper to collect variables used in interrupt blocks
+  collectISRVariables(body) {
+    const variables = new Set();
+    
+    const collectFromNode = (node) => {
+      if (!node) return;
+      
+      if (node.type === 'Identifier') {
+        variables.add(node.name);
+      } else if (node.type === 'AssignmentExpression') {
+        collectFromNode(node.left);
+        collectFromNode(node.right);
+      } else if (node.type === 'BinaryExpression' || node.type === 'LogicalExpression') {
+        collectFromNode(node.left);
+        collectFromNode(node.right);
+      } else if (node.type === 'ExpressionStatement') {
+        collectFromNode(node.expression);
+      } else if (node.type === 'CallExpression') {
+        if (node.callee) collectFromNode(node.callee);
+        if (node.arguments) {
+          node.arguments.forEach(arg => collectFromNode(arg));
+        }
+      } else if (Array.isArray(node)) {
+        node.forEach(n => collectFromNode(n));
+      }
+    };
+    
+    collectFromNode(body);
+    return Array.from(variables);
+  }
+
+  // Helper to validate ISR block for forbidden operations
+  validateISRBlock(block) {
+    const forbiddenOps = [];
+    
+    const checkStatement = (stmt) => {
+      if (!stmt) return;
+      
+      // Check for forbidden operations
+      if (stmt.type === 'CallExpression') {
+        const funcName = stmt.callee?.name;
+        if (funcName === 'print') {
+          forbiddenOps.push('print() is not allowed in interrupts');
+        } else if (funcName === 'delay') {
+          forbiddenOps.push('delay() is not allowed in interrupts');
+        }
+      } else if (stmt.type === 'ExpressionStatement' && stmt.expression?.type === 'CallExpression') {
+        const funcName = stmt.expression.callee?.name;
+        if (funcName === 'print') {
+          forbiddenOps.push('print() is not allowed in interrupts');
+        } else if (funcName === 'delay') {
+          forbiddenOps.push('delay() is not allowed in interrupts');
+        }
+      } else if (stmt.type === 'WaitStatement') {
+        forbiddenOps.push('wait is not allowed in interrupts');
+      } else if (stmt.type === 'WhileStatement' || stmt.type === 'ForStatement') {
+        forbiddenOps.push('loops are not allowed in interrupts');
+      }
+      
+      // Recursively check compound statements
+      if (stmt.consequent) {
+        stmt.consequent.forEach(s => checkStatement(s));
+      }
+      if (stmt.alternate) {
+        stmt.alternate.forEach(s => checkStatement(s));
+      }
+      if (stmt.body && Array.isArray(stmt.body)) {
+        stmt.body.forEach(s => checkStatement(s));
+      }
+    };
+    
+    block.forEach(stmt => checkStatement(stmt));
+    return forbiddenOps;
+  }
+
+  // Generate ISR function code
+  generateISRFunction(interrupt, index) {
+    // Validate the ISR block
+    const errors = this.validateISRBlock(interrupt.body);
+    if (errors.length > 0) {
+      throw new Error(`Interrupt validation failed:\n${errors.join('\n')}`);
+    }
+    
+    const isrName = interrupt.name || `isr_${index}`;
+    let code = `void ${isrName}() {\n`;
+    
+    this.indent = 1;
+    for (const stmt of interrupt.body) {
+      code += this.generateStatement(stmt);
+    }
+    this.indent = 0;
+    
+    code += '}\n\n';
+    return code;
+  }
+
+  // Map interrupt mode to Arduino constant
+  mapInterruptMode(mode) {
+    const modeMap = {
+      'rising': 'RISING',
+      'falling': 'FALLING',
+      'change': 'CHANGE',
+      'low': 'LOW',
+      'high': 'HIGH'
+    };
+    return modeMap[mode.toLowerCase()] || 'CHANGE';
   }
 }
 
