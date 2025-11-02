@@ -166,9 +166,11 @@ If detection fails, you can specify the port explicitly:
 config {
   port: COM3  # Windows
   # or
-  port: ttyUSB0  # Linux (use identifier, not full path)
+  port: auto  # Linux/macOS - auto-detect recommended
 }
 ```
+
+**Note**: When specifying ports manually in the config, Arduino CLI expects the port identifier as used by the system. Use `arduino-cli board list` to see available ports.
 
 ## Requirements
 
