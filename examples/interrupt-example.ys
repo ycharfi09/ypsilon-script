@@ -1,0 +1,61 @@
+# Interrupt Example - RPM Counter with Button Debounce
+# Demonstrates interrupt support in Ypsilon Script
+
+alias ENCODER_PIN = 2
+alias BUTTON_PIN = 3
+alias LED_PIN = 13
+
+# Reactive variables for interrupt safety
+react mut pulseCount: int = 0
+react mut buttonPresses: int = 0
+react mut lastButtonTime: int = 0
+
+mut int rpm = 0
+const int DEBOUNCE_MS = 50
+
+# Encoder interrupt handler
+interrupt encoderISR on ENCODER_PIN rising {
+  pulseCount = pulseCount + 1
+}
+
+# Button interrupt handler with debounce
+interrupt buttonISR on BUTTON_PIN falling {
+  mut int currentTime = millis()
+  if (currentTime - lastButtonTime > DEBOUNCE_MS) {
+    buttonPresses = buttonPresses + 1
+    lastButtonTime = currentTime
+  }
+}
+
+on start {
+  pinMode(ENCODER_PIN, INPUT_PULLUP)
+  pinMode(BUTTON_PIN, INPUT_PULLUP)
+  pinMode(LED_PIN, OUTPUT)
+  
+  print("RPM Counter with Button Interrupt")
+  print("Starting...")
+}
+
+on loop {
+  # Calculate RPM every second
+  mut int currentPulses = pulseCount
+  rpm = currentPulses * 60
+  
+  # Reset pulse counter
+  pulseCount = 0
+  
+  # Display data
+  print("RPM:")
+  print(rpm)
+  print("Buttons:")
+  print(buttonPresses)
+  
+  # Toggle LED based on button presses
+  if (buttonPresses % 2 == 0) {
+    digitalWrite(LED_PIN, HIGH)
+  } else {
+    digitalWrite(LED_PIN, LOW)
+  }
+  
+  delay(1000)
+}

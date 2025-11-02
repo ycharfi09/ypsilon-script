@@ -97,6 +97,8 @@ class Parser {
         return this.parseStructDeclaration();
       case TOKEN_TYPES.ON:
         return this.parseOnBlock();
+      case TOKEN_TYPES.INTERRUPT:
+        return this.parseInterruptBlock();
       case TOKEN_TYPES.SIGNAL:
         return this.parseSignalDeclaration();
       case TOKEN_TYPES.TASK:
@@ -1102,6 +1104,51 @@ class Parser {
       type: 'OnBlock',
       event,
       eventProperty,
+      body
+    };
+  }
+
+  // Interrupt block: interrupt <name?> on PIN# (rising|falling|change|low|high) { ... }
+  parseInterruptBlock() {
+    this.expect(TOKEN_TYPES.INTERRUPT);
+    
+    // Optional name for the interrupt
+    let name = null;
+    if (this.peek().type === TOKEN_TYPES.IDENTIFIER && this.peek(1).type === TOKEN_TYPES.ON) {
+      name = this.advance().value;
+    }
+    
+    // Expect 'on' keyword
+    this.expect(TOKEN_TYPES.ON);
+    
+    // Parse pin (can be an identifier like D2 or a number)
+    const pinToken = this.peek();
+    let pin;
+    if (pinToken.type === TOKEN_TYPES.IDENTIFIER) {
+      pin = this.advance().value;
+    } else if (pinToken.type === TOKEN_TYPES.NUMBER) {
+      pin = this.advance().value;
+    } else {
+      throw new Error(`Expected pin number or identifier at line ${pinToken.line}`);
+    }
+    
+    // Parse interrupt mode (rising, falling, change, low, high)
+    const modeToken = this.peek();
+    let mode;
+    if ([TOKEN_TYPES.RISING, TOKEN_TYPES.FALLING, TOKEN_TYPES.CHANGE, TOKEN_TYPES.LOW, TOKEN_TYPES.HIGH].includes(modeToken.type)) {
+      mode = this.advance().value;
+    } else {
+      throw new Error(`Expected interrupt mode (rising, falling, change, low, high) at line ${modeToken.line}`);
+    }
+    
+    // Parse the block
+    const body = this.parseBlock();
+    
+    return {
+      type: 'InterruptBlock',
+      name,
+      pin,
+      mode,
       body
     };
   }
