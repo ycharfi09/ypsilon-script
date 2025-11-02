@@ -1,0 +1,66 @@
+# Complete Config Example
+# Demonstrates all config options and PWM usage
+
+config {
+  mpu: atmega2560,
+  clock: 16MHz,
+  uart: on,
+  port: auto,
+  pwm: auto
+}
+
+# LED brightness control with PWM
+const int RED_LED = 9
+const int GREEN_LED = 10
+const int BLUE_LED = 11
+
+mut int redValue = 0
+mut int greenValue = 0
+mut int blueValue = 0
+
+on start {
+    pinMode(RED_LED, OUTPUT)
+    pinMode(GREEN_LED, OUTPUT)
+    pinMode(BLUE_LED, OUTPUT)
+    
+    print("RGB LED Controller Started")
+    print("Board: Arduino Mega 2560")
+}
+
+on loop {
+    # Cycle through colors
+    
+    # Red fade up
+    for (int i = 0; i < 256; i = i + 5) {
+        analogWrite(RED_LED, i)
+        wait 20ms
+    }
+    
+    wait 500ms
+    
+    # Red fade down, green fade up
+    for (int i = 0; i < 256; i = i + 5) {
+        analogWrite(RED_LED, 255 - i)
+        analogWrite(GREEN_LED, i)
+        wait 20ms
+    }
+    
+    wait 500ms
+    
+    # Green fade down, blue fade up
+    for (int i = 0; i < 256; i = i + 5) {
+        analogWrite(GREEN_LED, 255 - i)
+        analogWrite(BLUE_LED, i)
+        wait 20ms
+    }
+    
+    wait 500ms
+    
+    # Blue fade down
+    for (int i = 0; i < 256; i = i + 5) {
+        analogWrite(BLUE_LED, 255 - i)
+        wait 20ms
+    }
+    
+    wait 1s
+}

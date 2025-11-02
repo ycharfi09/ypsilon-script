@@ -426,16 +426,48 @@ fn checkThreshold(value: int) -> bool {
 ```bash
 # Compile a YS file to C++
 ysc input.ys
+ysc compile input.ys
+
+# Upload to board (requires Arduino CLI)
+ysc upload input.ys
+
+# Compile, upload, and monitor serial (requires Arduino CLI)
+ysc run input.ys
 
 # Specify output file
-ysc input.ys output.cpp
+ysc input.ys output.ino
 
 # Show help
 ysc --help
 
 # Show version
 ysc --version
+
+# Show config diagnostics
+ysc input.ys --config
 ```
+
+## Board Configuration
+
+YS supports a `config {}` block for board-specific settings:
+
+```javascript
+config {
+  mpu: atmega328p,      # Board type: atmega328p, atmega2560, esp32, esp8266
+  clock: 16MHz,          # CPU clock frequency
+  uart: on,              # Enable serial monitor
+  port: auto,            # Serial port (auto-detect or specify)
+  pwm: auto              # PWM backend (auto-select based on board)
+}
+```
+
+The config system automatically:
+- Maps board types to Arduino CLI FQBN
+- Selects correct PWM implementation (analogWrite for AVR, LEDC for ESP)
+- Detects serial ports for upload
+- Configures build properties
+
+See [CONFIG.md](CONFIG.md) for detailed documentation.
 
 ## How It Works
 

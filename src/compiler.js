@@ -41,7 +41,8 @@ class Compiler {
         success: true,
         code,
         ast,
-        tokens
+        tokens,
+        config: generator.config // Return the config for use in CLI
       };
     } catch (error) {
       return {
