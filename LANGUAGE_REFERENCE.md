@@ -642,6 +642,92 @@ Planned for future versions:
 
 ## Advanced Features
 
+### Interrupts
+
+Interrupt handlers allow you to respond instantly to hardware events:
+
+```javascript
+# Basic interrupt syntax
+interrupt on PIN# (rising|falling|change|low|high) {
+  # interrupt handler code
+}
+
+# Named interrupt for clarity
+interrupt myISR on PIN# mode {
+  # interrupt handler code
+}
+```
+
+#### Interrupt Modes
+
+- `rising` - Trigger on rising edge (LOW to HIGH)
+- `falling` - Trigger on falling edge (HIGH to LOW)
+- `change` - Trigger on any change
+- `low` - Trigger when pin is LOW
+- `high` - Trigger when pin is HIGH
+
+#### Example
+
+```javascript
+alias ENCODER_PIN = 2
+react mut pulseCount: int = 0
+
+interrupt encoderISR on ENCODER_PIN rising {
+  pulseCount = pulseCount + 1
+}
+
+on start {
+  pinMode(ENCODER_PIN, INPUT_PULLUP)
+}
+
+on loop {
+  print("Pulses:")
+  print(pulseCount)
+  delay(1000)
+}
+```
+
+#### ISR Restrictions
+
+For safety and performance, interrupt handlers have restrictions:
+
+**Allowed operations:**
+- Variable assignment
+- Arithmetic operations
+- Updating reactive variables
+- Emitting signals
+
+**Forbidden operations:**
+- `print()` - Serial communication is too slow
+- `delay()` - Blocks other interrupts
+- `wait` - Blocking operations
+- Loops (`while`, `for`) - Could take too long
+- Function calls (unless marked `@ininterrupt` safe - future feature)
+
+**Variable Safety:**
+
+Variables used in interrupts are automatically marked `volatile`:
+
+```javascript
+mut int counter = 0  # Used in ISR
+
+interrupt on 2 rising {
+  counter = counter + 1  # counter is marked volatile
+}
+
+# Compiles to: volatile int counter = 0;
+```
+
+Reactive variables are already volatile:
+
+```javascript
+react mut rpm: int = 0  # Always volatile
+
+interrupt on 2 rising {
+  rpm = rpm + 1
+}
+```
+
 ### Reactive Variables
 
 Reactive variables are automatically volatile for interrupt safety:
@@ -651,7 +737,7 @@ react mut rpm: int = 0
 react mut temperature: int = 0
 
 # Use in interrupt handlers or with volatile access
-on pin D2.rising {
+interrupt on 2 rising {
   rpm = rpm + 1
 }
 ```
@@ -931,14 +1017,15 @@ on loop {
 9. **Classes**: OOP with constructors and methods
 10. **`new` keyword**: Object instantiation
 11. **Event blocks**: `on start {}`, `on loop {}`
-12. **Match expressions**: Pattern matching with `=>`
-13. **Switch statements**: C++-style with braces
-14. **Tasks**: Periodic (`every`) and background execution
-15. **Signals**: Event-driven communication
-16. **Reactive vars**: Volatile variables with `react`
-17. **Time literals**: `ms`, `s`, `us`, `min`, `h`
-18. **Atomic blocks**: Interrupt-safe regions
-19. **Library loading**: `load <lib>` and `load <module.ys> as name`
-20. **Aliases**: `alias name = value`
-21. **Config blocks**: Target configuration
-22. **Inline C++**: `@cpp { }`
+12. **Interrupt handlers**: `interrupt <name?> on PIN# (rising|falling|change|low|high) { }`
+13. **Match expressions**: Pattern matching with `=>`
+14. **Switch statements**: C++-style with braces
+15. **Tasks**: Periodic (`every`) and background execution
+16. **Signals**: Event-driven communication
+17. **Reactive vars**: Volatile variables with `react`
+18. **Time literals**: `ms`, `s`, `us`, `min`, `h`
+19. **Atomic blocks**: Interrupt-safe regions
+20. **Library loading**: `load <lib>` and `load <module.ys> as name`
+21. **Aliases**: `alias name = value`
+22. **Config blocks**: Target configuration
+23. **Inline C++**: `@cpp { }`

@@ -1,0 +1,99 @@
+# Advanced Interrupt Example
+# Demonstrates best practices and edge cases for interrupt support
+
+alias SENSOR_PIN = 2
+alias BUTTON_PIN = 3
+alias LED_RED = 9
+alias LED_GREEN = 10
+
+# Reactive variables (always volatile)
+react mut sensorPulses: int = 0
+react mut lastSensorTime: int = 0
+react mut buttonState: bool = false
+
+# Regular variables used in ISR (auto-marked volatile)
+mut int errorCount = 0
+mut bool systemActive = true
+
+# Variables NOT used in ISR (not volatile)
+mut int displayCounter = 0
+mut int averageRPM = 0
+
+# Constants (never volatile)
+const int MIN_PULSE_INTERVAL = 10
+
+# Sensor interrupt - counts pulses
+interrupt sensorISR on SENSOR_PIN rising {
+  mut int currentTime = millis()
+  
+  # Simple debouncing
+  if (currentTime - lastSensorTime > MIN_PULSE_INTERVAL) {
+    sensorPulses = sensorPulses + 1
+    lastSensorTime = currentTime
+  }
+}
+
+# Button interrupt - toggles state
+interrupt on BUTTON_PIN change {
+  if (buttonState == true) {
+    buttonState = false
+  } else {
+    buttonState = true
+  }
+}
+
+# Error detection interrupt (using pin 4)
+interrupt errorDetect on 4 low {
+  errorCount = errorCount + 1
+  systemActive = false
+}
+
+on start {
+  pinMode(SENSOR_PIN, INPUT_PULLUP)
+  pinMode(BUTTON_PIN, INPUT_PULLUP)
+  pinMode(4, INPUT_PULLUP)
+  pinMode(LED_RED, OUTPUT)
+  pinMode(LED_GREEN, OUTPUT)
+  
+  print("Advanced Interrupt System")
+  print("Multiple ISRs active")
+}
+
+on loop {
+  displayCounter = displayCounter + 1
+  
+  # Calculate RPM
+  averageRPM = sensorPulses * 60
+  
+  # Display status every 10 loops
+  if (displayCounter % 10 == 0) {
+    print("RPM:")
+    print(averageRPM)
+    print("Errors:")
+    print(errorCount)
+    print("Button:")
+    print(buttonState)
+  }
+  
+  # Visual feedback
+  if (systemActive) {
+    if (buttonState) {
+      digitalWrite(LED_GREEN, HIGH)
+      digitalWrite(LED_RED, LOW)
+    } else {
+      digitalWrite(LED_GREEN, LOW)
+      digitalWrite(LED_RED, HIGH)
+    }
+  } else {
+    # Blink red on error
+    digitalWrite(LED_RED, HIGH)
+    delay(100)
+    digitalWrite(LED_RED, LOW)
+    delay(100)
+  }
+  
+  # Reset pulses after reading
+  sensorPulses = 0
+  
+  delay(100)
+}
