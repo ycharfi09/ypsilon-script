@@ -3,6 +3,9 @@
  * Transpiles AST to Arduino C++ code
  */
 
+const { Config } = require('./config');
+const { generatePWMSetup } = require('./pwm');
+
 class CodeGenerator {
   constructor(ast, options = {}) {
     this.ast = ast;
@@ -22,7 +25,8 @@ class CodeGenerator {
     this.loadStatements = [];
     this.modules = []; // .ys modules loaded
     this.aliases = [];
-    this.config = null;
+    this.configBlock = null;
+    this.config = null; // Will be initialized after processing
     this.reactVars = [];
     this.indent = 0;
     this.needsSerial = false;
@@ -35,6 +39,9 @@ class CodeGenerator {
     
     // Second pass: process and generate code
     this.processProgram(this.ast);
+    
+    // Initialize config from configBlock
+    this.config = new Config(this.configBlock);
     
     // Third pass: load .ys modules
     this.loadModules();
@@ -98,7 +105,7 @@ class CodeGenerator {
     } else if (stmt.type === 'AliasStatement') {
       this.aliases.push(stmt);
     } else if (stmt.type === 'ConfigBlock') {
-      this.config = stmt;
+      this.configBlock = stmt;
     } else if (stmt.type === 'ReactDeclaration') {
       this.reactVars.push(stmt);
     }
@@ -157,6 +164,14 @@ class CodeGenerator {
       }
     }
     code += '\n';
+    
+    // Add PWM backend setup if needed
+    const pwmBackend = this.config.getPWMBackend();
+    const pwmSetup = generatePWMSetup(pwmBackend);
+    if (pwmSetup) {
+      code += pwmSetup;
+      code += '\n';
+    }
     
     // Add aliases as #define
     if (this.aliases.length > 0) {

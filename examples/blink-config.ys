@@ -1,0 +1,23 @@
+# Blink Example with Config
+# Demonstrates the new config block for board configuration
+
+config {
+  mpu: atmega328p,
+  clock: 16MHz,
+  uart: on,
+  port: auto,
+  pwm: auto
+}
+
+const int LED_PIN = 13
+
+on start {
+    pinMode(LED_PIN, OUTPUT)
+}
+
+on loop {
+    digitalWrite(LED_PIN, HIGH)
+    wait 1s
+    digitalWrite(LED_PIN, LOW)
+    wait 1s
+}

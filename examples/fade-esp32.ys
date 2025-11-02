@@ -1,0 +1,34 @@
+# PWM Fade Example with ESP32 Config
+# Demonstrates PWM backend selection for ESP32
+
+config {
+  mpu: esp32,
+  clock: 240MHz,
+  uart: on,
+  port: auto,
+  pwm: auto
+}
+
+const int LED_PIN = 13
+mut int brightness = 0
+mut int fadeAmount = 5
+
+on start {
+    pinMode(LED_PIN, OUTPUT)
+}
+
+on loop {
+    analogWrite(LED_PIN, brightness)
+    
+    brightness = brightness + fadeAmount
+    
+    if (brightness <= 0) {
+        fadeAmount = 5
+    }
+    
+    if (brightness >= 255) {
+        fadeAmount = -5
+    }
+    
+    wait 30ms
+}
