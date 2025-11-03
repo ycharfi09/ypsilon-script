@@ -1,3 +1,5 @@
+@main
+
 # Interrupt Example - RPM Counter with Button Debounce
 # Demonstrates interrupt support in Ypsilon Script
 

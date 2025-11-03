@@ -1,3 +1,5 @@
+@main
+
 # Fade LED using PWM
 # This example shows analog output control
 

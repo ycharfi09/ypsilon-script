@@ -1,3 +1,5 @@
+@main
+
 # Test all Arduino constants and pin modes
 
 const int BUTTON = 2

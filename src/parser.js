@@ -1470,14 +1470,25 @@ class Parser {
     
     // Check for mut
     let isMut = false;
-    if (this.peek().type === TOKEN_TYPES.MUT) {
+    if (this.peek().type === TOKEN_TYPES.MUT || this.peek().type === TOKEN_TYPES.CONST) {
+      isMut = this.peek().type === TOKEN_TYPES.MUT;
       this.advance();
-      isMut = true;
     }
     
-    const name = this.expect(TOKEN_TYPES.IDENTIFIER).value;
-    this.expect(TOKEN_TYPES.COLON);
-    const varType = this.parseType();
+    // Support both old syntax (name: type) and new syntax (type name)
+    const firstToken = this.peek();
+    let name, varType;
+    
+    if (isTypeToken(firstToken.type) || (firstToken.type === TOKEN_TYPES.IDENTIFIER && this.peek(1).type !== TOKEN_TYPES.COLON)) {
+      // New syntax: type name
+      varType = this.parseType();
+      name = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+    } else {
+      // Old syntax: name: type
+      name = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+      this.expect(TOKEN_TYPES.COLON);
+      varType = this.parseType();
+    }
     
     let init = null;
     if (this.peek().type === TOKEN_TYPES.ASSIGN) {

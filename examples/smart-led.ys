@@ -1,10 +1,16 @@
+@main
+
 # Smart LED Controller with Modern YS Syntax
 # Demonstrates: enums, match, tasks, signals, time units
 
 enum Pattern { SOLID, BLINK, FADE, PULSE }
 enum Color { RED, GREEN, BLUE, WHITE }
 
-struct RGB { r: int, g: int, b: int }
+struct RGB {
+  int r
+  int g
+  int b
+}
 
 # Configuration
 alias RED_PIN = 9

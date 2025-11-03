@@ -1,3 +1,5 @@
+@main
+
 # Test new features
 # - No semicolons
 # - Type inference for functions

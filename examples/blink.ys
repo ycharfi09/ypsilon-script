@@ -1,3 +1,5 @@
+@main
+
 # Blink Example - Classic Arduino LED Blink
 # This demonstrates basic pin control and timing
 
