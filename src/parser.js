@@ -1028,6 +1028,24 @@ class Parser {
     };
   }
 
+  // Helper to detect if we're using new syntax (type name) vs old syntax (name: type)
+  isNewSyntax(firstToken, secondToken) {
+    // If first token is a type keyword, it's new syntax
+    if (isTypeToken(firstToken.type)) {
+      return true;
+    }
+    // If first token is identifier and second is colon, it's old syntax
+    if (firstToken.type === TOKEN_TYPES.IDENTIFIER && secondToken.type === TOKEN_TYPES.COLON) {
+      return false;
+    }
+    // If first token is identifier and second is identifier, it's new syntax (custom type + name)
+    if (firstToken.type === TOKEN_TYPES.IDENTIFIER && secondToken.type === TOKEN_TYPES.IDENTIFIER) {
+      return true;
+    }
+    // Default to new syntax
+    return true;
+  }
+
   // Struct declaration: struct Point { x: int, y: int }
   parseStructDeclaration() {
     this.expect(TOKEN_TYPES.STRUCT);
@@ -1040,26 +1058,19 @@ class Parser {
       // Old syntax: name: type (e.g., x: int) - for backward compatibility
       
       const firstToken = this.peek();
+      const secondToken = this.peek(1);
       
-      // Check if it's new syntax (type first)
-      if (isTypeToken(firstToken.type) || firstToken.type === TOKEN_TYPES.IDENTIFIER) {
-        // Try to determine if this is new or old syntax
-        const secondToken = this.peek(1);
-        
-        if (secondToken.type === TOKEN_TYPES.COLON) {
-          // Old syntax: name: type
-          const fieldName = this.expect(TOKEN_TYPES.IDENTIFIER).value;
-          this.expect(TOKEN_TYPES.COLON);
-          const fieldType = this.parseType();
-          fields.push({ name: fieldName, type: fieldType });
-        } else {
-          // New syntax: type name
-          const fieldType = this.parseType();
-          const fieldName = this.expect(TOKEN_TYPES.IDENTIFIER).value;
-          fields.push({ name: fieldName, type: fieldType });
-        }
+      if (this.isNewSyntax(firstToken, secondToken)) {
+        // New syntax: type name
+        const fieldType = this.parseType();
+        const fieldName = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+        fields.push({ name: fieldName, type: fieldType });
       } else {
-        throw new Error(`Unexpected token in struct at line ${firstToken.line}. Expected type or field name.`);
+        // Old syntax: name: type
+        const fieldName = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+        this.expect(TOKEN_TYPES.COLON);
+        const fieldType = this.parseType();
+        fields.push({ name: fieldName, type: fieldType });
       }
       
       if (this.peek().type === TOKEN_TYPES.COMMA) {
@@ -1468,18 +1479,19 @@ class Parser {
   parseReactDeclaration() {
     this.expect(TOKEN_TYPES.REACT);
     
-    // Check for mut
-    let isMut = false;
+    // Check for mut or const
+    let isMutable = false;
     if (this.peek().type === TOKEN_TYPES.MUT || this.peek().type === TOKEN_TYPES.CONST) {
-      isMut = this.peek().type === TOKEN_TYPES.MUT;
+      isMutable = this.peek().type === TOKEN_TYPES.MUT;
       this.advance();
     }
     
     // Support both old syntax (name: type) and new syntax (type name)
     const firstToken = this.peek();
+    const secondToken = this.peek(1);
     let name, varType;
     
-    if (isTypeToken(firstToken.type) || (firstToken.type === TOKEN_TYPES.IDENTIFIER && this.peek(1).type !== TOKEN_TYPES.COLON)) {
+    if (this.isNewSyntax(firstToken, secondToken)) {
       // New syntax: type name
       varType = this.parseType();
       name = this.expect(TOKEN_TYPES.IDENTIFIER).value;
@@ -1499,7 +1511,7 @@ class Parser {
     
     return {
       type: 'ReactDeclaration',
-      isMut,
+      isMut: isMutable,
       name,
       varType,
       init
