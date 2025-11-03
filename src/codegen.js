@@ -76,7 +76,10 @@ class CodeGenerator {
   }
 
   processTopLevelStatement(stmt) {
-    if (stmt.type === 'ClassDeclaration') {
+    if (stmt.type === 'MainDirective') {
+      // Just track it - validation happens at compile time
+      return;
+    } else if (stmt.type === 'ClassDeclaration') {
       this.classes.push(stmt);
     } else if (stmt.type === 'EnumDeclaration') {
       this.enums.push(stmt);

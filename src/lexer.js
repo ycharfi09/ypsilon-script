@@ -72,6 +72,9 @@ const TOKEN_TYPES = {
   // C++ Inline
   CPP: 'CPP',
   
+  // Entry Point
+  MAIN: 'MAIN',
+  
   // Type Keywords
   TYPE_INT: 'TYPE_INT',
   TYPE_FLOAT: 'TYPE_FLOAT',
@@ -335,6 +338,18 @@ class Lexer {
       // Strings
       if (char === '"' || char === "'") {
         tokens.push(this.readString(char));
+        continue;
+      }
+
+      // Special handling for @main
+      if (char === '@' && this.peek(1) === 'm' && this.peek(2) === 'a' && 
+          this.peek(3) === 'i' && this.peek(4) === 'n') {
+        this.advance(); // @
+        this.advance(); // m
+        this.advance(); // a
+        this.advance(); // i
+        this.advance(); // n
+        tokens.push({ type: TOKEN_TYPES.MAIN, value: '@main', line: this.line, column: this.column - 5 });
         continue;
       }
 

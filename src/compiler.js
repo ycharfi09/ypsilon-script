@@ -29,6 +29,9 @@ class Compiler {
       // Parse
       const parser = new Parser(tokens);
       const ast = parser.parse();
+      
+      // Check for @main directive
+      const hasMain = ast.body.some(stmt => stmt.type === 'MainDirective');
 
       // Generate code
       const generator = new CodeGenerator(ast, {
@@ -42,6 +45,7 @@ class Compiler {
         code,
         ast,
         tokens,
+        hasMain,
         config: generator.config // Return the config for use in CLI
       };
     } catch (error) {

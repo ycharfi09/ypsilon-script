@@ -59,6 +59,13 @@ function compileFile(inputFile, outputFile = null, options = {}) {
     console.error(result.error);
     process.exit(1);
   }
+  
+  // Check for @main directive
+  if (!result.hasMain && !options.skipMainCheck) {
+    console.error('Error: No entry file found — add @main at the top of the file that starts your program.');
+    console.error(`\nMissing @main in ${inputFile}`);
+    process.exit(1);
+  }
 
   if (options.showTokens) {
     console.log(JSON.stringify(result.tokens, null, 2));

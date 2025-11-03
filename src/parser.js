@@ -50,7 +50,44 @@ class Parser {
   expect(type) {
     const token = this.peek();
     if (token.type !== type) {
-      throw new Error(`Expected ${type} but got ${token.type} at line ${token.line}`);
+      // Provide friendly error messages
+      let errorMsg = `Syntax Error at line ${token.line}: `;
+      let tip = '';
+      
+      // Map token types to user-friendly names
+      const tokenName = {
+        [TOKEN_TYPES.LBRACE]: "'{'",
+        [TOKEN_TYPES.RBRACE]: "'}'",
+        [TOKEN_TYPES.LPAREN]: "'('",
+        [TOKEN_TYPES.RPAREN]: "')'",
+        [TOKEN_TYPES.SEMICOLON]: "';'",
+        [TOKEN_TYPES.COLON]: "':'",
+        [TOKEN_TYPES.COMMA]: "','",
+        [TOKEN_TYPES.IDENTIFIER]: "identifier",
+        [TOKEN_TYPES.TYPE_INT]: "type",
+        [TOKEN_TYPES.TYPE_FLOAT]: "type",
+        [TOKEN_TYPES.TYPE_BOOL]: "type",
+        [TOKEN_TYPES.TYPE_STRING]: "type",
+        [TOKEN_TYPES.TYPE_VOID]: "type"
+      };
+      
+      const expectedName = tokenName[type] || type;
+      const gotName = tokenName[token.type] || token.type;
+      
+      errorMsg += `Expected ${expectedName} but got ${gotName}`;
+      
+      // Add contextual tips
+      if (type === TOKEN_TYPES.RBRACE && token.type === TOKEN_TYPES.EOF) {
+        tip = "\nTip: Did you forget a closing brace '}'?";
+      } else if (type === TOKEN_TYPES.RPAREN && token.type === TOKEN_TYPES.LBRACE) {
+        tip = "\nTip: Did you forget a closing parenthesis ')'?";
+      } else if (type === TOKEN_TYPES.IDENTIFIER && isTypeToken(token.type)) {
+        tip = "\nTip: Expected a variable or function name after the type.";
+      } else if (isTypeToken(type) && token.type === TOKEN_TYPES.IDENTIFIER) {
+        tip = "\nTip: Variables must start with a type. Use: int, float, bool, or string.";
+      }
+      
+      throw new Error(errorMsg + tip);
     }
     return this.advance();
   }
@@ -66,7 +103,8 @@ class Parser {
   parse() {
     const ast = {
       type: 'Program',
-      body: []
+      body: [],
+      hasMain: false
     };
 
     while (this.peek().type !== TOKEN_TYPES.EOF) {
@@ -83,6 +121,8 @@ class Parser {
     const token = this.peek();
 
     switch (token.type) {
+      case TOKEN_TYPES.MAIN:
+        return this.parseMainDirective();
       case TOKEN_TYPES.CLASS:
         return this.parseClassDeclaration();
       case TOKEN_TYPES.FUNCTION:
@@ -138,6 +178,13 @@ class Parser {
     }
     
     return typeName;
+  }
+
+  parseMainDirective() {
+    this.expect(TOKEN_TYPES.MAIN);
+    return {
+      type: 'MainDirective'
+    };
   }
 
   parseClassInstanceDeclaration() {
@@ -989,10 +1036,31 @@ class Parser {
     
     const fields = [];
     while (this.peek().type !== TOKEN_TYPES.RBRACE && this.peek().type !== TOKEN_TYPES.EOF) {
-      const fieldName = this.expect(TOKEN_TYPES.IDENTIFIER).value;
-      this.expect(TOKEN_TYPES.COLON);
-      const fieldType = this.parseType();
-      fields.push({ name: fieldName, type: fieldType });
+      // New syntax: type name (e.g., int x)
+      // Old syntax: name: type (e.g., x: int) - for backward compatibility
+      
+      const firstToken = this.peek();
+      
+      // Check if it's new syntax (type first)
+      if (isTypeToken(firstToken.type) || firstToken.type === TOKEN_TYPES.IDENTIFIER) {
+        // Try to determine if this is new or old syntax
+        const secondToken = this.peek(1);
+        
+        if (secondToken.type === TOKEN_TYPES.COLON) {
+          // Old syntax: name: type
+          const fieldName = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+          this.expect(TOKEN_TYPES.COLON);
+          const fieldType = this.parseType();
+          fields.push({ name: fieldName, type: fieldType });
+        } else {
+          // New syntax: type name
+          const fieldType = this.parseType();
+          const fieldName = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+          fields.push({ name: fieldName, type: fieldType });
+        }
+      } else {
+        throw new Error(`Unexpected token in struct at line ${firstToken.line}. Expected type or field name.`);
+      }
       
       if (this.peek().type === TOKEN_TYPES.COMMA) {
         this.advance();
