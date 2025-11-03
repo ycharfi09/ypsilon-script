@@ -1,3 +1,5 @@
+@main
+
 # Simple Blink with Modern YS Syntax
 # Demonstrates: mut, on blocks, fn, self, time units
 

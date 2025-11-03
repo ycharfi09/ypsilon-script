@@ -1,3 +1,5 @@
+@main
+
 # PWM Fade Example with ESP32 Config
 # Demonstrates PWM backend selection for ESP32
 

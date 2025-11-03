@@ -1,3 +1,5 @@
+@main
+
 # Sensor Reading Example
 # Read analog sensor and control LED based on threshold
 

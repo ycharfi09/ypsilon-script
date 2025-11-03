@@ -1,9 +1,14 @@
+@main
+
 # Ypsilon Script Syntax Demonstration
 # This example showcases the YS language features
 
 enum Mode { AUTO, MANUAL }
 
-struct Point { x: int, y: int }
+struct Point {
+  int x
+  int y
+}
 
 class Motor {
     mut int speed

@@ -38,10 +38,16 @@ npm link
 Create a simple program in `example.ys`:
 
 ```javascript
+@main
+
 # Modern Ypsilon Script Example
 
 enum Mode { AUTO, MANUAL }
-struct Point { x: int, y: int }
+
+struct Point {
+  int x
+  int y
+}
 
 mut Mode currentMode = AUTO
 mut int counter = 0
@@ -90,10 +96,20 @@ This generates C++ code ready for your microcontroller.
 All variables must be explicitly typed. Use `mut` for mutable variables:
 
 ```javascript
-const LED_PIN: int = 13
-mut counter: int = 0
-mut temperature: float = 23.5
+const int LED_PIN = 13
+mut int counter = 0
+mut float temperature = 23.5
 ```
+
+**Important:** Every YS program file must declare itself as the entry point:
+
+```javascript
+@main
+
+# Your code here...
+```
+
+The `@main` directive must be the first non-empty line in your entry file.
 
 ### Enums (Rust-style)
 
@@ -111,8 +127,15 @@ mut Mode currentMode = AUTO
 Define data structures:
 
 ```javascript
-struct Point { x: int, y: int }
-struct Config { threshold: int, enabled: bool }
+struct Point {
+  int x
+  int y
+}
+
+struct Config {
+  int threshold
+  bool enabled
+}
 
 mut Point position = Point { x: 0, y: 0 }
 ```
@@ -326,14 +349,19 @@ YS syntax:
 ### Complete Example
 
 ```javascript
+@main
+
 enum Mode { AUTO, MANUAL }
 
-struct Point { x: int, y: int }
+struct Point {
+  int x
+  int y
+}
 
 class Motor {
-    mut speed: int
+    mut int speed
     
-    constructor(speed: int) { 
+    constructor(int speed) { 
         self.speed = speed 
     }
     
@@ -342,14 +370,14 @@ class Motor {
         print(self.speed)
     }
     
-    fn setSpeed(newSpeed: int) {
+    fn setSpeed(int newSpeed) {
         self.speed = newSpeed
     }
 }
 
-mut motor = new Motor(100)
-mut currentMode: Mode = Mode.AUTO
-mut position: Point = Point { x: 0, y: 0 }
+mut Motor motor = new Motor(100)
+mut Mode currentMode = AUTO
+mut Point position = Point { x: 0, y: 0 }
 
 on start {
     motor.run()
@@ -368,7 +396,7 @@ on loop {
         }
     }
     
-    mut level: int = analogRead(0) / 256
+    mut int level = analogRead(0) / 256
     
     switch level {
         case 1 { print("Low power") }
@@ -384,11 +412,13 @@ on loop {
 ### Enum Example
 
 ```javascript
+@main
+
 enum State { IDLE, RUNNING, STOPPED }
 
-mut machineState: State = State.IDLE
+mut State machineState = IDLE
 
-fn updateState(newState: State) {
+fn updateState(State newState) {
     machineState = newState
 }
 
@@ -404,19 +434,21 @@ on loop {
 ### Struct Example
 
 ```javascript
+@main
+
 struct Config {
-    threshold: int,
-    sensitivity: float,
-    enabled: bool
+    int threshold
+    float sensitivity
+    bool enabled
 }
 
-mut config: Config = Config {
+mut Config config = Config {
     threshold: 512,
     sensitivity: 0.75,
     enabled: true
 }
 
-fn checkThreshold(value: int) -> bool {
+fn checkThreshold(int value) -> bool {
     return value > config.threshold
 }
 ```
@@ -521,11 +553,13 @@ void loop() {
 
 **Ypsilon Script:**
 ```javascript
+@main
+
 # Clean, type-safe, expressive
 enum LedState { ON, OFF }
 
-mut state: LedState = LedState.ON
-const LED_PIN: int = 13
+mut LedState state = ON
+const int LED_PIN = 13
 
 on start {
     pinMode(LED_PIN, OUTPUT)

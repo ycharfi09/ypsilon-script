@@ -1,3 +1,5 @@
+@main
+
 # Traffic Light Controller Example
 # Shows multiple pins, timing, and control flow with repeat loop
 

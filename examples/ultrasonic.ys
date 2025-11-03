@@ -1,3 +1,5 @@
+@main
+
 # Ultrasonic Distance Sensor Example
 # Demonstrates sensor reading, calculations, and conditional logic
 

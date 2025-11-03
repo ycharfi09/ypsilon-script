@@ -1,3 +1,5 @@
+@main
+
 # Advanced Interrupt Example
 # Demonstrates best practices and edge cases for interrupt support
 

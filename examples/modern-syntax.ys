@@ -1,3 +1,5 @@
+@main
+
 # Modern Ypsilon Script Syntax Demo
 # Showcases all new features: fn, mut, self, enum, struct, match, on blocks
 
@@ -8,8 +10,12 @@ alias BUTTON_PIN = 2
 # Enum for robot modes
 enum RobotMode { AUTO, MANUAL, CALIBRATE }
 
-# Struct for position
-struct Position { x: int, y: int, z: int }
+# Struct for position - NEW SYNTAX (type name instead of name: type)
+struct Position {
+  int x
+  int y
+  int z
+}
 
 # Config block
 config {
@@ -23,8 +29,8 @@ signal buttonPressed
 signal calibrationDone
 
 # Reactive variables
-react mut sensorValue: int = 0
-react mut timestamp: int = 0
+react mut int sensorValue = 0
+react mut int timestamp = 0
 
 # Global state
 mut RobotMode mode = AUTO

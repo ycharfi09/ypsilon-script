@@ -50,7 +50,44 @@ class Parser {
   expect(type) {
     const token = this.peek();
     if (token.type !== type) {
-      throw new Error(`Expected ${type} but got ${token.type} at line ${token.line}`);
+      // Provide friendly error messages
+      let errorMsg = `Syntax Error at line ${token.line}: `;
+      let tip = '';
+      
+      // Map token types to user-friendly names
+      const tokenName = {
+        [TOKEN_TYPES.LBRACE]: "'{'",
+        [TOKEN_TYPES.RBRACE]: "'}'",
+        [TOKEN_TYPES.LPAREN]: "'('",
+        [TOKEN_TYPES.RPAREN]: "')'",
+        [TOKEN_TYPES.SEMICOLON]: "';'",
+        [TOKEN_TYPES.COLON]: "':'",
+        [TOKEN_TYPES.COMMA]: "','",
+        [TOKEN_TYPES.IDENTIFIER]: "identifier",
+        [TOKEN_TYPES.TYPE_INT]: "type",
+        [TOKEN_TYPES.TYPE_FLOAT]: "type",
+        [TOKEN_TYPES.TYPE_BOOL]: "type",
+        [TOKEN_TYPES.TYPE_STRING]: "type",
+        [TOKEN_TYPES.TYPE_VOID]: "type"
+      };
+      
+      const expectedName = tokenName[type] || type;
+      const gotName = tokenName[token.type] || token.type;
+      
+      errorMsg += `Expected ${expectedName} but got ${gotName}`;
+      
+      // Add contextual tips
+      if (type === TOKEN_TYPES.RBRACE && token.type === TOKEN_TYPES.EOF) {
+        tip = "\nTip: Did you forget a closing brace '}'?";
+      } else if (type === TOKEN_TYPES.RPAREN && token.type === TOKEN_TYPES.LBRACE) {
+        tip = "\nTip: Did you forget a closing parenthesis ')'?";
+      } else if (type === TOKEN_TYPES.IDENTIFIER && isTypeToken(token.type)) {
+        tip = "\nTip: Expected a variable or function name after the type.";
+      } else if (isTypeToken(type) && token.type === TOKEN_TYPES.IDENTIFIER) {
+        tip = "\nTip: Variables must start with a type. Use: int, float, bool, or string.";
+      }
+      
+      throw new Error(errorMsg + tip);
     }
     return this.advance();
   }
@@ -66,7 +103,8 @@ class Parser {
   parse() {
     const ast = {
       type: 'Program',
-      body: []
+      body: [],
+      hasMain: false
     };
 
     while (this.peek().type !== TOKEN_TYPES.EOF) {
@@ -83,6 +121,8 @@ class Parser {
     const token = this.peek();
 
     switch (token.type) {
+      case TOKEN_TYPES.MAIN:
+        return this.parseMainDirective();
       case TOKEN_TYPES.CLASS:
         return this.parseClassDeclaration();
       case TOKEN_TYPES.FUNCTION:
@@ -138,6 +178,13 @@ class Parser {
     }
     
     return typeName;
+  }
+
+  parseMainDirective() {
+    this.expect(TOKEN_TYPES.MAIN);
+    return {
+      type: 'MainDirective'
+    };
   }
 
   parseClassInstanceDeclaration() {
@@ -981,6 +1028,24 @@ class Parser {
     };
   }
 
+  // Helper to detect if we're using new syntax (type name) vs old syntax (name: type)
+  isNewSyntax(firstToken, secondToken) {
+    // If first token is a type keyword, it's new syntax
+    if (isTypeToken(firstToken.type)) {
+      return true;
+    }
+    // If first token is identifier and second is colon, it's old syntax
+    if (firstToken.type === TOKEN_TYPES.IDENTIFIER && secondToken.type === TOKEN_TYPES.COLON) {
+      return false;
+    }
+    // If first token is identifier and second is identifier, it's new syntax (custom type + name)
+    if (firstToken.type === TOKEN_TYPES.IDENTIFIER && secondToken.type === TOKEN_TYPES.IDENTIFIER) {
+      return true;
+    }
+    // Default to new syntax
+    return true;
+  }
+
   // Struct declaration: struct Point { x: int, y: int }
   parseStructDeclaration() {
     this.expect(TOKEN_TYPES.STRUCT);
@@ -989,10 +1054,24 @@ class Parser {
     
     const fields = [];
     while (this.peek().type !== TOKEN_TYPES.RBRACE && this.peek().type !== TOKEN_TYPES.EOF) {
-      const fieldName = this.expect(TOKEN_TYPES.IDENTIFIER).value;
-      this.expect(TOKEN_TYPES.COLON);
-      const fieldType = this.parseType();
-      fields.push({ name: fieldName, type: fieldType });
+      // New syntax: type name (e.g., int x)
+      // Old syntax: name: type (e.g., x: int) - for backward compatibility
+      
+      const firstToken = this.peek();
+      const secondToken = this.peek(1);
+      
+      if (this.isNewSyntax(firstToken, secondToken)) {
+        // New syntax: type name
+        const fieldType = this.parseType();
+        const fieldName = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+        fields.push({ name: fieldName, type: fieldType });
+      } else {
+        // Old syntax: name: type
+        const fieldName = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+        this.expect(TOKEN_TYPES.COLON);
+        const fieldType = this.parseType();
+        fields.push({ name: fieldName, type: fieldType });
+      }
       
       if (this.peek().type === TOKEN_TYPES.COMMA) {
         this.advance();
@@ -1400,16 +1479,28 @@ class Parser {
   parseReactDeclaration() {
     this.expect(TOKEN_TYPES.REACT);
     
-    // Check for mut
-    let isMut = false;
-    if (this.peek().type === TOKEN_TYPES.MUT) {
+    // Check for mut or const
+    let isMutable = false;
+    if (this.peek().type === TOKEN_TYPES.MUT || this.peek().type === TOKEN_TYPES.CONST) {
+      isMutable = this.peek().type === TOKEN_TYPES.MUT;
       this.advance();
-      isMut = true;
     }
     
-    const name = this.expect(TOKEN_TYPES.IDENTIFIER).value;
-    this.expect(TOKEN_TYPES.COLON);
-    const varType = this.parseType();
+    // Support both old syntax (name: type) and new syntax (type name)
+    const firstToken = this.peek();
+    const secondToken = this.peek(1);
+    let name, varType;
+    
+    if (this.isNewSyntax(firstToken, secondToken)) {
+      // New syntax: type name
+      varType = this.parseType();
+      name = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+    } else {
+      // Old syntax: name: type
+      name = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+      this.expect(TOKEN_TYPES.COLON);
+      varType = this.parseType();
+    }
     
     let init = null;
     if (this.peek().type === TOKEN_TYPES.ASSIGN) {
@@ -1420,7 +1511,7 @@ class Parser {
     
     return {
       type: 'ReactDeclaration',
-      isMut,
+      isMut: isMutable,
       name,
       varType,
       init

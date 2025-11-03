@@ -1,9 +1,14 @@
+@main
+
 # Complete Ypsilon Script Example
 # Demonstrates all key language features from the specification
 
 enum Mode { AUTO, MANUAL }
 
-struct Point { x: int, y: int }
+struct Point {
+  int x
+  int y
+}
 
 class Motor {
     mut int speed

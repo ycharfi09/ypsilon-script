@@ -1,3 +1,5 @@
+@main
+
 # Complex Module Loading Example
 # Shows using multiple modules with enums, structs, and classes
 

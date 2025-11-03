@@ -1,3 +1,5 @@
+@main
+
 # Example demonstrating module loading with .ys files
 # This shows how to use the motor.ys library
 
