@@ -2,6 +2,16 @@
 
 ## Core Language Features
 
+### 0. Entry Point Declaration
+- **`@main` Directive**: Every program must declare an entry file
+- Must be the first non-empty line
+- Only one file can have `@main`
+  ```javascript
+  @main
+  
+  # Your program code...
+  ```
+
 ### 1. Type System
 - **Strong Static Typing**: All variables and functions must be explicitly typed
 - **Built-in Types**: `int`, `float`, `bool`, `string`
@@ -61,8 +71,15 @@
 - Named fields with types
 - Field access using dot notation
   ```javascript
-  struct Point { x: int, y: int }
-  struct Config { threshold: int, enabled: bool }
+  struct Point {
+    int x
+    int y
+  }
+  
+  struct Config {
+    int threshold
+    bool enabled
+  }
   ```
 
 ### 5. Functions

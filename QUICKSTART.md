@@ -16,7 +16,9 @@ npx ypsilon-script yourfile.ys
 Create `hello.ys`:
 
 ```javascript
-const LED: int = 13
+@main
+
+const int LED = 13
 
 on start {
     pinMode(LED, OUTPUT)
@@ -30,6 +32,8 @@ on loop {
     delay(1000)
 }
 ```
+
+**Important:** Every YS program must start with `@main` on the first non-empty line.
 
 ## Compile It
 
@@ -49,9 +53,11 @@ This creates C++ code ready for your microcontroller.
 ### Modern Syntax
 - Braces required for all blocks
 - No semicolons needed
+- Use `@main` to mark the entry file
 - Use `fn` for functions
 - Use `self` in classes (not `this`)
 - Use `mut` for mutable variables
+- Variables declared as `type name` (e.g., `int x`)
 
 ### Powerful Features
 - Enums (Rust-style)
@@ -66,7 +72,9 @@ This creates C++ code ready for your microcontroller.
 ### Basic LED Control
 
 ```javascript
-const LED: int = 13
+@main
+
+const int LED = 13
 
 on start {
     pinMode(LED, OUTPUT)
@@ -83,10 +91,12 @@ on loop {
 ### Using Enums
 
 ```javascript
+@main
+
 enum State { ON, OFF }
 
-mut ledState: State = State.OFF
-const LED_PIN: int = 13
+mut State ledState = OFF
+const int LED_PIN = 13
 
 on start {
     pinMode(LED_PIN, OUTPUT)
@@ -96,11 +106,11 @@ on loop {
     match ledState {
         ON => {
             digitalWrite(LED_PIN, HIGH)
-            ledState = State.OFF
+            ledState = OFF
         },
         OFF => {
             digitalWrite(LED_PIN, LOW)
-            ledState = State.ON
+            ledState = ON
         }
     }
     delay(1000)
@@ -110,17 +120,19 @@ on loop {
 ### Using Structs
 
 ```javascript
+@main
+
 struct Config {
-    threshold: int,
-    enabled: bool
+    int threshold
+    bool enabled
 }
 
-const SENSOR: int = 0
-mut config: Config = Config { threshold: 512, enabled: true }
+const int SENSOR = 0
+mut Config config = Config { threshold: 512, enabled: true }
 
 on loop {
     if (config.enabled) {
-        mut value: int = analogRead(SENSOR)
+        mut int value = analogRead(SENSOR)
         if (value > config.threshold) {
             print("Threshold exceeded!")
         }
@@ -132,17 +144,19 @@ on loop {
 ### Using Classes
 
 ```javascript
+@main
+
 class Motor {
-    mut speed: int
-    const pin: int
+    mut int speed
+    const int pin
     
-    constructor(motorPin: int) {
+    constructor(int motorPin) {
         self.pin = motorPin
         self.speed = 0
         pinMode(self.pin, OUTPUT)
     }
     
-    fn setSpeed(newSpeed: int) {
+    fn setSpeed(int newSpeed) {
         self.speed = newSpeed
         analogWrite(self.pin, self.speed)
     }
@@ -153,7 +167,7 @@ class Motor {
     }
 }
 
-mut motor: Motor
+mut Motor motor
 
 on start {
     motor = new Motor(9)
@@ -169,9 +183,11 @@ on loop {
 ### Pattern Matching
 
 ```javascript
+@main
+
 enum Mode { AUTO, MANUAL, SLEEP }
 
-mut currentMode: Mode = Mode.AUTO
+mut Mode currentMode = AUTO
 
 on loop {
     match currentMode {
@@ -186,7 +202,9 @@ on loop {
 ### Switch Statements
 
 ```javascript
-mut command: int = 1
+@main
+
+mut int command = 1
 
 on loop {
     switch command {
@@ -219,13 +237,14 @@ on loop {
 
 ## Tips
 
-1. **Use Explicit Types**: All variables and functions must be typed
-2. **Use `mut` for Variables**: Make mutability explicit
-3. **Use `self` in Classes**: Access instance members with `self`
-4. **Use Enums for States**: Better than magic numbers
-5. **Use Structs for Data**: Group related fields together
-6. **Use Match for Enums**: More expressive than if-else
-7. **Add Comments**: Use `#` for comments
+1. **Add `@main` First**: Every program must have `@main` as the first non-empty line
+2. **Use Explicit Types**: All variables and functions must be typed in `type name` format
+3. **Use `mut` for Variables**: Make mutability explicit
+4. **Use `self` in Classes**: Access instance members with `self`
+5. **Use Enums for States**: Better than magic numbers
+6. **Use Structs for Data**: Group related fields together
+7. **Use Match for Enums**: More expressive than if-else
+8. **Add Comments**: Use `#` for comments
 
 ## Help
 

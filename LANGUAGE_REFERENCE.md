@@ -8,12 +8,32 @@ Ypsilon Script (YS) is a simple high-level language that compiles to C++ for mic
 
 - **Required Braces**: All blocks use `{` and `}`
 - **No Semicolons**: Code is cleaner without semicolons
+- **`@main` Entry Point**: Every program must declare an entry file with `@main`
 - **`fn` keyword**: For function definitions
 - **`self` keyword**: For class member access (not `this`)
 - **`mut` keyword**: Explicit mutability for variables
 - **Event blocks**: `on <event> {}` syntax
 - **Pattern matching**: `match` expressions like Rust
 - **Switch statements**: C++-style with braces
+
+## Entry Point
+
+Every YS program must have exactly one file that declares itself as the entry point:
+
+```javascript
+@main
+
+# Your program code...
+```
+
+**Rules:**
+- `@main` must be the first non-empty line in the file
+- Only one file in your project can have `@main`
+- The filename can be anything (not required to be named "main")
+
+**Error handling:**
+- If no file has `@main`: `Error: No entry file found — add @main at the top of the file that starts your program.`
+- If multiple files have `@main`: `Error: Multiple entry files detected (multiple @main). Tip: Only one file should contain @main to define the program entry point.`
 
 ## Type System
 
@@ -31,23 +51,23 @@ All variables and functions must be explicitly typed.
 
 ### Constant Declaration
 ```javascript
-const LED_PIN: int = 13
-const PI: float = 3.14159
-const DEBUG: bool = true
+const int LED_PIN = 13
+const float PI = 3.14159
+const bool DEBUG = true
 ```
 
 ### Mutable Variable Declaration
 ```javascript
-mut counter: int = 0
-mut temperature: float = 23.5
-mut isActive: bool = false
+mut int counter = 0
+mut float temperature = 23.5
+mut bool isActive = false
 ```
 
 ### Type Annotations
-All variables must have explicit type annotations:
+All variables must have explicit type annotations in the format `type name`:
 ```javascript
-mut value: int = 100
-const threshold: int = 512
+mut int value = 100
+const int threshold = 512
 ```
 
 ## Enums
@@ -78,17 +98,17 @@ enum State {
     ERROR
 }
 
-mut currentMode: Mode = Mode.AUTO
-mut systemState: State = State.IDLE
+mut Mode currentMode = AUTO
+mut State systemState = IDLE
 ```
 
 ### Usage
 ```javascript
 # Assignment
-currentMode = Mode.MANUAL
+currentMode = MANUAL
 
 # Comparison
-if (currentMode == Mode.AUTO) {
+if (currentMode == AUTO) {
     print("Auto mode active")
 }
 
@@ -107,36 +127,38 @@ Structs define data structures with named fields (C++-style):
 ### Syntax
 ```javascript
 struct <StructName> {
-    field1: type1,
-    field2: type2,
-    field3: type3
+    type1 field1
+    type2 field2
+    type3 field3
 }
 ```
 
 ### Example
 ```javascript
 struct Point { 
-    x: int, 
-    y: int 
+    int x
+    int y
 }
 
 struct Config {
-    threshold: int,
-    sensitivity: float,
-    enabled: bool
+    int threshold
+    float sensitivity
+    bool enabled
 }
 
 struct Sensor {
-    pin: int,
-    lastReading: int,
-    active: bool
+    int pin
+    int value
 }
+
+mut Point position = Point { x: 10, y: 20 }
+mut Config config = Config { threshold: 512, sensitivity: 0.75, enabled: true }
 ```
 
 ### Initialization
 ```javascript
-mut position: Point = Point { x: 0, y: 0 }
-mut settings: Config = Config {
+mut Point position = Point { x: 0, y: 0 }
+mut Config settings = Config {
     threshold: 512,
     sensitivity: 0.75,
     enabled: true
@@ -146,7 +168,7 @@ mut settings: Config = Config {
 ### Access
 ```javascript
 # Read field
-mut xValue: int = position.x
+mut int xValue = position.x
 
 # Update field  
 position.x = 100
@@ -159,12 +181,12 @@ Functions are defined using the `fn` keyword.
 
 ### Syntax
 ```javascript
-fn <name>(<param1>: <type1>, <param2>: <type2>, ...) -> <returnType> {
+fn <name>(<type1> <param1>, <type2> <param2>, ...) -> <returnType> {
     # function body
 }
 
 # For void functions (no return)
-fn <name>(<param1>: <type1>, ...) {
+fn <name>(<type1> <param1>, ...) {
     # function body
 }
 ```
@@ -172,12 +194,12 @@ fn <name>(<param1>: <type1>, ...) {
 ### Examples
 ```javascript
 # Function with return type
-fn add(a: int, b: int) -> int {
+fn add(int a, int b) -> int {
     return a + b
 }
 
 # Void function (no return value)
-fn blink(pin: int, duration: int) {
+fn blink(int pin, int duration) {
     digitalWrite(pin, HIGH)
     delay(duration)
     digitalWrite(pin, LOW)
@@ -185,7 +207,7 @@ fn blink(pin: int, duration: int) {
 }
 
 # Function returning bool
-fn isAboveThreshold(value: int, threshold: int) -> bool {
+fn isAboveThreshold(int value, int threshold) -> bool {
     return value > threshold
 }
 ```
