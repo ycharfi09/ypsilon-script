@@ -33,7 +33,7 @@ on loop {
 }
 ```
 
-**Important:** Every YS program must start with `@main` on the first non-empty line.
+**Important:** Every YS program must have exactly one file with `@main` at the top. This marks the entry point of your program.
 
 ## Compile It
 
@@ -42,6 +42,62 @@ ysc hello.ys
 ```
 
 This creates C++ code ready for your microcontroller.
+
+## Understanding @main
+
+The `@main` directive marks the entry point of your program:
+- **Required**: Every complete project needs exactly one file with `@main`
+- **Position**: Must be at the top of the file (first non-comment line)
+- **Naming**: The main file cannot be named `main.ys` - use descriptive names like `app.ys`, `project.ys`, or `blink.ys`
+
+### Single File vs. Module
+
+**With @main** (complete program):
+```javascript
+@main
+
+const int LED = 13
+on start { pinMode(LED, OUTPUT) }
+on loop { digitalWrite(LED, HIGH) }
+```
+
+**Without @main** (module/library):
+```javascript
+# utils.ys - A reusable module
+
+class Helper {
+    mut int value
+    constructor(int v) { self.value = v }
+}
+```
+
+Modules can be compiled with the `--skip-main` flag if needed, but they won't produce a runnable program on their own.
+
+## Project Structure
+
+For larger projects, organize your code in folders:
+
+```
+my-robot/
+  ├── robot.ys         # Main file with @main
+  ├── motors.ys        # Motor control module
+  ├── sensors.ys       # Sensor library
+  └── utils.ys         # Helper functions
+```
+
+To compile a project folder:
+```bash
+ysc my-robot/
+```
+
+The compiler will automatically find the file with `@main` and compile it.
+
+**Important Rules:**
+- ✅ Only one file can have `@main` per project
+- ✅ The main file cannot be named `main.ys`
+- ✅ Other files become modules (no `@main` needed)
+- ❌ Multiple files with `@main` will cause an error
+- ❌ No file with `@main` will cause an error
 
 ## Key Features
 
@@ -237,14 +293,18 @@ on loop {
 
 ## Tips
 
-1. **Add `@main` First**: Every program must have `@main` as the first non-empty line
-2. **Use Explicit Types**: All variables and functions must be typed in `type name` format
-3. **Use `mut` for Variables**: Make mutability explicit
-4. **Use `self` in Classes**: Access instance members with `self`
-5. **Use Enums for States**: Better than magic numbers
-6. **Use Structs for Data**: Group related fields together
-7. **Use Match for Enums**: More expressive than if-else
-8. **Add Comments**: Use `#` for comments
+1. **Add `@main` to Your Entry File**: Every program needs exactly one file with `@main`
+2. **Use Descriptive Names**: Name your main file after your project (e.g., `robot.ys`, `blink.ys`), not `main.ys`
+3. **Organize in Folders**: Keep related files together in project folders
+4. **Compile Folders**: Use `ysc my-project/` to compile entire projects
+5. **Single Modules**: Use `--skip-main` flag to compile individual module files
+6. **Use Explicit Types**: All variables and functions must be typed in `type name` format
+7. **Use `mut` for Variables**: Make mutability explicit
+8. **Use `self` in Classes**: Access instance members with `self`
+9. **Use Enums for States**: Better than magic numbers
+10. **Use Structs for Data**: Group related fields together
+11. **Use Match for Enums**: More expressive than if-else
+12. **Add Comments**: Use `#` for comments
 
 ## Help
 

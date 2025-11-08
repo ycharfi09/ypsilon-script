@@ -1,0 +1,83 @@
+# Motor Control Module
+# Provides motor control functions for the robot
+# This is a module file - no @main directive needed
+
+const int MOTOR_LEFT_PIN = 9
+const int MOTOR_RIGHT_PIN = 10
+const int MOTOR_LEFT_DIR = 8
+const int MOTOR_RIGHT_DIR = 11
+
+class Motor {
+  mut int speed
+  const int pwmPin
+  const int dirPin
+  
+  constructor(int pwm, int dir) {
+    self.pwmPin = pwm
+    self.dirPin = dir
+    self.speed = 0
+  }
+  
+  fn setSpeed(int s) {
+    self.speed = s
+    analogWrite(self.pwmPin, self.speed)
+  }
+  
+  fn setDirection(bool forward) {
+    if (forward) {
+      digitalWrite(self.dirPin, HIGH)
+    } else {
+      digitalWrite(self.dirPin, LOW)
+    }
+  }
+}
+
+mut Motor leftMotor
+mut Motor rightMotor
+
+fn initialize() {
+  # Initialize motor pins
+  pinMode(MOTOR_LEFT_PIN, OUTPUT)
+  pinMode(MOTOR_RIGHT_PIN, OUTPUT)
+  pinMode(MOTOR_LEFT_DIR, OUTPUT)
+  pinMode(MOTOR_RIGHT_DIR, OUTPUT)
+  
+  # Create motor instances
+  leftMotor = new Motor(MOTOR_LEFT_PIN, MOTOR_LEFT_DIR)
+  rightMotor = new Motor(MOTOR_RIGHT_PIN, MOTOR_RIGHT_DIR)
+  
+  print("Motors initialized")
+}
+
+fn forward(int speed) {
+  leftMotor.setDirection(true)
+  rightMotor.setDirection(true)
+  leftMotor.setSpeed(speed)
+  rightMotor.setSpeed(speed)
+}
+
+fn backward(int speed) {
+  leftMotor.setDirection(false)
+  rightMotor.setDirection(false)
+  leftMotor.setSpeed(speed)
+  rightMotor.setSpeed(speed)
+}
+
+fn turnLeft(int speed) {
+  leftMotor.setDirection(false)
+  rightMotor.setDirection(true)
+  leftMotor.setSpeed(speed)
+  rightMotor.setSpeed(speed)
+}
+
+fn turnRight(int speed) {
+  leftMotor.setDirection(true)
+  rightMotor.setDirection(false)
+  leftMotor.setSpeed(speed)
+  rightMotor.setSpeed(speed)
+}
+
+fn stop() {
+  leftMotor.setSpeed(0)
+  rightMotor.setSpeed(0)
+}

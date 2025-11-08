@@ -18,7 +18,7 @@ Ypsilon Script (YS) is a simple high-level language that compiles to C++ for mic
 
 ## Entry Point
 
-Every YS program must have exactly one file that declares itself as the entry point:
+Every YS program must have exactly one file that declares itself as the entry point using the `@main` directive:
 
 ```javascript
 @main
@@ -27,13 +27,44 @@ Every YS program must have exactly one file that declares itself as the entry po
 ```
 
 **Rules:**
-- `@main` must be the first non-empty line in the file
+- `@main` must be at the top of the file (first non-comment line)
 - Only one file in your project can have `@main`
-- The filename can be anything (not required to be named "main")
+- The main file cannot be named `main.ys` - use descriptive names like `app.ys`, `robot.ys`, or `project.ys`
+- Other files become modules and don't need `@main`
 
-**Error handling:**
-- If no file has `@main`: `Error: No entry file found — add @main at the top of the file that starts your program.`
-- If multiple files have `@main`: `Error: Multiple entry files detected (multiple @main). Tip: Only one file should contain @main to define the program entry point.`
+**Project Structure:**
+
+Single file project:
+```
+blink.ys          # Has @main
+```
+
+Multi-file project (recommended for larger projects):
+```
+my-robot/
+  ├── robot.ys         # Has @main (main entry point)
+  ├── motors.ys        # Module (no @main)
+  └── sensors.ys       # Module (no @main)
+```
+
+**Compilation:**
+
+```bash
+# Compile single file
+ysc blink.ys
+
+# Compile project folder (finds @main automatically)
+ysc my-robot/
+
+# Compile module without @main (for testing)
+ysc motors.ys --skip-main
+```
+
+**Error Messages:**
+- **No @main found**: `Error: No @main directive found in <file>. Every Ypsilon Script project needs exactly one file with @main at the top.`
+- **Multiple @main files**: `Error: Multiple entry points detected in folder. Only one file per project can have @main.`
+- **main.ys filename**: `Error: The main file cannot be named 'main.ys'. Suggestion: Rename your file to something descriptive like 'app.ys', 'project.ys', or '<project-name>.ys'.`
+- **Compiling without @main**: Shows a warning but allows compilation with `--skip-main` flag
 
 ## Type System
 

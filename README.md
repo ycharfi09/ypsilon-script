@@ -89,6 +89,107 @@ ysc example.ys
 
 This generates C++ code ready for your microcontroller.
 
+## Project Structure
+
+### Single File Projects
+
+For simple projects, a single `.ys` file with `@main` is all you need:
+
+```javascript
+// blink.ys
+@main
+
+const int LED = 13
+on start { pinMode(LED, OUTPUT) }
+on loop {
+    digitalWrite(LED, HIGH)
+    delay(1000)
+    digitalWrite(LED, LOW)
+    delay(1000)
+}
+```
+
+Compile with:
+```bash
+ysc blink.ys
+```
+
+### Multi-File Projects (Recommended)
+
+For larger projects, organize your code in folders with one main file:
+
+```
+my-robot/
+  ├── robot.ys         # Main entry point with @main
+  ├── motors.ys        # Motor control module (no @main)
+  ├── sensors.ys       # Sensor library (no @main)
+  └── utils.ys         # Helper functions (no @main)
+```
+
+**robot.ys** (main file):
+```javascript
+@main
+
+load <motors.ys> as motors
+load <sensors.ys> as sensors
+
+on start {
+    motors.init()
+    sensors.init()
+}
+
+on loop {
+    mut int distance = sensors.readUltrasonic()
+    if (distance < 20) {
+        motors.stop()
+    }
+}
+```
+
+**motors.ys** (module, no @main):
+```javascript
+# Motor control library
+
+const int MOTOR_LEFT = 9
+const int MOTOR_RIGHT = 10
+
+fn init() {
+    pinMode(MOTOR_LEFT, OUTPUT)
+    pinMode(MOTOR_RIGHT, OUTPUT)
+}
+
+fn stop() {
+    digitalWrite(MOTOR_LEFT, LOW)
+    digitalWrite(MOTOR_RIGHT, LOW)
+}
+```
+
+Compile the entire project:
+```bash
+ysc my-robot/
+```
+
+The compiler automatically finds the file with `@main` and compiles it.
+
+### Important Rules for @main
+
+- ✅ **One @main per project**: Exactly one file must have `@main`
+- ✅ **No main.ys**: The main file cannot be named `main.ys` (use descriptive names like `robot.ys`, `app.ys`)
+- ✅ **At the top**: `@main` must be at the top of the file
+- ✅ **Modules don't need @main**: Other files become modules/libraries
+- ❌ **Multiple @main = Error**: Only one file can have `@main`
+- ❌ **No @main = Error**: At least one file must have `@main` (unless using `--skip-main` for module compilation)
+
+### Module Compilation
+
+To compile a single module file without `@main` (for testing or library development):
+
+```bash
+ysc utils.ys --skip-main
+```
+
+This will show a warning but allow compilation. The output won't be a runnable program.
+
 ## Language Features
 
 ### Modern Syntax
@@ -101,7 +202,7 @@ mut int counter = 0
 mut float temperature = 23.5
 ```
 
-**Important:** Every YS program file must declare itself as the entry point:
+**Important:** Every complete YS program must have exactly one file with `@main` at the top. This marks the entry point of your program.
 
 ```javascript
 @main
@@ -109,7 +210,7 @@ mut float temperature = 23.5
 # Your code here...
 ```
 
-The `@main` directive must be the first non-empty line in your entry file.
+The `@main` directive marks which file is the main entry point. Other files in your project become modules.
 
 ### Enums (Rust-style)
 
