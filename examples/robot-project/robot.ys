@@ -1,0 +1,61 @@
+@main
+
+# Robot Control System
+# Main entry point for the robot project
+
+load <motor-control.ys> as motors
+load <sensors.ys> as sensors
+
+config {
+  mpu: atmega2560,
+  clock: 16MHz,
+  uart: on
+}
+
+enum RobotState { IDLE, MOVING, AVOIDING, STOPPED }
+
+mut RobotState state = IDLE
+mut int obstacleDistance = 0
+
+on start {
+  print("Robot Control System Starting...")
+  
+  # Initialize subsystems
+  motors.initialize()
+  sensors.initialize()
+  
+  state = IDLE
+  print("System ready!")
+}
+
+on loop {
+  # Read sensors
+  obstacleDistance = sensors.getDistance()
+  
+  # State machine for robot behavior
+  match state {
+    IDLE => {
+      print("Robot idle - waiting for command")
+      state = MOVING
+    },
+    MOVING => {
+      if (obstacleDistance < 20) {
+        print("Obstacle detected!")
+        state = AVOIDING
+      } else {
+        motors.forward(150)
+      }
+    },
+    AVOIDING => {
+      motors.stop()
+      motors.turnLeft(100)
+      wait 500ms
+      state = MOVING
+    },
+    STOPPED => {
+      motors.stop()
+    }
+  }
+  
+  wait 100ms
+}

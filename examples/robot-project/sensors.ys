@@ -1,0 +1,55 @@
+# Sensor Module
+# Provides sensor reading functions for the robot
+# This is a module file - no @main directive needed
+
+const int ULTRASONIC_TRIG = 7
+const int ULTRASONIC_ECHO = 6
+const int IR_SENSOR_LEFT = A0
+const int IR_SENSOR_RIGHT = A1
+
+fn initialize() {
+  # Setup ultrasonic sensor
+  pinMode(ULTRASONIC_TRIG, OUTPUT)
+  pinMode(ULTRASONIC_ECHO, INPUT)
+  
+  # Setup IR sensors
+  pinMode(IR_SENSOR_LEFT, INPUT)
+  pinMode(IR_SENSOR_RIGHT, INPUT)
+  
+  print("Sensors initialized")
+}
+
+fn getDistance() -> int {
+  # Trigger ultrasonic pulse
+  digitalWrite(ULTRASONIC_TRIG, LOW)
+  delayMicroseconds(2)
+  digitalWrite(ULTRASONIC_TRIG, HIGH)
+  delayMicroseconds(10)
+  digitalWrite(ULTRASONIC_TRIG, LOW)
+  
+  # Read echo duration
+  mut int duration = pulseIn(ULTRASONIC_ECHO, HIGH)
+  
+  # Calculate distance in cm
+  mut int distance = duration / 58
+  
+  return distance
+}
+
+fn readLeftIR() -> int {
+  return analogRead(IR_SENSOR_LEFT)
+}
+
+fn readRightIR() -> int {
+  return analogRead(IR_SENSOR_RIGHT)
+}
+
+fn isLineDetectedLeft() -> bool {
+  mut int value = readLeftIR()
+  return value < 500
+}
+
+fn isLineDetectedRight() -> bool {
+  mut int value = readRightIR()
+  return value < 500
+}
