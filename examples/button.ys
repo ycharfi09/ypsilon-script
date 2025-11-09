@@ -6,13 +6,13 @@
 const int BUTTON_PIN = 2
 const int LED_PIN = 13
 
-function start() {
+on start {
     pinMode(BUTTON_PIN, INPUT_PULLUP)
     pinMode(LED_PIN, OUTPUT)
 }
 
-function loop() {
-    int buttonState = digitalRead(BUTTON_PIN)
+on loop {
+    mut int buttonState = digitalRead(BUTTON_PIN)
     
     if (buttonState == LOW) {
         digitalWrite(LED_PIN, HIGH)

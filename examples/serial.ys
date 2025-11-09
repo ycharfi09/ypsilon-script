@@ -5,12 +5,12 @@
 
 const int SENSOR_PIN = 0
 
-function start() {
+on start {
     print("Starting sensor monitoring...")
 }
 
-function loop() {
-    int value = analogRead(SENSOR_PIN)
+on loop {
+    mut int value = analogRead(SENSOR_PIN)
     print(value)
     delay(500)
 }

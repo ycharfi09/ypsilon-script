@@ -25,7 +25,7 @@ Shows basic module loading:
 ```ys
 load <motor.ys> as m
 
-m.Motor motor = new m.Motor(MOTOR_PIN)
+mut m.Motor motor = new m.Motor(MOTOR_PIN)
 motor.setSpeed(m.MAX_SPEED)
 m.helper()
 ```
@@ -36,11 +36,11 @@ Demonstrates loading multiple modules:
 load <sensor-lib.ys> as sensors
 load <motor.ys> as motors
 
-sensors.Sensor tempSensor = new sensors.Sensor(PIN)
-sensors.SensorReading reading = tempSensor.getReading()
+mut sensors.Sensor tempSensor = new sensors.Sensor(PIN)
+mut sensors.SensorReading reading = tempSensor.getReading()
 sensors.processSensorData(reading)
 
-motors.Motor fan = new motors.Motor(PIN)
+mut motors.Motor fan = new motors.Motor(PIN)
 fan.setSpeed(motors.MAX_SPEED)
 ```
 

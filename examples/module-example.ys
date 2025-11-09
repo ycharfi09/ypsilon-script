@@ -7,11 +7,13 @@ load <motor.ys> as m
 
 const int MOTOR_PIN = 9
 
-fn start() {
+mut m.Motor motor
+
+on start {
   pinMode(MOTOR_PIN, OUTPUT)
   
   # Create a motor instance from the module
-  m.Motor motor = new m.Motor(MOTOR_PIN)
+  motor = new m.Motor(MOTOR_PIN)
   
   # Use module function
   m.helper()
@@ -22,6 +24,6 @@ fn start() {
   print("Motor speed set to max")
 }
 
-fn loop() {
+on loop {
   # Main loop code here
 }

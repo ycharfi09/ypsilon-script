@@ -9,18 +9,21 @@ load <motor.ys> as motors
 const int TEMP_SENSOR_PIN = 0
 const int MOTOR_PIN = 9
 
-fn start() {
+mut sensors.Sensor tempSensor
+mut motors.Motor fan
+
+on start {
   # Create sensor instance
-  sensors.Sensor tempSensor = new sensors.Sensor(TEMP_SENSOR_PIN)
+  tempSensor = new sensors.Sensor(TEMP_SENSOR_PIN)
   
   # Create motor instance
-  motors.Motor fan = new motors.Motor(MOTOR_PIN)
+  fan = new motors.Motor(MOTOR_PIN)
   
   # Calibrate sensor
   tempSensor.calibrate()
   
   # Get initial reading
-  sensors.SensorReading reading = tempSensor.getReading()
+  mut sensors.SensorReading reading = tempSensor.getReading()
   sensors.processSensorData(reading)
   
   # Control motor based on reading
@@ -33,6 +36,6 @@ fn start() {
   print("System initialized")
 }
 
-fn loop() {
+on loop {
   wait 1s
 }
