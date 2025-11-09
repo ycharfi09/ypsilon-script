@@ -9,13 +9,7 @@ const int LED_PIN = 13
 
 const int THRESHOLD_DISTANCE = 20
 
-function start() {
-    pinMode(TRIG_PIN, OUTPUT)
-    pinMode(ECHO_PIN, INPUT)
-    pinMode(LED_PIN, OUTPUT)
-}
-
-function getDistance() {
+fn getDistance() -> int {
     # Trigger pulse
     digitalWrite(TRIG_PIN, LOW)
     delay(2)
@@ -29,8 +23,14 @@ function getDistance() {
     return 15
 }
 
-function loop() {
-    int distance = getDistance()
+on start {
+    pinMode(TRIG_PIN, OUTPUT)
+    pinMode(ECHO_PIN, INPUT)
+    pinMode(LED_PIN, OUTPUT)
+}
+
+on loop {
+    mut int distance = getDistance()
     
     # Turn on LED if object is close
     if (distance < THRESHOLD_DISTANCE) {

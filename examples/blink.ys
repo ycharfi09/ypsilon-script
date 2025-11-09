@@ -5,11 +5,11 @@
 
 const int LED_PIN = 13
 
-function start() {
+on start {
     pinMode(LED_PIN, OUTPUT)
 }
 
-function loop() {
+on loop {
     digitalWrite(LED_PIN, HIGH)
     delay(1000)
     digitalWrite(LED_PIN, LOW)

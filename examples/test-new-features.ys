@@ -2,31 +2,30 @@
 
 # Test new features
 # - No semicolons
-# - Type inference for functions
-# - start instead of setup
+# - Modern syntax with fn and on blocks
 # - repeat loop
 
 const int LED_PIN = 13
 
-# Function with inferred return type (will be int)
-function add(int a, int b) {
+# Function with return type
+fn add(int a, int b) -> int {
     return a + b
 }
 
-# Function with explicit void return type
-function void blink() {
+# Function without return type
+fn blink() {
     digitalWrite(LED_PIN, HIGH)
     delay(500)
     digitalWrite(LED_PIN, LOW)
     delay(500)
 }
 
-function start() {
+on start {
     pinMode(LED_PIN, OUTPUT)
-    int result = add(5, 3)
+    mut int result = add(5, 3)
 }
 
-function loop() {
+on loop {
     # Repeat 3 times
     repeat(3) {
         blink()

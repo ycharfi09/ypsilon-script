@@ -7,12 +7,12 @@ const int SENSOR_PIN = 0
 const int LED_PIN = 13
 const int THRESHOLD = 512
 
-function start() {
+on start {
     pinMode(LED_PIN, OUTPUT)
 }
 
-function loop() {
-    int sensorValue = analogRead(SENSOR_PIN)
+on loop {
+    mut int sensorValue = analogRead(SENSOR_PIN)
     
     if (sensorValue > THRESHOLD) {
         digitalWrite(LED_PIN, HIGH)

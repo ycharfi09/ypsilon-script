@@ -11,19 +11,19 @@ const int RED_TIME = 5000
 const int YELLOW_TIME = 2000
 const int GREEN_TIME = 5000
 
-function start() {
-    pinMode(RED_LED, OUTPUT)
-    pinMode(YELLOW_LED, OUTPUT)
-    pinMode(GREEN_LED, OUTPUT)
-}
-
-function setLights(int red, int yellow, int green) {
+fn setLights(int red, int yellow, int green) {
     digitalWrite(RED_LED, red)
     digitalWrite(YELLOW_LED, yellow)
     digitalWrite(GREEN_LED, green)
 }
 
-function loop() {
+on start {
+    pinMode(RED_LED, OUTPUT)
+    pinMode(YELLOW_LED, OUTPUT)
+    pinMode(GREEN_LED, OUTPUT)
+}
+
+on loop {
     # Red light
     setLights(HIGH, LOW, LOW)
     delay(RED_TIME)

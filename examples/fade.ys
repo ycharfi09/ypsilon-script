@@ -5,11 +5,11 @@
 
 const int LED_PIN = 9
 
-function start() {
+on start {
     pinMode(LED_PIN, OUTPUT)
 }
 
-function loop() {
+on loop {
     # Fade in
     for (int brightness = 0; brightness < 256; brightness = brightness + 5) {
         analogWrite(LED_PIN, brightness)

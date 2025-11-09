@@ -4,48 +4,48 @@
 # Shows how to create and use a class in the new YS syntax
 
 class LED {
-    int pin
-    int state
+    mut int pin
+    mut int state
     
     constructor(int ledPin) {
-        this.pin = ledPin
-        this.state = LOW
-        pinMode(this.pin, OUTPUT)
+        self.pin = ledPin
+        self.state = LOW
+        pinMode(self.pin, OUTPUT)
     }
     
-    void turnOn() {
-        this.state = HIGH
-        digitalWrite(this.pin, HIGH)
+    fn turnOn() {
+        self.state = HIGH
+        digitalWrite(self.pin, HIGH)
     }
     
-    void turnOff() {
-        this.state = LOW
-        digitalWrite(this.pin, LOW)
+    fn turnOff() {
+        self.state = LOW
+        digitalWrite(self.pin, LOW)
     }
     
-    void toggle() {
-        if (this.state == HIGH) {
-            this.turnOff()
+    fn toggle() {
+        if (self.state == HIGH) {
+            self.turnOff()
         } else {
-            this.turnOn()
+            self.turnOn()
         }
     }
     
-    int getState() {
-        return this.state
+    fn getState() -> int {
+        return self.state
     }
 }
 
 # Global instances
-LED redLED
-LED greenLED
+mut LED redLED
+mut LED greenLED
 
-function start() {
+on start {
     redLED = new LED(12)
     greenLED = new LED(11)
 }
 
-function loop() {
+on loop {
     redLED.toggle()
     delay(500)
     greenLED.toggle()

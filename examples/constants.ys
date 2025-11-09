@@ -5,13 +5,13 @@
 const int BUTTON = 2
 const int LED = 13
 
-function start() {
+on start {
     pinMode(BUTTON, INPUT_PULLUP)
     pinMode(LED, OUTPUT)
 }
 
-function loop() {
-    int reading = digitalRead(BUTTON)
+on loop {
+    mut int reading = digitalRead(BUTTON)
     
     # Test all constants
     if (reading == HIGH) {
