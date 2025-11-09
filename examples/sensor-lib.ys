@@ -1,5 +1,3 @@
-@main
-
 # Sensor Library Module
 # Provides sensor reading and processing functionality
 
@@ -10,9 +8,9 @@ enum SensorStatus {
 }
 
 struct SensorReading {
-  value: int,
-  timestamp: int,
-  status: SensorStatus
+  int value
+  int timestamp
+  SensorStatus status
 }
 
 class Sensor {
@@ -32,7 +30,7 @@ class Sensor {
   }
   
   fn getReading() -> SensorReading {
-    SensorReading r
+    mut SensorReading r
     r.value = self.read()
     r.timestamp = millis()
     r.status = self.status
