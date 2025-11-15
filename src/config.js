@@ -90,17 +90,25 @@ class Config {
     // Start with defaults
     this.options = { ...DEFAULT_CONFIG };
     
+    // Track which fields were explicitly provided
+    this.explicitFields = new Set();
+    
     // Merge config block if provided
     if (configBlock && configBlock.options) {
       const blockOptions = { ...configBlock.options };
       
+      // Track explicit fields
+      Object.keys(blockOptions).forEach(key => this.explicitFields.add(key));
+      
       // Support both 'board' and 'mpu' (legacy), prefer 'board'
       if (blockOptions.mpu && !blockOptions.board) {
         blockOptions.board = blockOptions.mpu;
+        this.explicitFields.add('board');
         delete blockOptions.mpu;
       } else if (blockOptions.cpu && !blockOptions.board) {
         // Also support 'cpu' for transition
         blockOptions.board = blockOptions.cpu;
+        this.explicitFields.add('board');
         delete blockOptions.cpu;
       }
       
@@ -132,19 +140,20 @@ class Config {
     const errors = [];
     const warnings = [];
     
-    if (!this.options.board) {
+    // Check if required fields were explicitly provided
+    if (!this.explicitFields.has('board') && !this.explicitFields.has('mpu') && !this.explicitFields.has('cpu')) {
       errors.push('Missing required field: board (e.g., arduino_uno, arduino_mega, esp32)');
     }
     
-    if (!this.options.clock) {
+    if (!this.explicitFields.has('clock')) {
       errors.push('Missing required field: clock (e.g., 16MHz, 8MHz)');
     }
     
-    if (!this.options.uart) {
+    if (!this.explicitFields.has('uart')) {
       warnings.push('UART not specified. Default is "off". Set "uart: on" to enable serial monitor.');
     }
     
-    if (!this.options.port) {
+    if (!this.explicitFields.has('port')) {
       warnings.push('Port not specified. Default is "auto". You can specify a port like "COM3" or "/dev/ttyUSB0".');
     }
     

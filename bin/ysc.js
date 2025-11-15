@@ -238,23 +238,33 @@ function compileFile(inputFile, outputFile = null, options = {}) {
   }
   
   // Validate config for @main files
-  if (result.hasMain && result.config) {
-    const errorMsg = result.config.getConfigErrorMessage();
-    if (errorMsg) {
-      console.error(errorMsg);
+  if (result.hasMain) {
+    // Check if config block was present in source
+    // If result.config exists but was created from null configBlock, it means no config in source
+    const hasConfigBlock = result.ast.body.some(stmt => stmt.type === 'ConfigBlock');
+    
+    if (!hasConfigBlock) {
+      console.error(`❌ Error: @main file must include a config block.\n`);
+      console.error(`Your main file needs to specify board configuration for upload.`);
+      console.error(`\nAdd a config block after @main like this:\n`);
+      console.error(`@main\n`);
+      console.error(`config {`);
+      console.error(`  board: arduino_uno,`);
+      console.error(`  clock: 16MHz,`);
+      console.error(`  uart: on,`);
+      console.error(`  port: auto`);
+      console.error(`}\n`);
       process.exit(1);
     }
-  } else if (result.hasMain && !result.config) {
-    console.error(`❌ Error: @main file must include a config block.\n`);
-    console.error(`Your main file needs to specify board configuration for upload.`);
-    console.error(`\nAdd a config block like this:\n`);
-    console.error(`config {`);
-    console.error(`  board: arduino_uno,`);
-    console.error(`  clock: 16MHz,`);
-    console.error(`  uart: on,`);
-    console.error(`  port: auto`);
-    console.error(`}\n`);
-    process.exit(1);
+    
+    // Validate config has required fields
+    if (result.config) {
+      const errorMsg = result.config.getConfigErrorMessage();
+      if (errorMsg) {
+        console.error(errorMsg);
+        process.exit(1);
+      }
+    }
   }
 
   if (options.showTokens) {
