@@ -3,6 +3,13 @@
 # Blink Example - Classic Arduino LED Blink
 # This demonstrates basic pin control and timing
 
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
 const int LED_PIN = 13
 
 on start {

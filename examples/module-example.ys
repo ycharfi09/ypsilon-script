@@ -3,6 +3,13 @@
 # Example demonstrating module loading with .ys files
 # This shows how to use the motor.ys library
 
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
 load <motor.ys> as m
 
 const int MOTOR_PIN = 9

@@ -3,6 +3,13 @@
 # Button and LED Example
 # Read button state and control LED
 
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
 const int BUTTON_PIN = 2
 const int LED_PIN = 13
 

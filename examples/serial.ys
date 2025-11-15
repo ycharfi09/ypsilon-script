@@ -3,6 +3,13 @@
 # Serial Print Example
 # Demonstrates Serial communication
 
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
 const int SENSOR_PIN = 0
 
 on start {

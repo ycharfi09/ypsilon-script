@@ -4,11 +4,10 @@
 # Demonstrates PWM backend selection for ESP32
 
 config {
-  mpu: esp32,
+  board: esp32,
   clock: 240MHz,
   uart: on,
-  port: auto,
-  pwm: auto
+  port: auto
 }
 
 const int LED_PIN = 13

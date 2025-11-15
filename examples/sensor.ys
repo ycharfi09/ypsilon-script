@@ -3,6 +3,13 @@
 # Sensor Reading Example
 # Read analog sensor and control LED based on threshold
 
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
 const int SENSOR_PIN = 0
 const int LED_PIN = 13
 const int THRESHOLD = 512

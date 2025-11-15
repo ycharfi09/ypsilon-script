@@ -4,11 +4,10 @@
 # Demonstrates the new config block for board configuration
 
 config {
-  mpu: atmega328p,
+  board: arduino_uno,
   clock: 16MHz,
   uart: on,
-  port: auto,
-  pwm: auto
+  port: auto
 }
 
 const int LED_PIN = 13

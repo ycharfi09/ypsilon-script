@@ -3,6 +3,13 @@
 # Smart LED Controller with Modern YS Syntax
 # Demonstrates: enums, match, tasks, signals, time units
 
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
 enum Pattern { SOLID, BLINK, FADE, PULSE }
 enum Color { RED, GREEN, BLUE, WHITE }
 

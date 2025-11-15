@@ -3,6 +3,13 @@
 # Fade LED using PWM
 # This example shows analog output control
 
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
 const int LED_PIN = 9
 
 on start {

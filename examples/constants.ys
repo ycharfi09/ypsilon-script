@@ -2,6 +2,13 @@
 
 # Test all Arduino constants and pin modes
 
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
 const int BUTTON = 2
 const int LED = 13
 

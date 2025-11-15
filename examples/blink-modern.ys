@@ -3,6 +3,13 @@
 # Simple Blink with Modern YS Syntax
 # Demonstrates: mut, on blocks, fn, self, time units
 
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
 alias LED = 13
 
 mut int blinkDelay = 1000

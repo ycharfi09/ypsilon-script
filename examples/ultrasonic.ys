@@ -3,6 +3,13 @@
 # Ultrasonic Distance Sensor Example
 # Demonstrates sensor reading, calculations, and conditional logic
 
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
 const int TRIG_PIN = 9
 const int ECHO_PIN = 10
 const int LED_PIN = 13
