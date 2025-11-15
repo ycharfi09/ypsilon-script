@@ -9,7 +9,8 @@ describe('Config Module', () => {
   test('should create config with defaults when no config block provided', () => {
     const config = new Config();
     
-    expect(config.getOptions().mpu).toBe('atmega328p');
+    expect(config.getOptions().mpu).toBe('arduino_uno'); // New default uses board names
+    expect(config.getOptions().board).toBe('arduino_uno');
     expect(config.getOptions().clock).toBe('16MHz');
     expect(config.getOptions().uart).toBe('off');
     expect(config.getOptions().port).toBe('auto');
@@ -112,7 +113,8 @@ describe('Config Module', () => {
   test('should fall back to default for invalid MPU in constructor', () => {
     // Should not throw, just warn and use default
     const config = new Config({ options: { mpu: 'invalid_board' } });
-    expect(config.getOptions().mpu).toBe('atmega328p');
+    expect(config.getOptions().mpu).toBe('arduino_uno'); // New default
+    expect(config.getOptions().board).toBe('arduino_uno');
   });
 });
 
@@ -149,7 +151,7 @@ describe('Config Integration with Compiler', () => {
     
     expect(result.success).toBe(true);
     expect(result.config).toBeDefined();
-    expect(result.config.getOptions().mpu).toBe('atmega328p');
+    expect(result.config.getOptions().board).toBe('arduino_uno'); // New default
   });
 
   test('should generate LEDC PWM code for ESP32', () => {

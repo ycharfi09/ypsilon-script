@@ -35,27 +35,47 @@ Options:
   --tokens        - Print tokens instead of generating code
   --config        - Show config diagnostics
   --skip-main     - Skip @main check (for compiling module files)
+  -r, --retrieve  - Enable code retrieval from board (experimental)
 
 Examples:
   ysc blink.ys                  # Compile single file to blink.ino
   ysc my-project/               # Compile project folder (finds @main file)
   ysc compile blink.ys          # Compile to blink.ino
   ysc upload my-project/        # Compile project folder and upload
+  ysc upload blink.ys --r       # Upload with code retrieval enabled
   ysc run blink.ys              # Compile, upload, and monitor
   ysc blink.ys output.ino       # Compile to specific output
   ysc blink.ys --ast            # Show AST
 
 Project Structure:
   Each project should be in its own folder with one file marked with @main.
+  The main file must include a config block with board settings.
   The main file cannot be named "main.ys".
   
   Example:
     my-project/
-      app.ys          # Contains @main
+      app.ys          # Contains @main and config block
       utils.ys        # Module file (no @main)
       config.ys       # Module file (no @main)
-`);
-}
+
+Config Block Requirements:
+  Files with @main must include a config block:
+  
+  config {
+    board: arduino_uno,
+    clock: 16MHz,
+    uart: on,
+    port: auto
+  }
+  
+  Valid board names: arduino_uno, arduino_nano, arduino_mega, 
+                     arduino_leonardo, esp32, esp8266
+
+Note:
+  - Code retrieval (--r flag) is experimental on low-memory boards like Arduino Uno
+  - This project must be cloned from GitHub - there is no npm package available
+`);}
+
 
 /**
  * Find all .ys files in a folder that have @main directive
@@ -108,26 +128,35 @@ function findMainEntryFile(folderPath) {
   const mainFiles = findMainFiles(folderPath);
   
   if (mainFiles.length === 0) {
-    console.error(`Error: No entry point found in folder '${folderPath}'.`);
+    console.error(`❌ Error: No entry point found in folder '${folderPath}'.`);
+    console.error(`\nYour project needs exactly one file with @main at the top.`);
     console.error(`\nTo fix this:`);
     console.error(`  1. Add @main at the top of your main project file`);
     console.error(`  2. Make sure the file ends with .ys extension`);
-    console.error(`\nExample:`);
+    console.error(`  3. Add a config block with your board settings`);
+    console.error(`\nExample main file (app.ys):`);
     console.error(`  @main`);
+    console.error(`  `);
+    console.error(`  config {`);
+    console.error(`    board: arduino_uno,`);
+    console.error(`    clock: 16MHz,`);
+    console.error(`    uart: on`);
+    console.error(`  }`);
     console.error(`  `);
     console.error(`  # Your code here...`);
     process.exit(1);
   }
   
   if (mainFiles.length > 1) {
-    console.error(`Error: Multiple entry points detected in folder '${folderPath}'.`);
-    console.error(`Only one file per project can have @main.`);
+    console.error(`❌ Error: Multiple entry points detected in folder '${folderPath}'.`);
+    console.error(`\nYour project can only have ONE file with @main.`);
     console.error(`\nFiles with @main:`);
-    mainFiles.forEach(f => console.error(`  - ${f.file}`));
+    mainFiles.forEach(f => console.error(`  • ${f.file}`));
     console.error(`\nTo fix this:`);
     console.error(`  1. Choose which file should be the main entry point`);
     console.error(`  2. Remove @main from the other files`);
-    console.error(`  3. Other files can be modules/libraries without @main`);
+    console.error(`  3. Other files automatically become modules/libraries`);
+    console.error(`\nTip: Usually your main file is named after your project (e.g., robot.ys, blink.ys)`);
     process.exit(1);
   }
   
@@ -180,17 +209,25 @@ function compileFile(inputFile, outputFile = null, options = {}) {
       console.warn(`This file appears to be a library or module, not a complete project.`);
       console.warn(`\nTo build a complete project:`);
       console.warn(`  1. Add @main at the top of your main project file`);
-      console.warn(`  2. Or compile the folder containing the file with @main`);
+      console.warn(`  2. Add a config block with your board settings`);
+      console.warn(`  3. Or compile the folder containing the file with @main`);
       console.warn(``);
     } else {
-      console.error(`Error: No @main directive found in ${fileName}.`);
+      console.error(`❌ Error: No @main directive found in ${fileName}.`);
       console.error(`\nEvery Ypsilon Script project needs exactly one file with @main at the top.`);
       console.error(`This marks the entry point of your program.`);
       console.error(`\nTo fix this:`);
       console.error(`  1. Add @main as the first line of your main file`);
-      console.error(`  2. Keep other files without @main (they become modules)`);
+      console.error(`  2. Add a config block with your board settings`);
+      console.error(`  3. Keep other files without @main (they become modules)`);
       console.error(`\nExample:`);
       console.error(`  @main`);
+      console.error(`  `);
+      console.error(`  config {`);
+      console.error(`    board: arduino_uno,`);
+      console.error(`    clock: 16MHz,`);
+      console.error(`    uart: on`);
+      console.error(`  }`);
       console.error(`  `);
       console.error(`  const int LED = 13`);
       console.error(`  on start { pinMode(LED, OUTPUT) }`);
@@ -198,6 +235,26 @@ function compileFile(inputFile, outputFile = null, options = {}) {
       console.error(`      but it won't produce a runnable program.`);
       process.exit(1);
     }
+  }
+  
+  // Validate config for @main files
+  if (result.hasMain && result.config) {
+    const errorMsg = result.config.getConfigErrorMessage();
+    if (errorMsg) {
+      console.error(errorMsg);
+      process.exit(1);
+    }
+  } else if (result.hasMain && !result.config) {
+    console.error(`❌ Error: @main file must include a config block.\n`);
+    console.error(`Your main file needs to specify board configuration for upload.`);
+    console.error(`\nAdd a config block like this:\n`);
+    console.error(`config {`);
+    console.error(`  board: arduino_uno,`);
+    console.error(`  clock: 16MHz,`);
+    console.error(`  uart: on,`);
+    console.error(`  port: auto`);
+    console.error(`}\n`);
+    process.exit(1);
   }
 
   if (options.showTokens) {
@@ -247,8 +304,15 @@ function handleUpload(args, options) {
   const { result, outputFile } = compileFile(inputFile, null, { ...options, quiet: false });
   
   if (!result.config) {
-    console.error('Error: No config found. Cannot upload without board configuration.');
+    console.error('❌ Error: No config found. Cannot upload without board configuration.');
     process.exit(1);
+  }
+  
+  // Show warning for code retrieval on low-memory boards
+  if (options.enableRetrieval && result.config.isLowMemoryBoard()) {
+    console.warn(`\n⚠ Experimental Feature: Code retrieval on ${result.config.getOptions().board}.`);
+    console.warn(`   Low-memory boards like Arduino Uno have limited resources.`);
+    console.warn(`   Use at your own risk. This feature may cause instability.\n`);
   }
   
   // Create sketch directory for Arduino CLI
@@ -256,7 +320,7 @@ function handleUpload(args, options) {
   const sketchName = path.basename(outputFile, '.ino');
   
   console.log('');
-  const uploadResult = uploadSketch(sketchDir, result.config);
+  const uploadResult = uploadSketch(sketchDir, result.config, options.enableRetrieval);
   
   if (!uploadResult.success) {
     console.error('Upload failed:', uploadResult.error);
@@ -264,6 +328,12 @@ function handleUpload(args, options) {
       console.error(uploadResult.stderr);
     }
     process.exit(1);
+  }
+  
+  // If code retrieval is enabled, wait for board response
+  if (options.enableRetrieval) {
+    console.log('\n📡 Code retrieval enabled. Board will listen for retrieval request after reboot...');
+    console.log('   (This is an experimental feature. Results may vary.)\n');
   }
 }
 
@@ -274,15 +344,22 @@ function handleRun(args, options) {
   const { result, outputFile } = compileFile(inputFile, null, { ...options, quiet: false });
   
   if (!result.config) {
-    console.error('Error: No config found. Cannot run without board configuration.');
+    console.error('❌ Error: No config found. Cannot run without board configuration.');
     process.exit(1);
+  }
+  
+  // Show warning for code retrieval on low-memory boards
+  if (options.enableRetrieval && result.config.isLowMemoryBoard()) {
+    console.warn(`\n⚠ Experimental Feature: Code retrieval on ${result.config.getOptions().board}.`);
+    console.warn(`   Low-memory boards like Arduino Uno have limited resources.`);
+    console.warn(`   Use at your own risk. This feature may cause instability.\n`);
   }
   
   // Create sketch directory for Arduino CLI
   const sketchDir = path.dirname(outputFile);
   
   console.log('');
-  const uploadResult = uploadSketch(sketchDir, result.config);
+  const uploadResult = uploadSketch(sketchDir, result.config, options.enableRetrieval);
   
   if (!uploadResult.success) {
     console.error('Upload failed:', uploadResult.error);
@@ -290,6 +367,12 @@ function handleRun(args, options) {
       console.error(uploadResult.stderr);
     }
     process.exit(1);
+  }
+  
+  // If code retrieval is enabled, wait for board response
+  if (options.enableRetrieval) {
+    console.log('\n📡 Code retrieval enabled. Board will listen for retrieval request after reboot...');
+    console.log('   (This is an experimental feature. Results may vary.)\n');
   }
   
   // Open serial monitor if UART is enabled
@@ -329,6 +412,7 @@ function main() {
   const showTokens = args.includes('--tokens');
   const showConfig = args.includes('--config');
   const skipMainCheck = args.includes('--skip-main');
+  const enableRetrieval = args.includes('-r') || args.includes('--retrieve');
   
   // Filter out options from args
   const fileArgs = args.filter(arg => !arg.startsWith('-'));
@@ -339,9 +423,9 @@ function main() {
   if (command === 'compile') {
     handleCompile(fileArgs.slice(1), { showAST, showTokens, showConfig, skipMainCheck });
   } else if (command === 'upload') {
-    handleUpload(fileArgs.slice(1), { showAST, showTokens, showConfig, skipMainCheck });
+    handleUpload(fileArgs.slice(1), { showAST, showTokens, showConfig, skipMainCheck, enableRetrieval });
   } else if (command === 'run') {
-    handleRun(fileArgs.slice(1), { showAST, showTokens, showConfig, skipMainCheck });
+    handleRun(fileArgs.slice(1), { showAST, showTokens, showConfig, skipMainCheck, enableRetrieval });
   } else {
     // Legacy mode - first arg is the file
     const inputFile = fileArgs[0];
