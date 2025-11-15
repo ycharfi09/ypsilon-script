@@ -26,6 +26,7 @@ Ypsilon Script (YS) is designed to make microcontroller development accessible, 
 
 ## Installation
 
+**Note:** Ypsilon Script is not available on npm. You must clone the repository and install manually:
 
 ```bash
 git clone https://github.com/ycharfi09/ypsilon-script.git
@@ -33,6 +34,7 @@ cd ypsilon-script
 npm install
 npm link
 ```
+
 ## Quick Start
 
 Create a simple program in `example.ys`:
@@ -41,6 +43,13 @@ Create a simple program in `example.ys`:
 @main
 
 # Modern Ypsilon Script Example
+
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
 
 enum Mode { AUTO, MANUAL }
 
@@ -93,11 +102,18 @@ This generates C++ code ready for your microcontroller.
 
 ### Single File Projects
 
-For simple projects, a single `.ys` file with `@main` is all you need:
+For simple projects, a single `.ys` file with `@main` and a config block is all you need:
 
 ```javascript
 // blink.ys
 @main
+
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
 
 const int LED = 13
 on start { pinMode(LED, OUTPUT) }
@@ -174,11 +190,13 @@ The compiler automatically finds the file with `@main` and compiles it.
 ### Important Rules for @main
 
 - ✅ **One @main per project**: Exactly one file must have `@main`
+- ✅ **Config block required**: Files with `@main` must include a config block with board settings
 - ✅ **No main.ys**: The main file cannot be named `main.ys` (use descriptive names like `robot.ys`, `app.ys`)
 - ✅ **At the top**: `@main` must be at the top of the file
 - ✅ **Modules don't need @main**: Other files become modules/libraries
 - ❌ **Multiple @main = Error**: Only one file can have `@main`
 - ❌ **No @main = Error**: At least one file must have `@main` (unless using `--skip-main` for module compilation)
+- ❌ **Missing config = Error**: `@main` files must have a complete config block
 
 ### Module Compilation
 
@@ -564,8 +582,14 @@ ysc compile input.ys
 # Upload to board (requires Arduino CLI)
 ysc upload input.ys
 
+# Upload with code retrieval enabled (experimental)
+ysc upload input.ys --r
+
 # Compile, upload, and monitor serial (requires Arduino CLI)
 ysc run input.ys
+
+# Run with code retrieval enabled (experimental)
+ysc run input.ys --retrieve
 
 # Specify output file
 ysc input.ys output.ino
@@ -580,25 +604,68 @@ ysc --version
 ysc input.ys --config
 ```
 
+### Code Retrieval Feature (Experimental)
+
+The `--r` or `--retrieve` flag enables experimental code retrieval functionality:
+
+```bash
+ysc upload blink.ys --r
+```
+
+**Important Notes:**
+- ⚠️ **Experimental**: This feature is in early development
+- ⚠️ **Low-memory boards**: Use with caution on Arduino Uno and similar boards
+- The board will listen for retrieval requests after reboot
+- Requires firmware support in the generated code
+- May cause instability on boards with limited memory
+
+**Warning for Arduino Uno:**
+When using `--r` on low-memory boards like Arduino Uno, you'll see:
+```
+⚠ Experimental Feature: Code retrieval on arduino_uno.
+   Low-memory boards like Arduino Uno have limited resources.
+   Use at your own risk. This feature may cause instability.
+```
+
 ## Board Configuration
 
-YS supports a `config {}` block for board-specific settings:
+YS requires a `config {}` block in files with `@main` for board-specific settings:
 
 ```javascript
 config {
-  mpu: atmega328p,      # Board type: atmega328p, atmega2560, esp32, esp8266
+  board: arduino_uno,    # Board type: arduino_uno, arduino_nano, arduino_mega, 
+                         #             arduino_leonardo, esp32, esp8266
   clock: 16MHz,          # CPU clock frequency
-  uart: on,              # Enable serial monitor
-  port: auto,            # Serial port (auto-detect or specify)
-  pwm: auto              # PWM backend (auto-select based on board)
+  uart: on,              # Enable serial monitor (on/off)
+  port: auto             # Serial port (auto-detect or specify like COM3, /dev/ttyUSB0)
 }
 ```
+
+**Required Fields for @main Files:**
+- `board`: Board type (e.g., arduino_uno, esp32)
+- `clock`: CPU clock frequency (e.g., 16MHz, 240MHz)
+
+**Optional Fields:**
+- `uart`: Enable/disable serial communication (default: off)
+- `port`: Serial port for upload (default: auto)
 
 The config system automatically:
 - Maps board types to Arduino CLI FQBN
 - Selects correct PWM implementation (analogWrite for AVR, LEDC for ESP)
 - Detects serial ports for upload
 - Configures build properties
+- Validates all required fields are present
+
+**Valid Board Names:**
+- `arduino_uno` - Arduino Uno (ATmega328P)
+- `arduino_nano` - Arduino Nano
+- `arduino_mega` - Arduino Mega 2560
+- `arduino_leonardo` - Arduino Leonardo
+- `esp32` - ESP32 boards
+- `esp8266` - ESP8266 boards
+
+**Legacy Support:**
+The old `mpu` and `cpu` field names are still supported for backward compatibility but are deprecated. Use `board` instead.
 
 See [CONFIG.md](CONFIG.md) for detailed documentation.
 
