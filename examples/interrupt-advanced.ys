@@ -3,6 +3,13 @@
 # Advanced Interrupt Example
 # Demonstrates best practices and edge cases for interrupt support
 
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
 alias SENSOR_PIN = 2
 alias BUTTON_PIN = 3
 alias LED_RED = 9

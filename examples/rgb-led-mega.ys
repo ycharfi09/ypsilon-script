@@ -4,11 +4,10 @@
 # Demonstrates all config options and PWM usage
 
 config {
-  mpu: atmega2560,
+  board: arduino_mega,
   clock: 16MHz,
   uart: on,
-  port: auto,
-  pwm: auto
+  port: auto
 }
 
 # LED brightness control with PWM

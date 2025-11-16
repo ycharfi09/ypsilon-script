@@ -13,9 +13,10 @@ alias BUTTON_PIN = 2
 
 # Configuration
 config {
-  cpu: atmega328p,
+  board: arduino_uno,
   clock: 16MHz,
-  uart: on
+  uart: on,
+  port: auto
 }
 
 # Enums for state management

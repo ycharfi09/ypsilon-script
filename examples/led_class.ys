@@ -3,6 +3,13 @@
 # LED Class Example - Demonstrates OOP features with strict typing
 # Shows how to create and use a class in the new YS syntax
 
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
 class LED {
     mut int pin
     mut int state

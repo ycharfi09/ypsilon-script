@@ -4,40 +4,46 @@
 
 The YS config system allows you to specify board configuration, compilation settings, and runtime behavior directly in your `.ys` source files. This configuration is used by the YS compiler and CLI tools to generate optimized code and manage board interactions.
 
+**Important:** Every file with `@main` must include a config block with required fields.
+
 ## Config Block Syntax
 
-Add a `config {}` block at the top of your `.ys` file:
+Add a `config {}` block at the top of your `.ys` file (after `@main`):
 
 ```javascript
+@main
+
 config {
-  mpu: atmega328p,
+  board: arduino_uno,
   clock: 16MHz,
   uart: on,
-  port: auto,
-  pwm: auto
+  port: auto
 }
 ```
 
 ## Configuration Options
 
-| Option | Description | Valid Values | Default |
-|--------|-------------|--------------|---------|
-| `mpu` | Microcontroller/board type | `atmega328p`, `atmega2560`, `esp32`, `esp8266` | `atmega328p` |
-| `clock` | CPU clock frequency | e.g., `16MHz`, `8MHz`, `240MHz` | `16MHz` |
-| `uart` | Enable serial monitor | `on`, `off` | `off` |
-| `port` | Serial port for upload | `auto`, `COM3`, `ttyUSB0`, etc. | `auto` |
-| `pwm` | PWM backend | `auto`, `analogWrite`, `ledc` | `auto` |
+| Option | Description | Valid Values | Required | Default |
+|--------|-------------|--------------|----------|---------|
+| `board` | Board type | `arduino_uno`, `arduino_nano`, `arduino_mega`, `arduino_leonardo`, `esp32`, `esp8266` | **Yes** (for @main) | `arduino_uno` |
+| `clock` | CPU clock frequency | e.g., `16MHz`, `8MHz`, `240MHz` | **Yes** (for @main) | `16MHz` |
+| `uart` | Enable serial monitor | `on`, `off` | No | `off` |
+| `port` | Serial port for upload | `auto`, `COM3`, `ttyUSB0`, etc. | No | `auto` |
 
-## Board Mapping (MPU to FQBN)
+## Board Mapping (Board Name to FQBN)
 
-YS automatically maps MPU values to Arduino CLI Fully Qualified Board Names (FQBN):
+YS automatically maps board names to Arduino CLI Fully Qualified Board Names (FQBN):
 
-| YS MPU | Arduino FQBN | Description |
-|--------|--------------|-------------|
-| `atmega328p` | `arduino:avr:uno` | Arduino Uno, Nano (ATmega328P) |
-| `atmega2560` | `arduino:avr:mega` | Arduino Mega 2560 |
-| `esp8266` | `esp8266:esp8266:generic` | ESP8266 boards |
+| YS Board Name | Arduino FQBN | Description |
+|---------------|--------------|-------------|
+| `arduino_uno` | `arduino:avr:uno` | Arduino Uno (ATmega328P) |
+| `arduino_nano` | `arduino:avr:nano` | Arduino Nano |
+| `arduino_mega` | `arduino:avr:mega` | Arduino Mega 2560 |
+| `arduino_leonardo` | `arduino:avr:leonardo` | Arduino Leonardo |
 | `esp32` | `esp32:esp32:esp32` | ESP32 boards |
+| `esp8266` | `esp8266:esp8266:generic` | ESP8266 boards |
+
+**Legacy Support:** The old `mpu` field (e.g., `atmega328p`, `atmega2560`) is still supported for backward compatibility but deprecated.
 
 ## PWM Backend Selection
 
@@ -90,6 +96,16 @@ ysc upload blink.ys
 
 Compiles and uploads to the board specified in config. Requires Arduino CLI installed.
 
+### Upload with Code Retrieval (Experimental)
+
+```bash
+ysc upload blink.ys --r
+# or
+ysc upload blink.ys --retrieve
+```
+
+Enables experimental code retrieval feature. Shows warning on low-memory boards like Arduino Uno.
+
 ### Run (Compile + Upload + Monitor)
 
 ```bash
@@ -97,6 +113,14 @@ ysc run blink.ys
 ```
 
 Compiles, uploads, and opens serial monitor (if `uart: on`). Requires Arduino CLI installed.
+
+### Run with Code Retrieval (Experimental)
+
+```bash
+ysc run blink.ys --retrieve
+```
+
+Compiles, uploads with code retrieval enabled, and opens serial monitor.
 
 ### Show Config Diagnostics
 
@@ -109,15 +133,16 @@ Displays the configuration without generating code.
 ## Complete Example
 
 ```javascript
+@main
+
 # Smart LED Controller
 # Demonstrates config-based PWM with automatic backend selection
 
 config {
-  mpu: esp32,
+  board: esp32,
   clock: 240MHz,
   uart: on,
-  port: auto,
-  pwm: auto
+  port: auto
 }
 
 const int LED_PIN = 13
@@ -182,23 +207,96 @@ For `upload` and `run` commands:
 
 ## Default Behavior
 
-If no `config {}` block is present, YS uses these defaults:
+If no `config {}` block is present in a file without `@main`, YS uses these defaults:
 
 ```javascript
 config {
-  mpu: atmega328p,
+  board: arduino_uno,
   clock: 16MHz,
   uart: off,
-  port: auto,
-  pwm: auto
+  port: auto
 }
+```
+
+**Important:** Files with `@main` must have an explicit config block with all required fields.
+
+## Config Validation
+
+The compiler validates config blocks in `@main` files:
+
+### Required Fields
+- `board`: Must be a valid board name
+- `clock`: Must be specified with units (e.g., 16MHz)
+
+### Error Messages
+
+**Missing Config Block:**
+```
+❌ Error: @main file must include a config block.
+
+Your main file needs to specify board configuration for upload.
+
+Add a config block like this:
+
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+```
+
+**Invalid Board Name:**
+```
+⚠ Config Error: Unknown board 'invalid_name'.
+Valid boards: arduino_uno, arduino_nano, arduino_mega, arduino_leonardo, esp32, esp8266
+   Using default (arduino_uno).
+   Please update your config block with a valid board name.
+```
+
+## Code Retrieval Feature
+
+The `--r` or `--retrieve` flag enables experimental code retrieval:
+
+```bash
+ysc upload blink.ys --r
+```
+
+**Features:**
+- Board listens for retrieval requests after reboot
+- Sends project information back to host
+- Requires firmware support in generated code
+
+**Warnings:**
+- ⚠️ Experimental feature - may not work on all boards
+- ⚠️ Limited support on low-memory boards (Arduino Uno, Nano)
+- Shows warning when used with low-memory boards
+
+**Low-Memory Board Warning:**
+```
+⚠ Experimental Feature: Code retrieval on arduino_uno.
+   Low-memory boards like Arduino Uno have limited resources.
+   Use at your own risk. This feature may cause instability.
 ```
 
 ## Error Handling
 
-- **Unknown MPU**: Falls back to `atmega328p` with a warning
+- **Unknown board**: Falls back to `arduino_uno` with a warning
 - **Invalid port**: Reports error during upload
 - **Missing Arduino CLI**: Provides installation link
+- **Missing config in @main**: Shows beginner-friendly error with example
+- **Multiple @main files**: Lists all files with @main and asks to fix
+
+## Installation Note
+
+**Ypsilon Script is not available on npm.** You must clone the repository and install manually:
+
+```bash
+git clone https://github.com/ycharfi09/ypsilon-script.git
+cd ypsilon-script
+npm install
+npm link
+```
 
 ## Future Enhancements
 
@@ -207,3 +305,4 @@ Planned features (not yet implemented):
 - Custom build properties
 - Multiple board profiles
 - Serial monitor baud rate configuration
+- Full code retrieval implementation with protocol

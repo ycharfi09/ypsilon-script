@@ -3,6 +3,13 @@
 # Enum and Match Example
 # Shows modern pattern matching with enums
 
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
 enum State { IDLE, RUNNING, STOPPED, ERROR }
 
 mut State currentState = IDLE

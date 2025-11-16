@@ -3,6 +3,13 @@
 # Complex Module Loading Example
 # Shows using multiple modules with enums, structs, and classes
 
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
 load <sensor-lib.ys> as sensors
 load <motor.ys> as motors
 

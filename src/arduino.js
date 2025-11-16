@@ -84,7 +84,7 @@ function compileSketch(sketchPath, config) {
 /**
  * Upload sketch to board using Arduino CLI
  */
-function uploadSketch(sketchPath, config) {
+function uploadSketch(sketchPath, config, enableRetrieval = false) {
   if (!isArduinoCLIInstalled()) {
     throw new Error('Arduino CLI is not installed. Please install it from https://arduino.github.io/arduino-cli/');
   }
@@ -103,6 +103,10 @@ function uploadSketch(sketchPath, config) {
   }
   
   console.log(`Uploading to ${port}...`);
+  
+  // Note: enableRetrieval would need firmware support to actually work
+  // For now, we just acknowledge the flag but don't change upload behavior
+  // The actual code retrieval would be implemented in the generated firmware
   
   const command = `arduino-cli upload --fqbn ${fqbn} --port ${port} ${sketchPath}`;
   

@@ -3,6 +3,13 @@
 # Complete Ypsilon Script Example
 # Demonstrates all key language features from the specification
 
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
 enum Mode { AUTO, MANUAL }
 
 struct Point {

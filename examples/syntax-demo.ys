@@ -3,6 +3,13 @@
 # Ypsilon Script Syntax Demonstration
 # This example showcases the YS language features
 
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
 enum Mode { AUTO, MANUAL }
 
 struct Point {

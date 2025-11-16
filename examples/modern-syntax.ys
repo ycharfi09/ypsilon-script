@@ -19,9 +19,10 @@ struct Position {
 
 # Config block
 config {
-  cpu: atmega328p,
+  board: arduino_uno,
   clock: 16MHz,
-  uart: on
+  uart: on,
+  port: auto
 }
 
 # Signal declarations
