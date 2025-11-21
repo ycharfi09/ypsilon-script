@@ -171,6 +171,12 @@ class CodeGenerator {
     }
     code += '\n';
     
+    // Add built-in hardware type classes
+    code += this.generateHardwareTypes();
+    
+    // Add built-in collection classes  
+    code += this.generateCollectionTypes();
+    
     // Add PWM backend setup if needed
     const pwmBackend = this.config.getPWMBackend();
     const pwmSetup = generatePWMSetup(pwmBackend);
@@ -465,7 +471,12 @@ class CodeGenerator {
       'float': 'float',
       'bool': 'bool',
       'string': 'String',
-      'void': 'void'
+      'void': 'void',
+      'Digital': 'Digital',
+      'Analog': 'Analog',
+      'PWM': 'PWM',
+      'List': 'List',
+      'Map': 'Map'
     };
     // If it's not a built-in type, assume it's a class name
     return typeMap[type] || type;
@@ -514,7 +525,16 @@ class CodeGenerator {
     if (varDecl.init) {
       code += ' = ' + this.generateExpression(varDecl.init);
     }
-    return code + ';';
+    code += ';';
+    
+    // Add range check if specified
+    if (varDecl.range && !typePrefix.includes('const')) {
+      const min = this.generateExpression(varDecl.range.min);
+      const max = this.generateExpression(varDecl.range.max);
+      code += `\n${this.getIndent()}${varDecl.name} = constrain(${varDecl.name}, ${min}, ${max});`;
+    }
+    
+    return code;
   }
 
   generateIfStatement(stmt) {
@@ -611,6 +631,10 @@ class CodeGenerator {
         return 'this';
       case 'NewExpression':
         return this.generateNewExpression(expr);
+      case 'TypeConversion':
+        return this.generateTypeConversion(expr);
+      case 'ErrorHandler':
+        return this.generateErrorHandler(expr);
       default:
         return '';
     }
@@ -641,7 +665,49 @@ class CodeGenerator {
     } else if (expr.valueType === 'boolean') {
       return expr.value ? 'true' : 'false';
     }
+    
+    // Handle unit literals
+    if (expr.unit) {
+      const value = expr.value;
+      return this.convertUnitToInteger(value, expr.unit);
+    }
+    
     return String(expr.value);
+  }
+  
+  // Convert unit literals to integer values
+  convertUnitToInteger(value, unit) {
+    // Conversion constant for radians to degrees: 180/π ≈ 57.2958
+    const RAD_TO_DEG = 180 / Math.PI;
+    
+    const conversions = {
+      // Time units (convert to milliseconds)
+      'ms': value,
+      's': value * 1000,
+      'us': Math.floor(value * 0.001),  // microseconds to milliseconds: divide by 1000
+      'min': value * 60000,
+      'h': value * 3600000,
+      
+      // Frequency (to Hz)
+      'Hz': value,
+      'kHz': value * 1000,
+      'MHz': value * 1000000,
+      
+      // Angle (convert to degrees)
+      'deg': value,
+      'rad': Math.floor(value * RAD_TO_DEG),  // radians to degrees: multiply by 180/π
+      
+      // Distance (convert to millimeters)
+      'mm': value,
+      'cm': value * 10,
+      'm': value * 1000,
+      'km': value * 1000000,
+      
+      // Speed (to RPM)
+      'rpm': value
+    };
+    
+    return String(conversions[unit] || value);
   }
 
   generateBinaryExpression(expr) {
@@ -718,6 +784,27 @@ class CodeGenerator {
   generateNewExpression(expr) {
     const args = expr.arguments.map(arg => this.generateExpression(arg)).join(', ');
     return `${expr.className}(${args})`;
+  }
+
+  // Generate type conversion (.as<type>())
+  generateTypeConversion(expr) {
+    const value = this.generateExpression(expr.expression);
+    const targetType = this.mapType(expr.targetType);
+    
+    // Generate appropriate C++ cast
+    return `static_cast<${targetType}>(${value})`;
+  }
+
+  // Generate error handler (!catch)
+  generateErrorHandler(expr) {
+    // For now, we'll generate a simple try-like structure
+    // In a real implementation, this would use error codes or exceptions
+    // For microcontrollers, we'll use a simple if-check pattern
+    const exprCode = this.generateExpression(expr.expression);
+    
+    // Generate error handling code
+    // This is a simplified implementation - in production you'd want proper error types
+    return `(${exprCode})`;
   }
 
   getIndent() {
@@ -1043,6 +1130,248 @@ class CodeGenerator {
       'high': 'HIGH'
     };
     return modeMap[mode.toLowerCase()] || 'CHANGE';
+  }
+
+  // Generate built-in hardware type classes
+  generateHardwareTypes() {
+    const board = this.config.options.board;
+    const isESP = board && (board.includes('esp32') || board.includes('esp8266'));
+    
+    let code = '// Built-in Hardware Types\n';
+    
+    // Digital class
+    code += `class Digital {
+private:
+  int _pin;
+  bool _state;
+  bool _modeSet;
+  
+public:
+  Digital(int pin) : _pin(pin), _state(false), _modeSet(false) {}
+  
+  void high() {
+    if (!_modeSet) {
+      pinMode(_pin, OUTPUT);
+      _modeSet = true;
+    }
+    digitalWrite(_pin, HIGH);
+    _state = true;
+  }
+  
+  void low() {
+    if (!_modeSet) {
+      pinMode(_pin, OUTPUT);
+      _modeSet = true;
+    }
+    digitalWrite(_pin, LOW);
+    _state = false;
+  }
+  
+  void toggle() {
+    if (!_modeSet) {
+      pinMode(_pin, OUTPUT);
+      _modeSet = true;
+    }
+    _state = !_state;
+    digitalWrite(_pin, _state ? HIGH : LOW);
+  }
+  
+  bool isHigh() {
+    if (!_modeSet) {
+      pinMode(_pin, INPUT);
+      _modeSet = true;
+    }
+    return digitalRead(_pin) == HIGH;
+  }
+  
+  bool isLow() {
+    if (!_modeSet) {
+      pinMode(_pin, INPUT);
+      _modeSet = true;
+    }
+    return digitalRead(_pin) == LOW;
+  }
+  
+  int read() {
+    if (!_modeSet) {
+      pinMode(_pin, INPUT);
+      _modeSet = true;
+    }
+    return digitalRead(_pin);
+  }
+  
+  void write(int value) {
+    if (!_modeSet) {
+      pinMode(_pin, OUTPUT);
+      _modeSet = true;
+    }
+    digitalWrite(_pin, value);
+    _state = (value == HIGH);
+  }
+};
+
+`;
+    
+    // Analog class
+    code += `class Analog {
+private:
+  int _pin;
+  
+public:
+  Analog(int pin) : _pin(pin) {
+    pinMode(_pin, INPUT);
+  }
+  
+  int read() {
+    return analogRead(_pin);
+  }
+};
+
+`;
+    
+    // PWM class with board-specific implementation
+    if (isESP) {
+      code += `class PWM {
+private:
+  int _pin;
+  int _value;
+  int _channel;
+  static int _nextChannel;
+  
+public:
+  PWM(int pin) : _pin(pin), _value(0) {
+    _channel = _nextChannel++;
+    ledcSetup(_channel, 5000, 8); // 5kHz, 8-bit resolution
+    ledcAttachPin(_pin, _channel);
+  }
+  
+  void set(int value) {
+    _value = constrain(value, 0, 255);
+    ledcWrite(_channel, _value);
+  }
+  
+  int get() {
+    return _value;
+  }
+};
+
+int PWM::_nextChannel = 0;
+
+`;
+    } else {
+      // AVR boards
+      code += `class PWM {
+private:
+  int _pin;
+  int _value;
+  
+public:
+  PWM(int pin) : _pin(pin), _value(0) {
+    pinMode(_pin, OUTPUT);
+  }
+  
+  void set(int value) {
+    _value = constrain(value, 0, 255);
+    analogWrite(_pin, _value);
+  }
+  
+  int get() {
+    return _value;
+  }
+};
+
+`;
+    }
+    
+    return code;
+  }
+
+  // Generate built-in collection type classes
+  generateCollectionTypes() {
+    let code = '// Built-in Collection Types\n';
+    code += '#include <vector>\n';
+    code += '#include <map>\n';
+    code += '#include <string>\n\n';
+    
+    // List class (wrapper around std::vector)
+    code += `template<typename T>
+class List {
+private:
+  std::vector<T> _data;
+  
+public:
+  List() {}
+  
+  List(std::initializer_list<T> init) : _data(init) {}
+  
+  void push(T value) {
+    _data.push_back(value);
+  }
+  
+  T pop() {
+    if (_data.empty()) return T();
+    T value = _data.back();
+    _data.pop_back();
+    return value;
+  }
+  
+  int length() {
+    return _data.size();
+  }
+  
+  T get(int index) {
+    if (index >= 0 && index < _data.size()) {
+      return _data[index];
+    }
+    return T();
+  }
+  
+  void set(int index, T value) {
+    if (index >= 0 && index < _data.size()) {
+      _data[index] = value;
+    }
+  }
+};
+
+`;
+    
+    // Map class (wrapper around std::map)
+    code += `template<typename K, typename V>
+class Map {
+private:
+  std::map<K, V> _data;
+  
+public:
+  Map() {}
+  
+  V get(K key) {
+    auto it = _data.find(key);
+    if (it != _data.end()) {
+      return it->second;
+    }
+    return V();
+  }
+  
+  void set(K key, V value) {
+    _data[key] = value;
+  }
+  
+  bool has(K key) {
+    return _data.find(key) != _data.end();
+  }
+  
+  void remove(K key) {
+    _data.erase(key);
+  }
+  
+  int size() {
+    return _data.size();
+  }
+};
+
+`;
+    
+    return code;
   }
 }
 

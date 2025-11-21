@@ -1,0 +1,45 @@
+@main
+
+# Range Constraints Example
+# Demonstrates variable range constraints with automatic enforcement
+
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on
+}
+
+# Define variables with range constraints
+mut int temperature in -40...125 = 20
+mut int brightness in 0...255 = 128
+mut int angle in 0...180 = 90
+
+mut Analog tempSensor = new Analog(0)
+mut PWM ledPWM = new PWM(9)
+
+on start {
+  print("Range Constraints Demo")
+  print("Temperature: -40 to 125")
+  print("Brightness: 0 to 255")
+  print("Angle: 0 to 180")
+}
+
+on loop {
+  # Read sensor and assign to range-constrained variable
+  # Value is automatically constrained to valid range
+  const int raw = tempSensor.read()
+  temperature = raw / 10
+  
+  # Constrained values are safe to use directly
+  brightness = temperature + 100
+  
+  # Use constrained brightness for PWM
+  ledPWM.set(brightness)
+  
+  print("Temperature:")
+  print(temperature)
+  print("Brightness:")
+  print(brightness)
+  
+  wait 1s
+}

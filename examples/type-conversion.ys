@@ -1,0 +1,40 @@
+@main
+
+# Type Conversion Example
+# Demonstrates .as<type>() syntax for type conversions
+
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on
+}
+
+mut Analog sensor = new Analog(0)
+
+on start {
+  print("Type Conversion Demo")
+}
+
+on loop {
+  # Read analog value as integer
+  const int rawValue = sensor.read()
+  
+  # Convert int to float for calculations
+  mut float voltage = rawValue.as<float>()
+  voltage = voltage * 5.0 / 1023.0
+  
+  # Convert back to int for display
+  mut int displayValue = voltage.as<int>()
+  
+  print("Raw value:")
+  print(rawValue)
+  
+  print("Voltage (as int):")
+  print(displayValue)
+  
+  # Type conversions work with any types
+  const int pin = 13
+  mut float pinFloat = pin.as<float>()
+  
+  wait 1s
+}

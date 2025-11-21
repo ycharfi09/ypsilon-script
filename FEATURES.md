@@ -267,7 +267,180 @@ config {
 }
 ```
 
-### 13. Built-in Functions
+### 13. Hardware Types
+
+YS provides built-in hardware abstraction types with automatic pinMode management:
+
+#### Digital Type
+```javascript
+mut Digital pin = new Digital(13)
+
+# Methods
+pin.high()      // Set pin HIGH (auto sets pinMode OUTPUT)
+pin.low()       // Set pin LOW
+pin.toggle()    // Toggle pin state
+pin.isHigh()    // Returns bool (auto sets pinMode INPUT)
+pin.isLow()     // Returns bool
+pin.read()      // Returns int
+pin.write(val)  // Write value
+```
+
+The Digital type automatically configures pinMode based on usage:
+- Writing (high/low/toggle/write) → OUTPUT mode
+- Reading (isHigh/isLow/read) → INPUT mode
+
+#### Analog Type
+```javascript
+mut Analog sensor = new Analog(0)
+
+# Method
+sensor.read()  // Returns int 0-1023 (auto sets pinMode INPUT)
+```
+
+#### PWM Type
+```javascript
+mut PWM motor = new PWM(9)
+
+# Methods
+motor.set(value)  // Set PWM 0-255 (auto sets pinMode OUTPUT)
+motor.get()       // Returns current PWM value
+```
+
+The PWM type detects board type and uses appropriate implementation:
+- AVR boards (Uno, Nano, Mega): `analogWrite()`
+- ESP boards (ESP32, ESP8266): LEDC functions with channel management
+
+### 14. Unit System
+
+Support for physical unit literals that are automatically converted at compile time:
+
+#### Time Units
+```javascript
+const int delay1 = 500ms     // milliseconds → 500
+const int delay2 = 2s        // seconds → 2000
+const int delay3 = 100us     // microseconds → 0 (rounded down)
+const int delay4 = 1min      // minutes → 60000
+const int delay5 = 1h        // hours → 3600000
+```
+
+#### Frequency Units
+```javascript
+const int freq1 = 50Hz       // Hertz → 50
+const int freq2 = 5kHz       // kiloHertz → 5000
+const int freq3 = 1MHz       // MegaHertz → 1000000
+```
+
+#### Angle Units
+```javascript
+const int angle1 = 90deg     // degrees → 90
+const int angle2 = 3.14rad   // radians → 180 (converted to degrees)
+```
+
+#### Distance Units
+```javascript
+const int dist1 = 10mm       // millimeters → 10
+const int dist2 = 10cm       // centimeters → 100 (converted to mm)
+const int dist3 = 1m         // meters → 1000 (converted to mm)
+const int dist4 = 1km        // kilometers → 1000000 (converted to mm)
+```
+
+#### Speed Units
+```javascript
+const int speed = 1000rpm    // revolutions per minute → 1000
+```
+
+### 15. Range Constraints
+
+Variables can have automatic range enforcement using the `in min...max` syntax:
+
+```javascript
+mut int sensorValue in 0...1023 = 512
+mut int pwmValue in 0...255 = 128
+mut int temperature in -40...125 = 20
+
+# Values are automatically constrained using constrain()
+sensorValue = 2000  // Automatically clamped to 1023
+pwmValue = -10      // Automatically clamped to 0
+```
+
+Range constraints work with:
+- Literal values: `in 0...100`
+- Variable bounds: `in MIN...MAX`
+- Any expression that evaluates to integers
+
+### 16. Type Conversion
+
+Explicit type conversion using `.as<type>()` syntax:
+
+```javascript
+# Numeric conversions
+const int a = 5
+mut float b = a.as<float>()     // int → float
+
+const float voltage = 3.3
+mut int mv = voltage.as<int>()  // float → int (truncates)
+
+# Works with any types
+mut Digital pin = new Digital(13)
+mut int pinNum = pin.as<int>()  // Hardware type → int
+```
+
+Type conversion generates `static_cast<T>()` in C++ for type safety.
+
+### 17. Collections
+
+Built-in collection types implemented using C++ STL:
+
+#### List Type
+```javascript
+mut List numbers = new List()
+
+# Methods
+numbers.push(10)              // Add element to end
+numbers.push(20)
+mut int val = numbers.get(0)   // Get element at index
+numbers.set(0, 15)            // Set element at index
+mut int size = numbers.length()  // Get number of elements
+mut int last = numbers.pop()    // Remove and return last element
+```
+
+Internally uses `std::vector<T>` for efficient dynamic arrays.
+
+#### Map Type
+```javascript
+mut Map data = new Map()
+
+# Methods
+data.set(key, value)          // Set key-value pair
+mut int val = data.get(key)    // Get value by key
+mut bool exists = data.has(key)  // Check if key exists
+data.remove(key)              // Remove key-value pair
+mut int count = data.size()    // Get number of entries
+```
+
+Internally uses `std::map<K, V>` for efficient key-value storage.
+
+### 18. Error Handling
+
+Basic error handling using `!catch` syntax:
+
+```javascript
+mut Analog sensor = new Analog(0)
+
+# Inline error handling
+mut int value = sensor.read() !catch {
+  print("Sensor failed")
+}
+
+# Can be used with any expression
+mut int result = calculation() !catch {
+  print("Calculation error")
+}
+```
+
+The error handling generates simple error checking code. For production use, this provides a foundation for more sophisticated error types.
+
+### 19. Built-in Functions
 
 #### Pin Control
 - `pinMode(pin: int, mode: int)`
@@ -350,13 +523,14 @@ ysc --version
 
 ## Current Limitations
 
-- **No Arrays**: Array support not yet implemented
-- **No String Operations**: Limited string functionality
-- **No Module System**: No imports/exports yet
+- **No Arrays**: Traditional array support not yet implemented (use List instead)
+- **Limited String Operations**: Basic string support only
+- **Module System**: Module loading works but limited to file-level imports
 - **No Async/Await**: Async operations not supported
 - **No Inheritance**: Class inheritance not implemented
 - **No Interfaces/Traits**: Not yet supported
 - **No Global Struct Initialization**: Struct initialization only works in function scope
+- **Error Handling**: Basic `!catch` syntax implemented but not full error types yet
 
 ## Feature Summary by Category
 
@@ -392,14 +566,27 @@ ysc --version
 
 ### Time Management: ✅ Complete
 - Time literals (ms, s, us, min, h)
+- Frequency units (Hz, kHz, MHz)
+- Angle units (deg, rad)
+- Distance units (mm, cm, m, km)
+- Speed units (rpm)
 - wait statements
 - timeout statements
 
-### Hardware Integration: ✅ Complete
+### Hardware Integration: ✅ Advanced
+- Hardware types (Digital, Analog, PWM)
+- Auto pinMode detection
+- Board-specific PWM implementation
 - Pin control (digital and analog)
 - Built-in Arduino functions
 - Library loading
 - Resource management
+
+### Advanced Types: ✅ Complete
+- Range constraints (in min...max)
+- Type conversion (.as<type>())
+- Collections (List, Map)
+- Error handling (!catch)
 
 ### Metaprogramming: ✅ Basic Support
 - Inline C++ blocks
@@ -408,7 +595,7 @@ ysc --version
 
 ## Examples Available
 
-The repository includes 17 working examples demonstrating:
+The repository includes 24 working examples demonstrating:
 1. `blink.ys` - Basic LED blinking
 2. `blink-modern.ys` - Modern syntax blink
 3. `button.ys` - Button input and LED control
@@ -426,5 +613,12 @@ The repository includes 17 working examples demonstrating:
 15. `test-new-features.ys` - New features testing
 16. `traffic-light.ys` - Traffic light controller
 17. `ultrasonic.ys` - Distance sensor example
+18. `digital-hardware.ys` - Digital hardware type demo
+19. `analog-sensor.ys` - Analog hardware type demo
+20. `pwm-motor.ys` - PWM hardware type demo
+21. `unit-system.ys` - Unit literals demonstration
+22. `type-conversion.ys` - Type conversion examples
+23. `range-constraints.ys` - Range constraints demo
+24. `complete-hardware-demo.ys` - All hardware features together
 
 All examples compile successfully and demonstrate real-world usage patterns.

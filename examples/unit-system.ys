@@ -1,0 +1,55 @@
+@main
+
+# Unit System Example
+# Demonstrates various unit types: time, frequency, angle, distance, speed
+
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on
+}
+
+# Time units
+const int shortDelay = 100ms
+const int mediumDelay = 2s
+const int microDelay = 500us
+
+# Frequency units
+const int pwmFreq = 50Hz
+const int audioFreq = 440Hz
+
+# Angle units
+const int servoAngle = 90deg
+const int fullRotation = 360deg
+
+# Distance units
+const int threshold = 10cm
+const int maxDistance = 2m
+
+# Speed units
+const int motorSpeed = 1000rpm
+
+on start {
+  print("Unit System Demo")
+  print("Time, frequency, angle, distance, speed")
+}
+
+on loop {
+  # All units are converted to appropriate integers at compile time
+  print("Short delay (ms):")
+  print(shortDelay)
+  
+  print("PWM Frequency (Hz):")
+  print(pwmFreq)
+  
+  print("Servo angle (deg):")
+  print(servoAngle)
+  
+  print("Distance threshold (mm):")
+  print(threshold)
+  
+  print("Motor speed (rpm):")
+  print(motorSpeed)
+  
+  wait 3s
+}

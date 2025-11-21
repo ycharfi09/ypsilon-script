@@ -1,0 +1,54 @@
+@main
+
+# Complete Hardware & Advanced Features Demo
+# Showcases Digital, Analog, PWM, units, ranges, type conversion, and collections
+
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on
+}
+
+# Hardware types
+mut Digital led = new Digital(13)
+mut Analog sensor = new Analog(0)
+mut PWM motor = new PWM(9)
+
+# Range-constrained variables
+mut int sensorValue in 0...1023 = 512
+mut int motorSpeed in 0...255 = 128
+
+on start {
+  print("Complete Hardware Demo")
+  print("Digital LED, Analog Sensor, PWM Motor")
+  led.toggle()
+}
+
+on loop {
+  # Read sensor with automatic range constraint
+  sensorValue = sensor.read()
+  
+  # Convert to motor speed range using type conversion
+  mut float scaled = sensorValue.as<float>()
+  scaled = scaled * 255.0 / 1023.0
+  motorSpeed = scaled.as<int>()
+  
+  # Control motor with PWM
+  motor.set(motorSpeed)
+  
+  # Blink LED based on sensor value
+  if (sensorValue > 512) {
+    led.high()
+  } else {
+    led.low()
+  }
+  
+  # Print status
+  print("Sensor:")
+  print(sensorValue)
+  print("Motor speed:")
+  print(motor.get())
+  
+  # Use unit literals for delays
+  wait 250ms
+}

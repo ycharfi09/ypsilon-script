@@ -10,6 +10,11 @@ Ypsilon Script (YS) is designed to make microcontroller development accessible, 
 
 - **Strong Static Typing**: All variables and functions must be explicitly typed
 - **Modern Syntax**: Uses `fn`, `mut`, `self` keywords
+- **Hardware Types**: Built-in `Digital`, `Analog`, `PWM` types with auto pinMode detection
+- **Unit System**: Time (`ms`, `s`, `us`), frequency (`Hz`), angle (`deg`), distance (`cm`, `m`), speed (`rpm`)
+- **Range Constraints**: `mut int value in 0...1023` for automatic bounds enforcement
+- **Type Conversion**: `.as<type>()` syntax for explicit type casting
+- **Collections**: `List` and `Map` types with standard methods
 - **Object-Oriented Programming**: Classes with constructors and methods
 - **Enums and Structs**: Rust-style enums and C++-like structs
 - **Pattern Matching**: Match expressions like Rust for powerful control flow
@@ -18,6 +23,7 @@ Ypsilon Script (YS) is designed to make microcontroller development accessible, 
 - **Reactive Variables**: Volatile reactive variables with `react`
 - **Signals**: Event-driven signal/emit system
 - **Time Literals**: `wait 200ms`, `timeout 5s`
+- **Error Handling**: `!catch` syntax for error propagation
 - **Atomic Blocks**: Interrupt-safe critical sections
 - **Library Loading**: `load <Servo>`, `load <module.ys> as m`, `alias LED = 13`
 - **Brace-Based Syntax**: Required braces, optional semicolons
@@ -428,6 +434,128 @@ for (mut i: int = 0; i < 10; i = i + 1) {
 }
 ```
 
+### Hardware Types
+
+YS provides built-in hardware abstraction types that automatically handle pin mode configuration:
+
+#### Digital Type
+```javascript
+mut Digital led = new Digital(13)
+
+led.high()        // Sets pin HIGH (auto-configures OUTPUT mode)
+led.low()         // Sets pin LOW
+led.toggle()      // Toggles pin state
+led.isHigh()      // Returns bool (auto-configures INPUT mode)
+led.isLow()       // Returns bool
+led.read()        // Returns int
+led.write(HIGH)   // Writes value
+```
+
+#### Analog Type
+```javascript
+mut Analog sensor = new Analog(0)
+
+mut int value = sensor.read()  // Returns 0-1023 (auto-configures INPUT mode)
+```
+
+#### PWM Type
+```javascript
+mut PWM motor = new PWM(9)
+
+motor.set(128)         // Sets PWM value 0-255 (auto-configures OUTPUT mode)
+mut int speed = motor.get()  // Returns current PWM value
+```
+
+The PWM type automatically detects your board and uses the appropriate implementation:
+- AVR boards (Uno, Nano, Mega): Uses `analogWrite()`
+- ESP boards (ESP32, ESP8266): Uses LEDC functions
+
+### Unit System
+
+YS supports unit literals that are automatically converted at compile time:
+
+```javascript
+# Time units
+wait 500ms      // milliseconds
+wait 2s         // seconds
+wait 100us      // microseconds
+wait 1min       // minutes
+wait 1h         // hours
+
+# Frequency units
+const int freq = 50Hz
+const int audioFreq = 440Hz
+
+# Angle units
+const int angle = 90deg
+const int radians = 3.14rad
+
+# Distance units
+const int distance = 10cm
+const int height = 2m
+const int length = 5mm
+
+# Speed units
+const int motorSpeed = 1000rpm
+```
+
+### Range Constraints
+
+Variables can have automatic range enforcement:
+
+```javascript
+mut int sensorValue in 0...1023 = 512  // Automatically constrained to range
+mut int pwmValue in 0...255 = 128      // Values outside range are clamped
+```
+
+### Type Conversion
+
+Explicit type conversion using `.as<type>()` syntax:
+
+```javascript
+const int a = 5
+mut float b = a.as<float>()           // int to float
+
+const float voltage = 3.3
+mut int millivolts = voltage.as<int>()  // float to int
+```
+
+### Collections
+
+#### List Type
+```javascript
+mut List numbers = new List()
+
+numbers.push(10)              // Add element
+numbers.push(20)
+mut int value = numbers.get(0)  // Get element at index
+numbers.set(0, 15)            // Set element at index
+mut int size = numbers.length()  // Get size
+mut int last = numbers.pop()    // Remove and return last element
+```
+
+#### Map Type
+```javascript
+mut Map data = new Map()
+
+data.set(1, 100)              // Set key-value pair
+mut int value = data.get(1)    // Get value by key
+mut bool exists = data.has(1)  // Check if key exists
+data.remove(1)                // Remove key-value pair
+```
+
+### Error Handling
+
+Basic error handling using `!catch` syntax:
+
+```javascript
+mut Analog sensor = new Analog(0)
+
+mut int value = sensor.read() !catch {
+  print("Sensor failed")
+}
+```
+
 ### Built-in Functions
 
 YS provides access to standard microcontroller functions:
@@ -452,6 +580,11 @@ YS syntax:
 - **Structs**: C++-style data structures
 - **Classes**: OOP with constructors and methods
 - **`new` keyword**: Object instantiation
+- **Hardware types**: `Digital`, `Analog`, `PWM` with auto pinMode
+- **Unit literals**: Time, frequency, angle, distance, speed units
+- **Range constraints**: `in min...max` for automatic bounds
+- **Type conversion**: `.as<type>()` for explicit casting
+- **Collections**: `List` and `Map` types
 - **Event blocks**: `on start {}`, `on loop {}`
 - **Match expressions**: Pattern matching with `=>`
 - **Switch statements**: C++-style with braces
@@ -459,6 +592,7 @@ YS syntax:
 - **Signals**: Event-driven with `signal`/`emit`
 - **Reactive vars**: Volatile variables with `react`
 - **Time literals**: `ms`, `s`, `us`, `min`, `h`
+- **Error handling**: `!catch` for error propagation
 - **Atomic blocks**: Interrupt-safe with `atomic {}`
 - **Library loading**: `load <lib>` for C++ headers, `load <file.ys> as name` for YS modules
 - **Inline C++**: `@cpp {}` for direct C++ code

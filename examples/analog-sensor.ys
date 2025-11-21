@@ -1,0 +1,32 @@
+@main
+
+# Analog Sensor Hardware Type Example
+# Demonstrates the Analog type for sensor reading
+
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on
+}
+
+# Create Analog instance for potentiometer or sensor
+mut Analog sensor = new Analog(0)
+
+# Use range constraint to ensure value stays within bounds
+mut int sensorValue in 0...1023 = 0
+
+on start {
+  print("Analog Hardware Type Demo")
+  print("Reading from analog pin 0")
+}
+
+on loop {
+  # Read analog value (0-1023)
+  sensorValue = sensor.read()
+  
+  # Range constraint automatically enforces bounds
+  print("Sensor value:")
+  print(sensorValue)
+  
+  wait 500ms
+}
