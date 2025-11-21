@@ -1,0 +1,33 @@
+@main
+
+# Digital Pin Hardware Type Example
+# Demonstrates the Digital type with automatic pinMode detection
+
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on
+}
+
+# Create Digital instances for LED and button
+mut Digital led = new Digital(13)
+mut Digital button = new Digital(2)
+
+on start {
+  print("Digital Hardware Type Demo")
+  print("LED on pin 13, Button on pin 2")
+}
+
+on loop {
+  # Digital methods automatically set pinMode as needed
+  # Reading a pin sets it to INPUT, writing sets it to OUTPUT
+  
+  if (button.isHigh()) {
+    led.high()
+    print("Button pressed - LED ON")
+  } else {
+    led.low()
+  }
+  
+  wait 100ms
+}

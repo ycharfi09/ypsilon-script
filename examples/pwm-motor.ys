@@ -1,0 +1,44 @@
+@main
+
+# PWM Hardware Type Example
+# Demonstrates PWM control with automatic board detection
+
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on
+}
+
+# Create PWM instance for motor control
+mut PWM motor = new PWM(9)
+
+mut int speed = 0
+mut bool increasing = true
+
+on start {
+  print("PWM Hardware Type Demo")
+  print("PWM on pin 9 for motor control")
+}
+
+on loop {
+  # Set PWM value (0-255)
+  motor.set(speed)
+  
+  print("Motor speed:")
+  print(motor.get())
+  
+  # Fade in and out
+  if (increasing) {
+    speed = speed + 5
+    if (speed >= 255) {
+      increasing = false
+    }
+  } else {
+    speed = speed - 5
+    if (speed <= 0) {
+      increasing = true
+    }
+  }
+  
+  wait 50ms
+}
