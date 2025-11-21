@@ -12,7 +12,12 @@ function isTypeToken(tokenType) {
     TOKEN_TYPES.TYPE_FLOAT,
     TOKEN_TYPES.TYPE_BOOL,
     TOKEN_TYPES.TYPE_STRING,
-    TOKEN_TYPES.TYPE_VOID
+    TOKEN_TYPES.TYPE_VOID,
+    TOKEN_TYPES.TYPE_DIGITAL,
+    TOKEN_TYPES.TYPE_ANALOG,
+    TOKEN_TYPES.TYPE_PWM,
+    TOKEN_TYPES.TYPE_LIST,
+    TOKEN_TYPES.TYPE_MAP
   ].includes(tokenType);
 }
 
@@ -23,7 +28,12 @@ function tokenTypeToString(tokenType) {
     [TOKEN_TYPES.TYPE_FLOAT]: 'float',
     [TOKEN_TYPES.TYPE_BOOL]: 'bool',
     [TOKEN_TYPES.TYPE_STRING]: 'string',
-    [TOKEN_TYPES.TYPE_VOID]: 'void'
+    [TOKEN_TYPES.TYPE_VOID]: 'void',
+    [TOKEN_TYPES.TYPE_DIGITAL]: 'Digital',
+    [TOKEN_TYPES.TYPE_ANALOG]: 'Analog',
+    [TOKEN_TYPES.TYPE_PWM]: 'PWM',
+    [TOKEN_TYPES.TYPE_LIST]: 'List',
+    [TOKEN_TYPES.TYPE_MAP]: 'Map'
   };
   return typeMap[tokenType] || 'int';
 }
@@ -703,6 +713,16 @@ class Parser {
     const varType = this.parseType();
     const name = this.expect(TOKEN_TYPES.IDENTIFIER).value;
     
+    // Check for range specification (in min...max)
+    let range = null;
+    if (this.peek().type === TOKEN_TYPES.IN) {
+      this.advance(); // consume 'in'
+      const min = this.parseExpression();
+      this.expect(TOKEN_TYPES.RANGE); // expect '...'
+      const max = this.parseExpression();
+      range = { min, max };
+    }
+    
     let init = null;
     if (this.peek().type === TOKEN_TYPES.ASSIGN) {
       this.advance();
@@ -715,7 +735,8 @@ class Parser {
       kind,
       varType,
       name,
-      init
+      init,
+      range
     };
   }
 
@@ -922,14 +943,49 @@ class Parser {
           arguments: args
         };
       } else if (this.peek().type === TOKEN_TYPES.DOT) {
-        // Member access
+        // Member access or type conversion
         this.advance();
-        const property = this.expect(TOKEN_TYPES.IDENTIFIER).value;
-        expr = {
-          type: 'MemberExpression',
-          object: expr,
-          property
-        };
+        
+        // Check for .as<type>() type conversion syntax
+        if (this.peek().type === TOKEN_TYPES.IDENTIFIER && this.peek().value === 'as') {
+          this.advance(); // consume 'as'
+          this.expect(TOKEN_TYPES.LESS_THAN); // expect '<'
+          const targetType = this.parseType();
+          this.expect(TOKEN_TYPES.GREATER_THAN); // expect '>'
+          this.expect(TOKEN_TYPES.LPAREN); // expect '('
+          this.expect(TOKEN_TYPES.RPAREN); // expect ')'
+          
+          expr = {
+            type: 'TypeConversion',
+            expression: expr,
+            targetType
+          };
+        } else {
+          // Regular member access
+          const property = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+          expr = {
+            type: 'MemberExpression',
+            object: expr,
+            property
+          };
+        }
+      } else if (this.peek().type === TOKEN_TYPES.EXCLAMATION) {
+        // Error handling with !catch
+        this.advance(); // consume '!'
+        if (this.peek().type === TOKEN_TYPES.CATCH) {
+          this.advance(); // consume 'catch'
+          this.expect(TOKEN_TYPES.LBRACE);
+          const handler = this.parseBlockStatement();
+          this.expect(TOKEN_TYPES.RBRACE);
+          
+          expr = {
+            type: 'ErrorHandler',
+            expression: expr,
+            handler
+          };
+        } else {
+          throw new Error(`Expected 'catch' after '!' at line ${this.peek().line}`);
+        }
       } else {
         break;
       }
@@ -1444,10 +1500,16 @@ class Parser {
       let value = '';
       const token = this.peek();
       if (token.type === TOKEN_TYPES.NUMBER) {
-        value = String(this.advance().value);
-        // Check if followed by an identifier (like MHz)
-        if (this.peek().type === TOKEN_TYPES.IDENTIFIER) {
-          value += this.advance().value;
+        const numToken = this.advance();
+        // If number has a unit, combine them
+        if (numToken.unit) {
+          value = String(numToken.value) + numToken.unit;
+        } else {
+          value = String(numToken.value);
+          // Check if followed by an identifier (like MHz) - for backward compatibility
+          if (this.peek().type === TOKEN_TYPES.IDENTIFIER) {
+            value += this.advance().value;
+          }
         }
       } else if (token.type === TOKEN_TYPES.IDENTIFIER) {
         value = this.advance().value;

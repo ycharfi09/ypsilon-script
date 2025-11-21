@@ -82,6 +82,24 @@ const TOKEN_TYPES = {
   TYPE_STRING: 'TYPE_STRING',
   TYPE_VOID: 'TYPE_VOID',
   
+  // Hardware Type Keywords
+  TYPE_DIGITAL: 'TYPE_DIGITAL',
+  TYPE_ANALOG: 'TYPE_ANALOG',
+  TYPE_PWM: 'TYPE_PWM',
+  
+  // Collection Type Keywords
+  TYPE_LIST: 'TYPE_LIST',
+  TYPE_MAP: 'TYPE_MAP',
+  
+  // Error Keywords
+  ERROR: 'ERROR',
+  CATCH: 'CATCH',
+  EXCLAMATION: 'EXCLAMATION',
+  
+  // Range Operator
+  RANGE: 'RANGE',
+  IN: 'IN',
+  
   // Operators
   PLUS: 'PLUS',
   MINUS: 'MINUS',
@@ -171,6 +189,14 @@ const KEYWORDS = {
   'bool': TOKEN_TYPES.TYPE_BOOL,
   'string': TOKEN_TYPES.TYPE_STRING,
   'void': TOKEN_TYPES.TYPE_VOID,
+  'Digital': TOKEN_TYPES.TYPE_DIGITAL,
+  'Analog': TOKEN_TYPES.TYPE_ANALOG,
+  'PWM': TOKEN_TYPES.TYPE_PWM,
+  'List': TOKEN_TYPES.TYPE_LIST,
+  'Map': TOKEN_TYPES.TYPE_MAP,
+  'Error': TOKEN_TYPES.ERROR,
+  'catch': TOKEN_TYPES.CATCH,
+  'in': TOKEN_TYPES.IN,
   'true': TOKEN_TYPES.BOOLEAN,
   'false': TOKEN_TYPES.BOOLEAN,
   'and': TOKEN_TYPES.AND,
@@ -234,21 +260,28 @@ class Lexer {
       num += this.advance();
     }
     
-    // Check for time unit suffix (ms, s, us)
+    // Check for unit suffix (time, frequency, angle, distance, speed)
     let unit = null;
-    if (this.peek() && /[a-z]/.test(this.peek())) {
+    if (this.peek() && /[a-zA-Z]/.test(this.peek())) {
       const start = this.pos;
       let suffix = '';
-      while (this.peek() && /[a-z]/.test(this.peek())) {
+      while (this.peek() && /[a-zA-Z]/.test(this.peek())) {
         suffix += this.peek();
         this.advance();
       }
       
-      // Check if it's a valid time unit
-      if (['ms', 's', 'us', 'min', 'h'].includes(suffix)) {
+      // Check if it's a valid unit
+      const validUnits = [
+        'ms', 's', 'us', 'min', 'h',  // time
+        'Hz', 'kHz', 'MHz',             // frequency
+        'deg', 'rad',                    // angle
+        'cm', 'm', 'mm', 'km',          // distance
+        'rpm'                            // speed
+      ];
+      if (validUnits.includes(suffix)) {
         unit = suffix;
       } else {
-        // Not a valid time unit, rewind
+        // Not a valid unit, rewind
         this.pos = start;
       }
     }
@@ -360,6 +393,14 @@ class Lexer {
       }
 
       // Two-character operators
+      if (char === '.' && this.peek(1) === '.' && this.peek(2) === '.') {
+        this.advance();
+        this.advance();
+        this.advance();
+        tokens.push({ type: TOKEN_TYPES.RANGE, value: '...', line: this.line, column: this.column - 3 });
+        continue;
+      }
+      
       if (char === '=' && this.peek(1) === '>') {
         this.advance();
         this.advance();
@@ -423,7 +464,8 @@ class Lexer {
         ':': TOKEN_TYPES.COLON,
         ';': TOKEN_TYPES.SEMICOLON,
         '?': TOKEN_TYPES.QUESTION,
-        '@': TOKEN_TYPES.AT
+        '@': TOKEN_TYPES.AT,
+        '!': TOKEN_TYPES.EXCLAMATION
       };
 
       if (singleChar[char]) {
