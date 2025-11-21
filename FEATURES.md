@@ -622,7 +622,3 @@ The repository includes 24 working examples demonstrating:
 24. `complete-hardware-demo.ys` - All hardware features together
 
 All examples compile successfully and demonstrate real-world usage patterns.
-16. `traffic-light.ys` - Traffic light controller
-17. `ultrasonic.ys` - Distance sensor example
-
-All examples compile successfully and demonstrate real-world usage patterns.
