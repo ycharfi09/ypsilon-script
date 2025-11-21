@@ -44,8 +44,6 @@ const TOKEN_TYPES = {
   RISING: 'RISING',
   FALLING: 'FALLING',
   CHANGE: 'CHANGE',
-  LOW: 'LOW',
-  HIGH: 'HIGH',
   
   // Reactive Keywords
   REACT: 'REACT',

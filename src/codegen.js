@@ -677,14 +677,14 @@ class CodeGenerator {
   
   // Convert unit literals to integer values
   convertUnitToInteger(value, unit) {
-    // Conversion constant
-    const RAD_TO_DEG = 180 / Math.PI;  // ~57.2958
+    // Conversion constant for radians to degrees: 180/π ≈ 57.2958
+    const RAD_TO_DEG = 180 / Math.PI;
     
     const conversions = {
-      // Time units (to milliseconds)
+      // Time units (convert to milliseconds)
       'ms': value,
       's': value * 1000,
-      'us': Math.floor(value * 0.001),  // microseconds to milliseconds
+      'us': Math.floor(value * 0.001),  // microseconds to milliseconds: divide by 1000
       'min': value * 60000,
       'h': value * 3600000,
       
@@ -693,11 +693,11 @@ class CodeGenerator {
       'kHz': value * 1000,
       'MHz': value * 1000000,
       
-      // Angle (to degrees, can also be converted to radians with math)
+      // Angle (convert to degrees)
       'deg': value,
-      'rad': Math.floor(value * RAD_TO_DEG),  // radians to degrees
+      'rad': Math.floor(value * RAD_TO_DEG),  // radians to degrees: multiply by 180/π
       
-      // Distance (to millimeters)
+      // Distance (convert to millimeters)
       'mm': value,
       'cm': value * 10,
       'm': value * 1000,
