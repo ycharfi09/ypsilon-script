@@ -23,8 +23,11 @@ describe('Interrupt Lexer', () => {
     expect(tokens[0].type).toBe(TOKEN_TYPES.RISING);
     expect(tokens[1].type).toBe(TOKEN_TYPES.FALLING);
     expect(tokens[2].type).toBe(TOKEN_TYPES.CHANGE);
-    expect(tokens[3].type).toBe(TOKEN_TYPES.LOW);
-    expect(tokens[4].type).toBe(TOKEN_TYPES.HIGH);
+    // low and high are now identifiers, not keywords
+    expect(tokens[3].type).toBe(TOKEN_TYPES.IDENTIFIER);
+    expect(tokens[3].value).toBe('low');
+    expect(tokens[4].type).toBe(TOKEN_TYPES.IDENTIFIER);
+    expect(tokens[4].value).toBe('high');
   });
 });
 

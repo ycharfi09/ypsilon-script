@@ -947,7 +947,7 @@ class Parser {
         this.advance();
         
         // Check for .as<type>() type conversion syntax
-        if (this.peek().type === TOKEN_TYPES.IDENTIFIER && this.peek().value === 'as') {
+        if (this.peek().type === TOKEN_TYPES.AS) {
           this.advance(); // consume 'as'
           this.expect(TOKEN_TYPES.LESS_THAN); // expect '<'
           const targetType = this.parseType();
@@ -974,9 +974,7 @@ class Parser {
         this.advance(); // consume '!'
         if (this.peek().type === TOKEN_TYPES.CATCH) {
           this.advance(); // consume 'catch'
-          this.expect(TOKEN_TYPES.LBRACE);
-          const handler = this.parseBlockStatement();
-          this.expect(TOKEN_TYPES.RBRACE);
+          const handler = this.parseBlock();
           
           expr = {
             type: 'ErrorHandler',
@@ -1039,8 +1037,17 @@ class Parser {
 
   parseNewExpression() {
     this.expect(TOKEN_TYPES.NEW);
-    const baseClassName = this.expect(TOKEN_TYPES.IDENTIFIER).value;
-    const className = this.parseNamespacedType(baseClassName);
+    
+    // Class name can be an identifier or a type token (for hardware types)
+    let className;
+    const token = this.peek();
+    if (isTypeToken(token.type)) {
+      className = tokenTypeToString(token.type);
+      this.advance();
+    } else {
+      const baseClassName = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+      className = this.parseNamespacedType(baseClassName);
+    }
     
     this.expect(TOKEN_TYPES.LPAREN);
     
@@ -1270,7 +1277,10 @@ class Parser {
     // Parse interrupt mode (rising, falling, change, low, high)
     const modeToken = this.peek();
     let mode;
-    if ([TOKEN_TYPES.RISING, TOKEN_TYPES.FALLING, TOKEN_TYPES.CHANGE, TOKEN_TYPES.LOW, TOKEN_TYPES.HIGH].includes(modeToken.type)) {
+    if ([TOKEN_TYPES.RISING, TOKEN_TYPES.FALLING, TOKEN_TYPES.CHANGE].includes(modeToken.type)) {
+      mode = this.advance().value;
+    } else if (modeToken.type === TOKEN_TYPES.IDENTIFIER && ['low', 'high'].includes(modeToken.value)) {
+      // Handle 'low' and 'high' as identifiers now
       mode = this.advance().value;
     } else {
       throw new Error(`Expected interrupt mode (rising, falling, change, low, high) at line ${modeToken.line}`);

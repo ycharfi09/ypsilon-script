@@ -168,8 +168,6 @@ const KEYWORDS = {
   'rising': TOKEN_TYPES.RISING,
   'falling': TOKEN_TYPES.FALLING,
   'change': TOKEN_TYPES.CHANGE,
-  'low': TOKEN_TYPES.LOW,
-  'high': TOKEN_TYPES.HIGH,
   'react': TOKEN_TYPES.REACT,
   'emit': TOKEN_TYPES.EMIT,
   'signal': TOKEN_TYPES.SIGNAL,
@@ -251,6 +249,11 @@ class Lexer {
     while (this.peek() && /[0-9.]/.test(this.peek())) {
       const char = this.peek();
       if (char === '.') {
+        // Check if this is part of a range operator (...)
+        if (this.peek(1) === '.' && this.peek(2) === '.') {
+          // This is a range operator, stop reading the number
+          break;
+        }
         if (hasDecimal) {
           // Already has a decimal point, stop here
           break;
