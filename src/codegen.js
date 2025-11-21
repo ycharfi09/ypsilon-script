@@ -171,6 +171,10 @@ class CodeGenerator {
     }
     code += '\n';
     
+    // Add hardware type helper classes
+    code += this.generateHardwareTypeClasses();
+    code += '\n';
+    
     // Add PWM backend setup if needed
     const pwmBackend = this.config.getPWMBackend();
     const pwmSetup = generatePWMSetup(pwmBackend);
@@ -465,7 +469,12 @@ class CodeGenerator {
       'float': 'float',
       'bool': 'bool',
       'string': 'String',
-      'void': 'void'
+      'void': 'void',
+      'Digital': 'Digital',
+      'Analog': 'Analog',
+      'PWM': 'PWM',
+      'List': 'std::vector',  // We'll need to handle generic types better
+      'Map': 'std::map'       // We'll need to handle generic types better
     };
     // If it's not a built-in type, assume it's a class name
     return typeMap[type] || type;
@@ -512,7 +521,17 @@ class CodeGenerator {
     const type = this.mapType(varDecl.varType);
     let code = `${typePrefix}${volatilePrefix}${type} ${varDecl.name}`;
     if (varDecl.init) {
-      code += ' = ' + this.generateExpression(varDecl.init);
+      let initValue = this.generateExpression(varDecl.init);
+      
+      // If there's a range constraint, add compile-time or runtime checking
+      if (varDecl.range) {
+        const minVal = this.generateExpression(varDecl.range.min);
+        const maxVal = this.generateExpression(varDecl.range.max);
+        // Add a constrained function to ensure the value is in range
+        initValue = `constrain(${initValue}, ${minVal}, ${maxVal})`;
+      }
+      
+      code += ' = ' + initValue;
     }
     return code + ';';
   }
@@ -611,6 +630,10 @@ class CodeGenerator {
         return 'this';
       case 'NewExpression':
         return this.generateNewExpression(expr);
+      case 'TypeConversion':
+        return this.generateTypeConversion(expr);
+      case 'ErrorHandling':
+        return this.generateErrorHandling(expr);
       default:
         return '';
     }
@@ -641,7 +664,45 @@ class CodeGenerator {
     } else if (expr.valueType === 'boolean') {
       return expr.value ? 'true' : 'false';
     }
+    
+    // Handle numeric literals with units
+    if (expr.unit) {
+      return String(this.convertUnitToValue(expr.value, expr.unit));
+    }
+    
     return String(expr.value);
+  }
+  
+  // Convert unit values to raw integers
+  convertUnitToValue(value, unit) {
+    const unitConversions = {
+      // Time units (convert to milliseconds)
+      'us': value / 1000,
+      'ms': value,
+      's': value * 1000,
+      'min': value * 60000,
+      'h': value * 3600000,
+      
+      // Frequency units (convert to Hz)
+      'Hz': value,
+      'kHz': value * 1000,
+      'MHz': value * 1000000,
+      
+      // Angle units (convert to raw integer degrees)
+      'deg': value,
+      'rad': value * (180 / Math.PI),
+      
+      // Distance units (convert to millimeters)
+      'mm': value,
+      'cm': value * 10,
+      'm': value * 1000,
+      'km': value * 1000000,
+      
+      // Speed units (RPM as-is)
+      'rpm': value
+    };
+    
+    return unitConversions[unit] !== undefined ? unitConversions[unit] : value;
   }
 
   generateBinaryExpression(expr) {
@@ -1043,6 +1104,110 @@ class CodeGenerator {
       'high': 'HIGH'
     };
     return modeMap[mode.toLowerCase()] || 'CHANGE';
+  }
+  
+  // Generate type conversion (.as<type>())
+  generateTypeConversion(expr) {
+    const sourceExpr = this.generateExpression(expr.expression);
+    const targetType = expr.targetType;
+    
+    // Map YS types to C++ casts
+    const typeMap = {
+      'int': 'int',
+      'float': 'float',
+      'bool': 'bool',
+      'string': 'String',
+      'Digital': 'int',  // Digital to int returns the pin number
+      'Analog': 'int',   // Analog to int returns the pin number
+      'PWM': 'int'       // PWM to int returns the pin number
+    };
+    
+    const cppType = typeMap[targetType] || targetType;
+    return `static_cast<${cppType}>(${sourceExpr})`;
+  }
+  
+  // Generate error handling (!catch blocks)
+  generateErrorHandling(expr) {
+    // For now, we'll generate a try-catch-like structure
+    // In Arduino, we don't have exceptions, so we'll use a simple check
+    const exprCode = this.generateExpression(expr.expression);
+    
+    // Generate the catch block code
+    let catchCode = '';
+    this.indent++;
+    for (const stmt of expr.catchBlock) {
+      catchCode += this.generateStatement(stmt);
+    }
+    this.indent--;
+    
+    // For simplicity, we'll just execute the expression normally
+    // A full implementation would need runtime error checking
+    return `(${exprCode})`; // Simplified - actual error handling would be more complex
+  }
+
+  // Generate hardware type helper classes (Digital, Analog, PWM)
+  generateHardwareTypeClasses() {
+    let code = '// Hardware Type Classes\n';
+    
+    // Digital class
+    code += 'class Digital {\n';
+    code += 'private:\n';
+    code += '  int pin;\n';
+    code += '  bool state;\n';
+    code += 'public:\n';
+    code += '  Digital(int p) : pin(p), state(false) {}\n';
+    code += '  void high() { pinMode(pin, OUTPUT); digitalWrite(pin, HIGH); state = true; }\n';
+    code += '  void low() { pinMode(pin, OUTPUT); digitalWrite(pin, LOW); state = false; }\n';
+    code += '  void toggle() { pinMode(pin, OUTPUT); state = !state; digitalWrite(pin, state ? HIGH : LOW); }\n';
+    code += '  bool isHigh() { pinMode(pin, INPUT); return digitalRead(pin) == HIGH; }\n';
+    code += '  bool isLow() { pinMode(pin, INPUT); return digitalRead(pin) == LOW; }\n';
+    code += '  void write(bool value) { pinMode(pin, OUTPUT); digitalWrite(pin, value ? HIGH : LOW); state = value; }\n';
+    code += '  bool read() { pinMode(pin, INPUT); return digitalRead(pin) == HIGH; }\n';
+    code += '};\n\n';
+    
+    // Analog class
+    code += 'class Analog {\n';
+    code += 'private:\n';
+    code += '  int pin;\n';
+    code += 'public:\n';
+    code += '  Analog(int p) : pin(p) {}\n';
+    code += '  int read() { pinMode(pin, INPUT); return analogRead(pin); }\n';
+    code += '};\n\n';
+    
+    // PWM class - board-specific implementation
+    const pwmBackend = this.config ? this.config.getPWMBackend() : 'analogWrite';
+    if (pwmBackend === 'ledc') {
+      // ESP32/ESP8266 LEDC implementation
+      code += 'class PWM {\n';
+      code += 'private:\n';
+      code += '  int pin;\n';
+      code += '  int value;\n';
+      code += '  int channel;\n';
+      code += '  static int nextChannel;\n';
+      code += 'public:\n';
+      code += '  PWM(int p) : pin(p), value(0) {\n';
+      code += '    channel = nextChannel++;\n';
+      code += '    ledcSetup(channel, 5000, 8);\n';
+      code += '    ledcAttachPin(pin, channel);\n';
+      code += '  }\n';
+      code += '  void set(int v) { value = v; ledcWrite(channel, v); }\n';
+      code += '  int get() { return value; }\n';
+      code += '};\n';
+      code += 'int PWM::nextChannel = 0;\n\n';
+    } else {
+      // AVR analogWrite implementation
+      code += 'class PWM {\n';
+      code += 'private:\n';
+      code += '  int pin;\n';
+      code += '  int value;\n';
+      code += 'public:\n';
+      code += '  PWM(int p) : pin(p), value(0) { pinMode(pin, OUTPUT); }\n';
+      code += '  void set(int v) { value = v; analogWrite(pin, v); }\n';
+      code += '  int get() { return value; }\n';
+      code += '};\n\n';
+    }
+    
+    return code;
   }
 }
 
