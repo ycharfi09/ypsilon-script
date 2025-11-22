@@ -1370,7 +1370,7 @@ public:
     // PWM class with board-specific implementation
     if (this.usedHardwareTypes.has('PWM')) {
       if (isESP) {
-      code += `class PWM {
+        code += `class PWM {
 private:
   int _pin;
   int _value;
@@ -1397,9 +1397,9 @@ public:
 int PWM::_nextChannel = 0;
 
 `;
-    } else {
-      // AVR boards
-      code += `class PWM {
+      } else {
+        // AVR boards
+        code += `class PWM {
 private:
   int _pin;
   int _value;
@@ -2147,8 +2147,7 @@ public:
     if (this.usedCollectionTypes.has('Map')) {
       code += '#include <map>\n';
     }
-    // String is commonly used by both, include if either is used
-    code += '#include <string>\n\n';
+    code += '\n';
     
     // List class (wrapper around std::vector)
     if (this.usedCollectionTypes.has('List')) {
