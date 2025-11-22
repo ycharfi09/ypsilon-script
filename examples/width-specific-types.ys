@@ -1,0 +1,114 @@
+@main
+
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
+# Width-Specific Integer Types Example
+# Demonstrates the use of u8, u16, u32, u64, i8, i16, i32, i64, byte, and short types
+
+# Define a struct using width-specific types
+struct SensorData {
+  u8 temperature
+  u16 pressure
+  i8 offset
+}
+
+# Class with width-specific types
+class Motor {
+  mut u8 speed
+  mut i16 position
+  mut u32 totalSteps
+  const byte id
+  
+  constructor(byte motorId) {
+    self.id = motorId
+    self.speed = 0
+    self.position = 0
+    self.totalSteps = 0
+  }
+  
+  fn setSpeed(u8 newSpeed) {
+    self.speed = newSpeed
+  }
+  
+  fn updatePosition(i16 delta) {
+    self.position = self.position + delta
+  }
+}
+
+# Global variables with width-specific types
+const byte LED_PIN = 13
+const byte MAX_MOTORS = 4
+mut u8 motorCount = 0
+mut u16 loopCounter = 0
+mut i8 temperature = 25
+mut short sensorValue = 0
+
+# Function with width-specific types
+fn calculateAverage(u8 val1, u8 val2) -> u8 {
+  mut u16 sum = val1.as<u16>() + val2.as<u16>()
+  return (sum / 2).as<u8>()
+}
+
+fn processData(u32 timestamp, i16 reading) -> void {
+  print("Timestamp:")
+  print(timestamp)
+  print("Reading:")
+  print(reading)
+}
+
+# Initialize motor instance
+mut Motor motor1 = new Motor(1)
+
+on start {
+  pinMode(LED_PIN, OUTPUT)
+  
+  print("Width-Specific Integer Types Demo")
+  print("================================")
+  
+  # Display type ranges
+  print("u8 range: 0 to 255")
+  print("i8 range: -128 to 127")
+  print("u16 range: 0 to 65535")
+  print("i16 range: -32768 to 32767")
+  
+  # Initialize motor
+  motor1.setSpeed(128)
+  motor1.updatePosition(100)
+  
+  print("Motor initialized")
+}
+
+on loop {
+  # Use different width-specific types
+  mut byte brightness = 0
+  mut u8 i = 0
+  
+  # Fade LED
+  while (i < 255) {
+    brightness = i
+    analogWrite(LED_PIN, brightness)
+    wait 10ms
+    i = i + 1
+  }
+  
+  # Update motor
+  motor1.setSpeed(200)
+  motor1.updatePosition(10)
+  
+  # Update counters
+  loopCounter = loopCounter + 1
+  
+  # Call functions with width-specific parameters
+  mut u8 avg = calculateAverage(100, 200)
+  processData(loopCounter.as<u32>(), sensorValue)
+  
+  print("Loop:")
+  print(loopCounter)
+  
+  wait 1s
+}

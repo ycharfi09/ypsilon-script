@@ -386,7 +386,8 @@ class CodeGenerator {
     
     // Generate properties
     for (const prop of cls.properties) {
-      code += '  ' + this.mapType(prop.propertyType) + ' ' + prop.name;
+      const constPrefix = prop.isMut === false ? 'const ' : '';
+      code += '  ' + constPrefix + this.mapType(prop.propertyType) + ' ' + prop.name;
       if (prop.init) {
         // Note: In-class initialization requires C++11
         code += ' = ' + this.generateExpression(prop.init);
@@ -472,6 +473,16 @@ class CodeGenerator {
       'bool': 'bool',
       'string': 'String',
       'void': 'void',
+      'u8': 'uint8_t',
+      'u16': 'uint16_t',
+      'u32': 'uint32_t',
+      'u64': 'uint64_t',
+      'i8': 'int8_t',
+      'i16': 'int16_t',
+      'i32': 'int32_t',
+      'i64': 'int64_t',
+      'byte': 'uint8_t',
+      'short': 'int16_t',
       'Digital': 'Digital',
       'Analog': 'Analog',
       'PWM': 'PWM',
@@ -480,6 +491,34 @@ class CodeGenerator {
     };
     // If it's not a built-in type, assume it's a class name
     return typeMap[type] || type;
+  }
+
+  getTypeRange(type) {
+    // Returns the valid range for width-specific integer types
+    // Note: u64 and i64 are not validated due to JavaScript number limitations
+    const ranges = {
+      'u8': { min: 0, max: 255 },
+      'u16': { min: 0, max: 65535 },
+      'u32': { min: 0, max: 4294967295 },
+      'i8': { min: -128, max: 127 },
+      'i16': { min: -32768, max: 32767 },
+      'i32': { min: -2147483648, max: 2147483647 },
+      'byte': { min: 0, max: 255 },
+      'short': { min: -32768, max: 32767 }
+    };
+    return ranges[type] || null;
+  }
+
+  validateTypeRange(type, value) {
+    // Validates if a value is within range for a specific type
+    const range = this.getTypeRange(type);
+    if (!range) return true; // No range to validate
+    
+    // For literal values, check if they're in range
+    if (typeof value === 'number') {
+      return value >= range.min && value <= range.max;
+    }
+    return true; // Can't validate non-literal values at compile time
   }
 
   generateStatement(stmt) {
@@ -521,6 +560,34 @@ class CodeGenerator {
     const typePrefix = varDecl.kind === 'const' ? 'const ' : '';
     const volatilePrefix = isVolatile && varDecl.kind !== 'const' ? 'volatile ' : '';
     const type = this.mapType(varDecl.varType);
+    
+    // Compile-time range checking for literal values
+    if (varDecl.init) {
+      const range = this.getTypeRange(varDecl.varType);
+      if (range) {
+        let value = null;
+        
+        // Handle direct literals
+        if (varDecl.init.type === 'Literal' && typeof varDecl.init.value === 'number') {
+          value = varDecl.init.value;
+        }
+        // Handle unary minus expressions (e.g., -128)
+        else if (varDecl.init.type === 'UnaryExpression' && 
+                 varDecl.init.operator === '-' && 
+                 varDecl.init.argument.type === 'Literal' &&
+                 typeof varDecl.init.argument.value === 'number') {
+          value = -varDecl.init.argument.value;
+        }
+        
+        if (value !== null && (value < range.min || value > range.max)) {
+          throw new Error(
+            `Compile Error: Value ${value} is out of range for type ${varDecl.varType}. ` +
+            `Valid range: ${range.min} to ${range.max}`
+          );
+        }
+      }
+    }
+    
     let code = `${typePrefix}${volatilePrefix}${type} ${varDecl.name}`;
     if (varDecl.init) {
       code += ' = ' + this.generateExpression(varDecl.init);
@@ -741,6 +808,12 @@ class CodeGenerator {
       '-': '-'
     };
     const op = operatorMap[expr.operator] || expr.operator;
+    
+    // For negative literals, don't wrap in parentheses
+    if (expr.operator === '-' && expr.argument.type === 'Literal') {
+      return `${op}${this.generateExpression(expr.argument)}`;
+    }
+    
     return `${op}(${this.generateExpression(expr.argument)})`;
   }
 
