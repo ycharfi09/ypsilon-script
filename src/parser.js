@@ -1004,7 +1004,21 @@ class Parser {
           };
         } else {
           // Regular member access
-          const property = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+          const token = this.peek();
+          let property;
+          
+          // Allow keywords to be used as method/property names in member access
+          if (token.type === TOKEN_TYPES.IDENTIFIER) {
+            property = token.value;
+            this.advance();
+          } else if (token.type === TOKEN_TYPES.ON || token.type === TOKEN_TYPES.OFF) {
+            // Allow 'on' and 'off' as method names for LED-like classes
+            property = token.value || token.type.toLowerCase();
+            this.advance();
+          } else {
+            this.error(`Expected property name but got ${token.type}`);
+          }
+          
           expr = {
             type: 'MemberExpression',
             object: expr,
