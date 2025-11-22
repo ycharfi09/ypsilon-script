@@ -150,7 +150,7 @@ function openSerialMonitor(port, baudRate = 9600) {
 /**
  * Compile and upload in one step
  */
-function compileAndUpload(sketchPath, config) {
+function compileAndUpload(sketchPath, config, enableRetrieval = false) {
   // Compile first
   const compileResult = compileSketch(sketchPath, config);
   if (!compileResult.success) {
@@ -158,7 +158,7 @@ function compileAndUpload(sketchPath, config) {
   }
   
   // Then upload
-  const uploadResult = uploadSketch(sketchPath, config);
+  const uploadResult = uploadSketch(sketchPath, config, enableRetrieval);
   return uploadResult;
 }
 

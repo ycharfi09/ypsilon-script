@@ -330,7 +330,7 @@ function handleUpload(args, options) {
   const sketchName = path.basename(outputFile, '.ino');
   
   console.log('');
-  const uploadResult = uploadSketch(sketchDir, result.config, options.enableRetrieval);
+  const uploadResult = compileAndUpload(sketchDir, result.config, options.enableRetrieval);
   
   if (!uploadResult.success) {
     console.error('Upload failed:', uploadResult.error);
@@ -369,7 +369,7 @@ function handleRun(args, options) {
   const sketchDir = path.dirname(outputFile);
   
   console.log('');
-  const uploadResult = uploadSketch(sketchDir, result.config, options.enableRetrieval);
+  const uploadResult = compileAndUpload(sketchDir, result.config, options.enableRetrieval);
   
   if (!uploadResult.success) {
     console.error('Upload failed:', uploadResult.error);
