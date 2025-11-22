@@ -35,6 +35,10 @@ class CodeGenerator {
     this.needsWire = false;
     this.needsSPI = false;
     this.timeVarCounter = 0;
+    // Track which hardware types are used
+    this.usedHardwareTypes = new Set();
+    // Track which collection types are used
+    this.usedCollectionTypes = new Set();
   }
 
   generate() {
@@ -68,6 +72,22 @@ class CodeGenerator {
         this.needsWire = true;
       } else if (node.varType === 'SPI') {
         this.needsSPI = true;
+      }
+      
+      // Track usage of hardware types
+      const hardwareTypes = [
+        'Digital', 'Analog', 'PWM', 'I2C', 'SPI', 'UART',
+        'Servo', 'Encoder', 'DCMotor', 'StepperMotor',
+        'Led', 'RgbLed', 'Button', 'Buzzer'
+      ];
+      if (hardwareTypes.includes(node.varType)) {
+        this.usedHardwareTypes.add(node.varType);
+      }
+      
+      // Track usage of collection types
+      const collectionTypes = ['List', 'Map'];
+      if (collectionTypes.includes(node.varType)) {
+        this.usedCollectionTypes.add(node.varType);
       }
     }
     
@@ -1243,12 +1263,18 @@ class CodeGenerator {
 
   // Generate built-in hardware type classes
   generateHardwareTypes() {
+    // Only generate if any hardware types are used
+    if (this.usedHardwareTypes.size === 0) {
+      return '';
+    }
+    
     const board = this.config.options.board;
     const isESP = board && (board.includes('esp32') || board.includes('esp8266'));
     
     let code = '// Built-in Hardware Types\n';
     
     // Digital class
+    if (this.usedHardwareTypes.has('Digital')) {
     code += `class Digital {
 private:
   int _pin;
@@ -1320,9 +1346,11 @@ public:
 };
 
 `;
+    }
     
     // Analog class
-    code += `class Analog {
+    if (this.usedHardwareTypes.has('Analog')) {
+      code += `class Analog {
 private:
   int _pin;
   
@@ -1337,10 +1365,12 @@ public:
 };
 
 `;
+    }
     
     // PWM class with board-specific implementation
-    if (isESP) {
-      code += `class PWM {
+    if (this.usedHardwareTypes.has('PWM')) {
+      if (isESP) {
+        code += `class PWM {
 private:
   int _pin;
   int _value;
@@ -1367,9 +1397,9 @@ public:
 int PWM::_nextChannel = 0;
 
 `;
-    } else {
-      // AVR boards
-      code += `class PWM {
+      } else {
+        // AVR boards
+        code += `class PWM {
 private:
   int _pin;
   int _value;
@@ -1390,9 +1420,11 @@ public:
 };
 
 `;
+      }
     }
     
     // I2C class
+    if (this.usedHardwareTypes.has('I2C')) {
     code += `class I2C {
 private:
   int _bus;
@@ -1442,9 +1474,11 @@ public:
 };
 
 `;
+    }
     
     // SPI class
-    code += `class SPI {
+    if (this.usedHardwareTypes.has('SPI')) {
+      code += `class SPI {
 private:
   int _bus;
   bool _initialized;
@@ -1491,9 +1525,11 @@ public:
 };
 
 `;
+    }
     
     // UART class
-    code += `class UART {
+    if (this.usedHardwareTypes.has('UART')) {
+      code += `class UART {
 private:
   long _baud;
   int _port;
@@ -1608,9 +1644,11 @@ public:
 };
 
 `;
+    }
     
     // Servo class
-    code += `class Servo {
+    if (this.usedHardwareTypes.has('Servo')) {
+      code += `class Servo {
 private:
   ::Servo _servo;
   int _pin;
@@ -1654,9 +1692,11 @@ public:
 };
 
 `;
+    }
     
     // Encoder class
-    code += `class Encoder {
+    if (this.usedHardwareTypes.has('Encoder')) {
+      code += `class Encoder {
 private:
   int _pinA;
   int _pinB;
@@ -1702,9 +1742,11 @@ public:
 };
 
 `;
+    }
     
     // DCMotor class
-    code += `class DCMotor {
+    if (this.usedHardwareTypes.has('DCMotor')) {
+      code += `class DCMotor {
 private:
   int _pinPWM;
   int _pinDir1;
@@ -1769,9 +1811,11 @@ public:
 };
 
 `;
+    }
     
     // StepperMotor class
-    code += `class StepperMotor {
+    if (this.usedHardwareTypes.has('StepperMotor')) {
+      code += `class StepperMotor {
 private:
   int _pin1;
   int _pin2;
@@ -1822,9 +1866,11 @@ public:
 };
 
 `;
+    }
     
     // Led class
-    code += `class Led {
+    if (this.usedHardwareTypes.has('Led')) {
+      code += `class Led {
 private:
   int _pin;
   bool _dimmable;
@@ -1864,9 +1910,11 @@ public:
 };
 
 `;
+    }
     
     // RgbLed class
-    code += `class RgbLed {
+    if (this.usedHardwareTypes.has('RgbLed')) {
+      code += `class RgbLed {
 private:
   int _pinR;
   int _pinG;
@@ -1949,9 +1997,11 @@ public:
 };
 
 `;
+    }
     
     // Button class
-    code += `class Button {
+    if (this.usedHardwareTypes.has('Button')) {
+      code += `class Button {
 private:
   int _pin;
   bool _pullup;
@@ -2024,9 +2074,11 @@ public:
 };
 
 `;
+    }
     
     // Buzzer class
-    code += `class Buzzer {
+    if (this.usedHardwareTypes.has('Buzzer')) {
+      code += `class Buzzer {
 private:
   int _pin;
   bool _toneCapable;
@@ -2074,19 +2126,32 @@ public:
 };
 
 `;
+    }
     
     return code;
   }
 
   // Generate built-in collection type classes
   generateCollectionTypes() {
+    // Only generate if any collection types are used
+    if (this.usedCollectionTypes.size === 0) {
+      return '';
+    }
+    
     let code = '// Built-in Collection Types\n';
-    code += '#include <vector>\n';
-    code += '#include <map>\n';
-    code += '#include <string>\n\n';
+    
+    // Add includes only for the collection types that are used
+    if (this.usedCollectionTypes.has('List')) {
+      code += '#include <vector>\n';
+    }
+    if (this.usedCollectionTypes.has('Map')) {
+      code += '#include <map>\n';
+    }
+    code += '\n';
     
     // List class (wrapper around std::vector)
-    code += `template<typename T>
+    if (this.usedCollectionTypes.has('List')) {
+      code += `template<typename T>
 class List {
 private:
   std::vector<T> _data;
@@ -2126,9 +2191,11 @@ public:
 };
 
 `;
+    }
     
     // Map class (wrapper around std::map)
-    code += `template<typename K, typename V>
+    if (this.usedCollectionTypes.has('Map')) {
+      code += `template<typename K, typename V>
 class Map {
 private:
   std::map<K, V> _data;
@@ -2162,6 +2229,7 @@ public:
 };
 
 `;
+    }
     
     return code;
   }
