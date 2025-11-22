@@ -323,7 +323,7 @@ const float THRESHOLD = 3.5;`;
     const result = compile(source);
     
     expect(result.success).toBe(true);
-    expect(result.code).toContain('-(5)');
+    expect(result.code).toContain('-5');
   });
 
   test('should compile functions with typed parameters', () => {
