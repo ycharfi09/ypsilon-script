@@ -1956,8 +1956,9 @@ private:
   int _pin;
   bool _pullup;
   bool _activeLow;
-  bool _lastState;
+  bool _lastReading;
   bool _currentState;
+  bool _previousState;
   unsigned long _lastDebounceTime;
   unsigned long _debounceDelay;
   
@@ -1967,33 +1968,36 @@ private:
   }
   
 public:
-  Button(int pin) : _pin(pin), _pullup(true), _activeLow(true), _lastState(false), 
-                    _currentState(false), _lastDebounceTime(0), _debounceDelay(50) {
+  Button(int pin) : _pin(pin), _pullup(true), _activeLow(true), _lastReading(false), 
+                    _currentState(false), _previousState(false), _lastDebounceTime(0), _debounceDelay(50) {
     pinMode(_pin, _pullup ? INPUT_PULLUP : INPUT);
     _currentState = readRaw();
-    _lastState = _currentState;
+    _previousState = _currentState;
+    _lastReading = _currentState;
   }
   
   Button(int pin, bool pullup, bool activeLow) 
-    : _pin(pin), _pullup(pullup), _activeLow(activeLow), _lastState(false),
-      _currentState(false), _lastDebounceTime(0), _debounceDelay(50) {
+    : _pin(pin), _pullup(pullup), _activeLow(activeLow), _lastReading(false),
+      _currentState(false), _previousState(false), _lastDebounceTime(0), _debounceDelay(50) {
     pinMode(_pin, _pullup ? INPUT_PULLUP : INPUT);
     _currentState = readRaw();
-    _lastState = _currentState;
+    _previousState = _currentState;
+    _lastReading = _currentState;
   }
   
   void update() {
     bool reading = readRaw();
-    if (reading != _lastState) {
+    if (reading != _lastReading) {
       _lastDebounceTime = millis();
     }
     
     if ((millis() - _lastDebounceTime) > _debounceDelay) {
       if (reading != _currentState) {
+        _previousState = _currentState;
         _currentState = reading;
       }
     }
-    _lastState = reading;
+    _lastReading = reading;
   }
   
   bool pressed() {
@@ -2007,15 +2011,15 @@ public:
   }
   
   bool justPressed() {
+    bool prev = _previousState;
     update();
-    bool result = _currentState && !_lastState;
-    return result;
+    return _currentState && !prev;
   }
   
   bool justReleased() {
+    bool prev = _previousState;
     update();
-    bool result = !_currentState && _lastState;
-    return result;
+    return !_currentState && prev;
   }
 };
 
