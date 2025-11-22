@@ -27,11 +27,13 @@ on start {
 
 on loop {
   # Example: Write data to device at address 0x50
-  mut List data = [0x00, 0x01, 0x02]
-  bus.write(0x50, data)
+  # Note: In C++ implementation, write accepts vector/array
+  # For now, scan is the main demo feature
   
-  # Example: Read 4 bytes from device at address 0x50
-  mut List response = bus.read(0x50, 4)
+  # Periodic device scan
+  mut List devices = bus.scan()
+  print("Active I2C devices: ")
+  print(devices.length())
   
-  wait 1s
+  wait 5s
 }
