@@ -26,6 +26,17 @@ function isTypeToken(tokenType) {
     TOKEN_TYPES.TYPE_DIGITAL,
     TOKEN_TYPES.TYPE_ANALOG,
     TOKEN_TYPES.TYPE_PWM,
+    TOKEN_TYPES.TYPE_I2C,
+    TOKEN_TYPES.TYPE_SPI,
+    TOKEN_TYPES.TYPE_UART,
+    TOKEN_TYPES.TYPE_SERVO,
+    TOKEN_TYPES.TYPE_ENCODER,
+    TOKEN_TYPES.TYPE_DCMOTOR,
+    TOKEN_TYPES.TYPE_STEPPERMOTOR,
+    TOKEN_TYPES.TYPE_LED,
+    TOKEN_TYPES.TYPE_RGBLED,
+    TOKEN_TYPES.TYPE_BUTTON,
+    TOKEN_TYPES.TYPE_BUZZER,
     TOKEN_TYPES.TYPE_LIST,
     TOKEN_TYPES.TYPE_MAP
   ].includes(tokenType);
@@ -52,6 +63,17 @@ function tokenTypeToString(tokenType) {
     [TOKEN_TYPES.TYPE_DIGITAL]: 'Digital',
     [TOKEN_TYPES.TYPE_ANALOG]: 'Analog',
     [TOKEN_TYPES.TYPE_PWM]: 'PWM',
+    [TOKEN_TYPES.TYPE_I2C]: 'I2C',
+    [TOKEN_TYPES.TYPE_SPI]: 'SPI',
+    [TOKEN_TYPES.TYPE_UART]: 'UART',
+    [TOKEN_TYPES.TYPE_SERVO]: 'Servo',
+    [TOKEN_TYPES.TYPE_ENCODER]: 'Encoder',
+    [TOKEN_TYPES.TYPE_DCMOTOR]: 'DCMotor',
+    [TOKEN_TYPES.TYPE_STEPPERMOTOR]: 'StepperMotor',
+    [TOKEN_TYPES.TYPE_LED]: 'Led',
+    [TOKEN_TYPES.TYPE_RGBLED]: 'RgbLed',
+    [TOKEN_TYPES.TYPE_BUTTON]: 'Button',
+    [TOKEN_TYPES.TYPE_BUZZER]: 'Buzzer',
     [TOKEN_TYPES.TYPE_LIST]: 'List',
     [TOKEN_TYPES.TYPE_MAP]: 'Map'
   };
@@ -1427,7 +1449,17 @@ class Parser {
   // Use statement: use I2C1
   parseUseStatement() {
     this.expect(TOKEN_TYPES.USE);
-    const resource = this.expect(TOKEN_TYPES.IDENTIFIER).value;
+    const token = this.peek();
+    let resource;
+    
+    // Allow both identifiers and type tokens (for things like use I2C, use SPI)
+    if (token.type === TOKEN_TYPES.IDENTIFIER || isTypeToken(token.type)) {
+      resource = token.value;
+      this.advance();
+    } else {
+      this.error(`Expected identifier but got ${token.type}`);
+    }
+    
     this.optionalExpect(TOKEN_TYPES.SEMICOLON);
     
     return {
@@ -1446,7 +1478,7 @@ class Parser {
     let fileName = '';
     while (this.peek().type !== TOKEN_TYPES.GREATER_THAN && this.peek().type !== TOKEN_TYPES.EOF) {
       const token = this.peek();
-      if (token.type === TOKEN_TYPES.IDENTIFIER) {
+      if (token.type === TOKEN_TYPES.IDENTIFIER || isTypeToken(token.type)) {
         fileName += token.value;
         this.advance();
       } else if (token.type === TOKEN_TYPES.DOT) {
