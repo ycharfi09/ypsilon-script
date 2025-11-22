@@ -1,0 +1,52 @@
+@main
+
+# LED Control Example
+# Demonstrates simple and dimmable LED control
+
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
+# Create LED instances
+mut Led statusLed = new Led(13)        # Simple on/off LED
+mut Led dimmable = new Led(9, true)    # PWM-capable LED
+
+on start {
+  print("LED control started")
+}
+
+on loop {
+  # Simple LED control
+  print("Status LED: ON")
+  statusLed.on()
+  wait 500ms
+  
+  print("Status LED: OFF")
+  statusLed.off()
+  wait 500ms
+  
+  # Toggle
+  statusLed.toggle()
+  wait 500ms
+  statusLed.toggle()
+  wait 500ms
+  
+  # Dimmable LED - fade in
+  print("Fading in")
+  for (int brightness = 0; brightness < 256; brightness = brightness + 5) {
+    dimmable.setBrightness(brightness)
+    wait 20ms
+  }
+  
+  # Fade out
+  print("Fading out")
+  for (int brightness = 255; brightness > 0; brightness = brightness - 5) {
+    dimmable.setBrightness(brightness)
+    wait 20ms
+  }
+  
+  wait 1s
+}

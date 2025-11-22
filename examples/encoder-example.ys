@@ -1,0 +1,39 @@
+@main
+
+# Rotary Encoder Example
+# Demonstrates encoder position tracking and RPM calculation
+
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
+# Create encoder instance (pins A=2, B=3, 400 pulses per revolution)
+mut Encoder enc = new Encoder(2, 3, 400)
+
+on start {
+  print("Encoder tracking started")
+  enc.reset()
+}
+
+on loop {
+  # Read current position
+  mut i32 pos = enc.position()
+  print("Position: ")
+  print(pos)
+  
+  # Calculate RPM over 1 second window
+  mut i32 speed = enc.rpm(1000)
+  print("RPM: ")
+  print(speed)
+  
+  # Reset position if it exceeds threshold
+  if (pos > 10000 or pos < -10000) {
+    enc.reset()
+    print("Position reset")
+  }
+  
+  wait 500ms
+}

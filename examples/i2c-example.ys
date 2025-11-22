@@ -1,0 +1,37 @@
+@main
+
+# I2C Communication Example
+# Demonstrates I2C bus communication and device scanning
+
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
+# Create I2C bus instance
+mut I2C bus = new I2C()
+
+on start {
+  print("I2C Scanner Starting...")
+  bus.begin()
+  
+  # Scan for I2C devices
+  mut List devices = bus.scan()
+  
+  print("Found devices:")
+  # Note: In real implementation, loop through devices list
+  print("Scan complete")
+}
+
+on loop {
+  # Example: Write data to device at address 0x50
+  mut List data = [0x00, 0x01, 0x02]
+  bus.write(0x50, data)
+  
+  # Example: Read 4 bytes from device at address 0x50
+  mut List response = bus.read(0x50, 4)
+  
+  wait 1s
+}

@@ -1,0 +1,45 @@
+@main
+
+# Stepper Motor Control Example
+# Demonstrates precise stepper motor positioning
+
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
+# Create stepper motor (step pin, direction pin, 200 steps/revolution)
+mut StepperMotor stepper = new StepperMotor(2, 3, 200)
+
+on start {
+  print("Stepper motor control started")
+  stepper.setSpeed(60)  # 60 RPM
+}
+
+on loop {
+  # Move forward 200 steps (1 revolution)
+  print("Moving forward 1 revolution")
+  stepper.moveSteps(200)
+  wait 1s
+  
+  # Check position
+  mut i32 pos = stepper.position()
+  print("Position: ")
+  print(pos)
+  
+  # Move backward 100 steps (half revolution)
+  print("Moving backward half revolution")
+  stepper.moveSteps(-100)
+  wait 1s
+  
+  # Reset position counter
+  stepper.resetPosition()
+  print("Position reset")
+  
+  # Change speed and move
+  stepper.setSpeed(120)  # 120 RPM (faster)
+  stepper.moveSteps(400)  # 2 revolutions
+  wait 2s
+}

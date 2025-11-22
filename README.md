@@ -10,7 +10,11 @@ Ypsilon Script (YS) is designed to make microcontroller development accessible, 
 
 - **Strong Static Typing**: All variables and functions must be explicitly typed
 - **Modern Syntax**: Uses `fn`, `mut`, `self` keywords
-- **Hardware Types**: Built-in `Digital`, `Analog`, `PWM` types with auto pinMode detection
+- **Hardware Types**: Built-in hardware abstraction types with automatic setup:
+  - **Digital I/O**: `Digital`, `Led`, `RgbLed`, `Button`, `Buzzer`
+  - **Analog & PWM**: `Analog`, `PWM`
+  - **Motors**: `Servo`, `DCMotor`, `StepperMotor`, `Encoder`
+  - **Communication**: `I2C`, `SPI`, `UART`
 - **Unit System**: Time (`ms`, `s`, `us`), frequency (`Hz`), angle (`deg`), distance (`cm`, `m`), speed (`rpm`)
 - **Range Constraints**: `mut int value in 0...1023` for automatic bounds enforcement
 - **Type Conversion**: `.as<type>()` syntax for explicit type casting
@@ -566,6 +570,186 @@ YS provides access to standard microcontroller functions:
 - **Serial**: `print()` (outputs to serial)
 - **Constants**: `HIGH`, `LOW`, `INPUT`, `OUTPUT`, `INPUT_PULLUP`
 
+## Hardware Types
+
+Ypsilon Script provides built-in hardware abstraction types that automatically handle pin configuration and provide clean, type-safe APIs for common hardware components.
+
+### Digital I/O Types
+
+#### Led
+```javascript
+mut Led statusLed = new Led(13)
+mut Led dimmable = new Led(9, true)  // PWM-capable
+
+statusLed.on()
+statusLed.off()
+statusLed.toggle()
+dimmable.setBrightness(128)  // 0-255
+```
+
+#### RgbLed
+```javascript
+mut RgbLed rgb = new RgbLed(9, 10, 11)
+mut RgbLed rgbAnode = new RgbLed(9, 10, 11, true)  // Common anode
+
+rgb.red()
+rgb.green()
+rgb.blue()
+rgb.yellow()
+rgb.cyan()
+rgb.magenta()
+rgb.white()
+rgb.orange()
+rgb.purple()
+rgb.pink()
+rgb.set(255, 128, 64)  // Custom RGB
+rgb.off()
+```
+
+#### Button
+```javascript
+mut Button btn = new Button(2)
+mut Button customBtn = new Button(3, false, true)  // pullup, activeLow
+
+if (btn.pressed()) { }
+if (btn.released()) { }
+if (btn.justPressed()) { }    // Edge detection
+if (btn.justReleased()) { }   // Edge detection
+```
+
+#### Buzzer
+```javascript
+mut Buzzer buz = new Buzzer(8)
+mut Buzzer toneBuz = new Buzzer(9, true)  // Tone-capable
+
+buz.on()
+buz.off()
+buz.beep(500)  // Duration in ms
+toneBuz.tone(440, 1000)  // Frequency, duration
+toneBuz.noTone()
+```
+
+### Analog & PWM Types
+
+#### Digital
+```javascript
+mut Digital pin = new Digital(7)
+
+pin.high()
+pin.low()
+pin.toggle()
+if (pin.isHigh()) { }
+if (pin.isLow()) { }
+```
+
+#### Analog
+```javascript
+mut Analog sensor = new Analog(0)
+
+mut int value = sensor.read()  // 0-1023
+```
+
+#### PWM
+```javascript
+mut PWM motor = new PWM(9)
+
+motor.set(128)  // 0-255
+mut int current = motor.get()
+```
+
+### Motor Control Types
+
+#### Servo
+```javascript
+mut Servo servo = new Servo(9)
+mut Servo customServo = new Servo(10, 1000, 2000)  // pin, minUs, maxUs
+
+servo.attach(9)
+servo.detach()
+servo.writeAngle(90)  // 0-180 degrees
+servo.writeMicroseconds(1500)
+mut u16 angle = servo.readAngle()
+mut u16 us = servo.readMicroseconds()
+```
+
+#### DCMotor
+```javascript
+mut DCMotor motor = new DCMotor(9, 8)        // PWM, DIR
+mut DCMotor motor2 = new DCMotor(9, 8, 7)    // PWM, DIR1, DIR2
+
+motor.setSpeed(150)   // -255 to 255
+motor.forward(200)    // 0-255
+motor.reverse(150)    // 0-255
+motor.stop()
+motor.brake()
+```
+
+#### StepperMotor
+```javascript
+mut StepperMotor stepper = new StepperMotor(2, 3, 200)  // step, dir, stepsPerRev
+
+stepper.setSpeed(60)  // RPM
+stepper.moveSteps(200)  // Positive or negative
+mut i32 pos = stepper.position()
+stepper.resetPosition()
+```
+
+#### Encoder
+```javascript
+mut Encoder enc = new Encoder(2, 3, 400)  // pinA, pinB, pulsesPerRev
+
+mut i32 pos = enc.position()
+enc.reset()
+mut i32 speed = enc.rpm(1000)  // Window in ms
+```
+
+### Communication Types
+
+#### I2C
+```javascript
+mut I2C bus = new I2C()
+mut I2C i2c1 = new I2C(1)  // Bus number
+
+bus.begin()
+bus.write(0x50, [0x00, 0x01, 0x02])  // address, data
+mut List response = bus.read(0x50, 4)  // address, length
+mut List devices = bus.scan()  // Returns list of addresses
+```
+
+#### SPI
+```javascript
+mut SPI spi = new SPI()
+mut SPI spi1 = new SPI(1)  // Bus number
+
+spi.begin()
+mut u8 response = spi.transfer(0x42)
+mut List result = spi.transferBuffer([0x01, 0x02])
+spi.setClock(1000000)  // Frequency in Hz
+spi.setMode(0)  // 0-3
+spi.setBitOrder(1)  // 0=LSB, 1=MSB
+```
+
+#### UART
+```javascript
+mut UART serial = new UART(115200)
+mut UART debug = new UART(9600, 1)  // Baud, port
+
+serial.print("Hello")
+serial.println("World")
+mut i16 data = serial.read()
+mut u16 available = serial.available()
+serial.flush()
+```
+
+### Hardware Type Features
+
+- **Automatic Setup**: Pin modes and hardware initialization handled automatically
+- **Type Safety**: Compile-time checking prevents using wrong methods on wrong types
+- **No Manual pinMode**: Hardware types configure pins automatically
+- **Clean API**: Intuitive method names matching hardware behavior
+- **Multiple Instances**: Create as many instances as needed for your hardware
+- **Auto-Include**: Required libraries (Servo.h, Wire.h, SPI.h) included automatically
+
 ## Syntax Summary
 
 YS syntax:
@@ -580,7 +764,7 @@ YS syntax:
 - **Structs**: C++-style data structures
 - **Classes**: OOP with constructors and methods
 - **`new` keyword**: Object instantiation
-- **Hardware types**: `Digital`, `Analog`, `PWM` with auto pinMode
+- **Hardware types**: `Digital`, `Analog`, `PWM`, `Led`, `RgbLed`, `Button`, `Buzzer`, `Servo`, `DCMotor`, `StepperMotor`, `Encoder`, `I2C`, `SPI`, `UART` with automatic setup
 - **Unit literals**: Time, frequency, angle, distance, speed units
 - **Range constraints**: `in min...max` for automatic bounds
 - **Type conversion**: `.as<type>()` for explicit casting

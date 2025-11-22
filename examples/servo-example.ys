@@ -1,0 +1,46 @@
+@main
+
+# Servo Motor Control Example
+# Demonstrates servo positioning and sweeping
+
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
+# Create servo instances
+mut Servo servo = new Servo(9)
+mut Servo customServo = new Servo(10, 1000, 2000)
+
+on start {
+  print("Servo Control Starting...")
+  servo.attach(9)
+  customServo.attach(10)
+}
+
+on loop {
+  # Sweep servo from 0 to 180 degrees
+  for (int angle = 0; angle < 180; angle = angle + 10) {
+    servo.writeAngle(angle)
+    print("Angle: ")
+    print(angle)
+    wait 100ms
+  }
+  
+  # Sweep back from 180 to 0
+  for (int angle = 180; angle > 0; angle = angle - 10) {
+    servo.writeAngle(angle)
+    wait 100ms
+  }
+  
+  # Control with microseconds (custom servo)
+  customServo.writeMicroseconds(1500)
+  wait 1s
+  
+  # Read current position
+  mut u16 currentAngle = servo.readAngle()
+  print("Current angle: ")
+  print(currentAngle)
+}
