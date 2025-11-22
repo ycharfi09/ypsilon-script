@@ -1,0 +1,75 @@
+@main
+
+# RGB LED Control Example
+# Demonstrates color mixing and preset colors
+
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
+# Create RGB LED instances
+mut RgbLed rgb = new RgbLed(9, 10, 11)           # Common cathode
+mut RgbLed rgbAnode = new RgbLed(6, 5, 3, true)  # Common anode
+
+on start {
+  print("RGB LED control started")
+}
+
+on loop {
+  # Show preset colors on first RGB LED
+  print("Red")
+  rgb.red()
+  wait 500ms
+  
+  print("Green")
+  rgb.green()
+  wait 500ms
+  
+  print("Blue")
+  rgb.blue()
+  wait 500ms
+  
+  print("Yellow")
+  rgb.yellow()
+  wait 500ms
+  
+  print("Cyan")
+  rgb.cyan()
+  wait 500ms
+  
+  print("Magenta")
+  rgb.magenta()
+  wait 500ms
+  
+  print("White")
+  rgb.white()
+  wait 500ms
+  
+  print("Orange")
+  rgb.orange()
+  wait 500ms
+  
+  print("Purple")
+  rgb.purple()
+  wait 500ms
+  
+  print("Pink")
+  rgb.pink()
+  wait 500ms
+  
+  # Custom color mixing
+  print("Custom colors")
+  rgb.set(255, 128, 64)  # Orange-ish
+  wait 500ms
+  
+  rgb.set(128, 0, 255)   # Purple-blue
+  wait 500ms
+  
+  # Turn off
+  rgb.off()
+  rgbAnode.off()
+  wait 1s
+}

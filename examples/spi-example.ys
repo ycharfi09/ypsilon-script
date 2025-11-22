@@ -1,0 +1,44 @@
+@main
+
+# SPI Communication Example
+# Demonstrates SPI bus communication
+
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
+alias CS_PIN = 10
+
+# Create SPI bus instance
+mut SPI spi = new SPI()
+mut Digital csPin = new Digital(CS_PIN)
+
+on start {
+  print("SPI Communication Starting...")
+  spi.begin()
+  
+  # Configure SPI settings
+  spi.setClock(1000000)  # 1 MHz
+  spi.setMode(0)         # SPI Mode 0
+  spi.setBitOrder(1)     # MSB first
+  
+  csPin.high()  # CS idle high
+}
+
+on loop {
+  # Select device (CS low)
+  csPin.low()
+  
+  # Transfer single byte
+  mut u8 response = spi.transfer(0x42)
+  print("Response: ")
+  print(response)
+  
+  # Deselect device (CS high)
+  csPin.high()
+  
+  wait 1s
+}

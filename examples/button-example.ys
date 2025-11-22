@@ -1,0 +1,50 @@
+@main
+
+# Button Input Example
+# Demonstrates button state detection with debouncing
+
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
+# Create button instances
+mut Button btn = new Button(2)                # Default: pullup, active low
+mut Button customBtn = new Button(3, false, true)  # No pullup, active low
+
+mut Led led = new Led(13)
+mut int counter = 0
+
+on start {
+  print("Button input demo started")
+}
+
+on loop {
+  # Check if button is pressed
+  if (btn.pressed()) {
+    led.on()
+  } else {
+    led.off()
+  }
+  
+  # Detect button press event (only triggers once per press)
+  if (btn.justPressed()) {
+    counter = counter + 1
+    print("Button pressed! Count: ")
+    print(counter)
+  }
+  
+  # Detect button release event
+  if (btn.justReleased()) {
+    print("Button released")
+  }
+  
+  # Check custom button state
+  if (customBtn.released()) {
+    print("Custom button not pressed")
+  }
+  
+  wait 10ms  # Short delay for responsive button checking
+}

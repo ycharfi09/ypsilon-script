@@ -1,0 +1,72 @@
+@main
+
+# Buzzer Control Example
+# Demonstrates simple beeps and tone generation
+
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
+# Create buzzer instances
+mut Buzzer buz = new Buzzer(8)         # Simple on/off buzzer
+mut Buzzer toneBuz = new Buzzer(9, true)  # Tone-capable buzzer
+
+on start {
+  print("Buzzer demo started")
+  
+  # Welcome beep
+  buz.beep(200)
+  wait 500ms
+}
+
+on loop {
+  # Simple beep pattern
+  print("Beep pattern")
+  buz.on()
+  wait 100ms
+  buz.off()
+  wait 100ms
+  buz.on()
+  wait 100ms
+  buz.off()
+  wait 1s
+  
+  # Longer beep
+  buz.beep(500)
+  wait 1s
+  
+  # Play tones (if tone-capable)
+  print("Playing tones")
+  toneBuz.tone(262, 500)  # C note, 500ms
+  wait 600ms
+  
+  toneBuz.tone(294, 500)  # D note
+  wait 600ms
+  
+  toneBuz.tone(330, 500)  # E note
+  wait 600ms
+  
+  toneBuz.tone(349, 500)  # F note
+  wait 600ms
+  
+  toneBuz.tone(392, 500)  # G note
+  wait 600ms
+  
+  # Stop tone
+  toneBuz.noTone()
+  wait 2s
+  
+  # Alarm pattern
+  print("Alarm pattern")
+  for (int i = 0; i < 5; i = i + 1) {
+    toneBuz.tone(1000, 200)
+    wait 300ms
+    toneBuz.tone(800, 200)
+    wait 300ms
+  }
+  
+  wait 3s
+}

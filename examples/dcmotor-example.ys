@@ -1,0 +1,52 @@
+@main
+
+# DC Motor Control Example
+# Demonstrates motor speed and direction control
+
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
+# Create motor instances
+mut DCMotor motor = new DCMotor(9, 8)          # PWM, DIR
+mut DCMotor motor2 = new DCMotor(10, 11, 12)  # PWM, DIR1, DIR2
+
+on start {
+  print("Motor control started")
+}
+
+on loop {
+  # Motor 1: Forward acceleration
+  print("Motor 1: Forward acceleration")
+  for (int speed = 0; speed < 255; speed = speed + 5) {
+    motor.forward(speed)
+    wait 50ms
+  }
+  
+  # Stop
+  motor.stop()
+  wait 500ms
+  
+  # Motor 1: Reverse
+  print("Motor 1: Reverse")
+  motor.reverse(200)
+  wait 2s
+  
+  # Brake
+  motor.brake()
+  wait 500ms
+  
+  # Motor 2: Variable speed control
+  print("Motor 2: Variable speed")
+  motor2.setSpeed(150)   # Positive = forward
+  wait 2s
+  
+  motor2.setSpeed(-150)  # Negative = reverse
+  wait 2s
+  
+  motor2.setSpeed(0)     # Stop
+  wait 1s
+}

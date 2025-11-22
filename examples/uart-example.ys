@@ -1,0 +1,35 @@
+@main
+
+# UART Serial Communication Example
+# Demonstrates multiple UART ports
+
+config {
+  board: arduino_mega,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
+# Create UART instances
+mut UART serial = new UART(115200)     # Default Serial
+mut UART debug = new UART(9600, 1)     # Serial1
+
+on start {
+  serial.println("System Starting...")
+  debug.println("Debug port active")
+}
+
+on loop {
+  # Check for incoming data on main serial
+  if (serial.available() > 0) {
+    mut i16 data = serial.read()
+    serial.print("Received: ")
+    serial.println(data)
+  }
+  
+  # Send periodic debug info
+  debug.print("Uptime: ")
+  debug.println(millis())
+  
+  wait 1s
+}

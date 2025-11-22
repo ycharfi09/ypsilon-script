@@ -31,6 +31,9 @@ class CodeGenerator {
     this.reactVars = [];
     this.indent = 0;
     this.needsSerial = false;
+    this.needsServo = false;
+    this.needsWire = false;
+    this.needsSPI = false;
     this.timeVarCounter = 0;
   }
 
@@ -55,6 +58,17 @@ class CodeGenerator {
     
     if (node.type === 'CallExpression' && node.callee && node.callee.name === 'print') {
       this.needsSerial = true;
+    }
+    
+    // Check for hardware types that need special includes
+    if (node.type === 'VariableDeclaration' && node.varType) {
+      if (node.varType === 'Servo') {
+        this.needsServo = true;
+      } else if (node.varType === 'I2C') {
+        this.needsWire = true;
+      } else if (node.varType === 'SPI') {
+        this.needsSPI = true;
+      }
     }
     
     // Recursively check all nodes
@@ -162,6 +176,17 @@ class CodeGenerator {
     
     // Add Arduino library includes
     code += '#include <Arduino.h>\n';
+    
+    // Add hardware-specific includes based on usage
+    if (this.needsServo) {
+      code += '#include <Servo.h>\n';
+    }
+    if (this.needsWire) {
+      code += '#include <Wire.h>\n';
+    }
+    if (this.needsSPI) {
+      code += '#include <SPI.h>\n';
+    }
     
     // Add loaded C++ libraries (not .ys files)
     for (const load of this.loadStatements) {
@@ -486,6 +511,17 @@ class CodeGenerator {
       'Digital': 'Digital',
       'Analog': 'Analog',
       'PWM': 'PWM',
+      'I2C': 'I2C',
+      'SPI': 'SPI',
+      'UART': 'UART',
+      'Servo': 'Servo',
+      'Encoder': 'Encoder',
+      'DCMotor': 'DCMotor',
+      'StepperMotor': 'StepperMotor',
+      'Led': 'Led',
+      'RgbLed': 'RgbLed',
+      'Button': 'Button',
+      'Buzzer': 'Buzzer',
       'List': 'List',
       'Map': 'Map'
     };
@@ -1355,6 +1391,689 @@ public:
 
 `;
     }
+    
+    // I2C class
+    code += `class I2C {
+private:
+  int _bus;
+  bool _initialized;
+  
+public:
+  I2C() : _bus(0), _initialized(false) {}
+  I2C(int bus) : _bus(bus), _initialized(false) {}
+  
+  void begin() {
+    if (!_initialized) {
+      Wire.begin();
+      _initialized = true;
+    }
+  }
+  
+  void write(uint8_t addr, const std::vector<uint8_t>& data) {
+    begin();
+    Wire.beginTransmission(addr);
+    for (size_t i = 0; i < data.size(); i++) {
+      Wire.write(data[i]);
+    }
+    Wire.endTransmission();
+  }
+  
+  std::vector<uint8_t> read(uint8_t addr, uint8_t length) {
+    begin();
+    std::vector<uint8_t> result;
+    Wire.requestFrom(addr, length);
+    while (Wire.available() && result.size() < length) {
+      result.push_back(Wire.read());
+    }
+    return result;
+  }
+  
+  std::vector<uint8_t> scan() {
+    begin();
+    std::vector<uint8_t> devices;
+    for (uint8_t addr = 1; addr < 127; addr++) {
+      Wire.beginTransmission(addr);
+      if (Wire.endTransmission() == 0) {
+        devices.push_back(addr);
+      }
+    }
+    return devices;
+  }
+};
+
+`;
+    
+    // SPI class
+    code += `class SPI {
+private:
+  int _bus;
+  bool _initialized;
+  
+public:
+  SPI() : _bus(0), _initialized(false) {}
+  SPI(int bus) : _bus(bus), _initialized(false) {}
+  
+  void begin() {
+    if (!_initialized) {
+      ::SPI.begin();
+      _initialized = true;
+    }
+  }
+  
+  uint8_t transfer(uint8_t byte) {
+    begin();
+    return ::SPI.transfer(byte);
+  }
+  
+  std::vector<uint8_t> transferBuffer(const std::vector<uint8_t>& data) {
+    begin();
+    std::vector<uint8_t> result;
+    for (size_t i = 0; i < data.size(); i++) {
+      result.push_back(::SPI.transfer(data[i]));
+    }
+    return result;
+  }
+  
+  void setClock(uint32_t freq) {
+    begin();
+    ::SPI.setClockDivider(freq);
+  }
+  
+  void setMode(uint8_t mode) {
+    begin();
+    ::SPI.setDataMode(mode);
+  }
+  
+  void setBitOrder(uint8_t order) {
+    begin();
+    ::SPI.setBitOrder(order);
+  }
+};
+
+`;
+    
+    // UART class
+    code += `class UART {
+private:
+  long _baud;
+  int _port;
+  bool _initialized;
+  
+public:
+  UART(long baud) : _baud(baud), _port(0), _initialized(false) {
+    begin();
+  }
+  
+  UART(long baud, int port) : _baud(baud), _port(port), _initialized(false) {
+    begin();
+  }
+  
+  void begin() {
+    if (!_initialized) {
+      if (_port == 0) {
+        Serial.begin(_baud);
+      }
+#ifdef HAVE_HWSERIAL1
+      else if (_port == 1) {
+        Serial1.begin(_baud);
+      }
+#endif
+#ifdef HAVE_HWSERIAL2
+      else if (_port == 2) {
+        Serial2.begin(_baud);
+      }
+#endif
+#ifdef HAVE_HWSERIAL3
+      else if (_port == 3) {
+        Serial3.begin(_baud);
+      }
+#endif
+      _initialized = true;
+    }
+  }
+  
+  template<typename T>
+  void print(T value) {
+    begin();
+    if (_port == 0) Serial.print(value);
+#ifdef HAVE_HWSERIAL1
+    else if (_port == 1) Serial1.print(value);
+#endif
+#ifdef HAVE_HWSERIAL2
+    else if (_port == 2) Serial2.print(value);
+#endif
+#ifdef HAVE_HWSERIAL3
+    else if (_port == 3) Serial3.print(value);
+#endif
+  }
+  
+  template<typename T>
+  void println(T value) {
+    begin();
+    if (_port == 0) Serial.println(value);
+#ifdef HAVE_HWSERIAL1
+    else if (_port == 1) Serial1.println(value);
+#endif
+#ifdef HAVE_HWSERIAL2
+    else if (_port == 2) Serial2.println(value);
+#endif
+#ifdef HAVE_HWSERIAL3
+    else if (_port == 3) Serial3.println(value);
+#endif
+  }
+  
+  int16_t read() {
+    begin();
+    if (_port == 0) return Serial.read();
+#ifdef HAVE_HWSERIAL1
+    else if (_port == 1) return Serial1.read();
+#endif
+#ifdef HAVE_HWSERIAL2
+    else if (_port == 2) return Serial2.read();
+#endif
+#ifdef HAVE_HWSERIAL3
+    else if (_port == 3) return Serial3.read();
+#endif
+    return -1;
+  }
+  
+  uint16_t available() {
+    begin();
+    if (_port == 0) return Serial.available();
+#ifdef HAVE_HWSERIAL1
+    else if (_port == 1) return Serial1.available();
+#endif
+#ifdef HAVE_HWSERIAL2
+    else if (_port == 2) return Serial2.available();
+#endif
+#ifdef HAVE_HWSERIAL3
+    else if (_port == 3) return Serial3.available();
+#endif
+    return 0;
+  }
+  
+  void flush() {
+    begin();
+    if (_port == 0) Serial.flush();
+#ifdef HAVE_HWSERIAL1
+    else if (_port == 1) Serial1.flush();
+#endif
+#ifdef HAVE_HWSERIAL2
+    else if (_port == 2) Serial2.flush();
+#endif
+#ifdef HAVE_HWSERIAL3
+    else if (_port == 3) Serial3.flush();
+#endif
+  }
+};
+
+`;
+    
+    // Servo class
+    code += `class Servo {
+private:
+  ::Servo _servo;
+  int _pin;
+  int _minUs;
+  int _maxUs;
+  
+public:
+  Servo(int pin) : _pin(pin), _minUs(1000), _maxUs(2000) {}
+  Servo(int pin, int minUs, int maxUs) : _pin(pin), _minUs(minUs), _maxUs(maxUs) {}
+  
+  void attach(uint8_t pin) {
+    _pin = pin;
+    _servo.attach(_pin, _minUs, _maxUs);
+  }
+  
+  void detach() {
+    _servo.detach();
+  }
+  
+  void writeAngle(uint16_t angleDeg) {
+    if (!_servo.attached()) {
+      _servo.attach(_pin, _minUs, _maxUs);
+    }
+    _servo.write(angleDeg);
+  }
+  
+  void writeMicroseconds(uint16_t us) {
+    if (!_servo.attached()) {
+      _servo.attach(_pin, _minUs, _maxUs);
+    }
+    _servo.writeMicroseconds(us);
+  }
+  
+  uint16_t readAngle() {
+    return _servo.read();
+  }
+  
+  uint16_t readMicroseconds() {
+    return _servo.readMicroseconds();
+  }
+};
+
+`;
+    
+    // Encoder class
+    code += `class Encoder {
+private:
+  int _pinA;
+  int _pinB;
+  int _ppr;
+  volatile int32_t _position;
+  volatile unsigned long _lastTime;
+  volatile int32_t _lastPosition;
+  
+public:
+  Encoder(int pinA, int pinB, int ppr) : _pinA(pinA), _pinB(pinB), _ppr(ppr), _position(0), _lastTime(0), _lastPosition(0) {
+    pinMode(_pinA, INPUT_PULLUP);
+    pinMode(_pinB, INPUT_PULLUP);
+  }
+  
+  int32_t position() {
+    return _position;
+  }
+  
+  void reset() {
+    _position = 0;
+    _lastPosition = 0;
+    _lastTime = millis();
+  }
+  
+  int32_t rpm(unsigned long windowMs) {
+    unsigned long currentTime = millis();
+    int32_t currentPos = _position;
+    
+    if (currentTime - _lastTime >= windowMs) {
+      int32_t deltaPos = currentPos - _lastPosition;
+      unsigned long deltaTime = currentTime - _lastTime;
+      
+      // RPM = (deltaPos / ppr) * (60000 / deltaTime)
+      int32_t rpm = (deltaPos * 60000) / (_ppr * deltaTime);
+      
+      _lastPosition = currentPos;
+      _lastTime = currentTime;
+      
+      return rpm;
+    }
+    return 0;
+  }
+};
+
+`;
+    
+    // DCMotor class
+    code += `class DCMotor {
+private:
+  int _pinPWM;
+  int _pinDir1;
+  int _pinDir2;
+  bool _hasDir2;
+  
+public:
+  DCMotor(int pinPWM, int pinDir1) : _pinPWM(pinPWM), _pinDir1(pinDir1), _pinDir2(-1), _hasDir2(false) {
+    pinMode(_pinPWM, OUTPUT);
+    pinMode(_pinDir1, OUTPUT);
+  }
+  
+  DCMotor(int pinPWM, int pinDir1, int pinDir2) : _pinPWM(pinPWM), _pinDir1(pinDir1), _pinDir2(pinDir2), _hasDir2(true) {
+    pinMode(_pinPWM, OUTPUT);
+    pinMode(_pinDir1, OUTPUT);
+    pinMode(_pinDir2, OUTPUT);
+  }
+  
+  void setSpeed(int16_t speed) {
+    if (speed > 0) {
+      forward(speed);
+    } else if (speed < 0) {
+      reverse(-speed);
+    } else {
+      stop();
+    }
+  }
+  
+  void forward(uint8_t speed) {
+    speed = constrain(speed, 0, 255);
+    if (_hasDir2) {
+      digitalWrite(_pinDir1, HIGH);
+      digitalWrite(_pinDir2, LOW);
+    } else {
+      digitalWrite(_pinDir1, HIGH);
+    }
+    analogWrite(_pinPWM, speed);
+  }
+  
+  void reverse(uint8_t speed) {
+    speed = constrain(speed, 0, 255);
+    if (_hasDir2) {
+      digitalWrite(_pinDir1, LOW);
+      digitalWrite(_pinDir2, HIGH);
+    } else {
+      digitalWrite(_pinDir1, LOW);
+    }
+    analogWrite(_pinPWM, speed);
+  }
+  
+  void stop() {
+    analogWrite(_pinPWM, 0);
+  }
+  
+  void brake() {
+    if (_hasDir2) {
+      digitalWrite(_pinDir1, HIGH);
+      digitalWrite(_pinDir2, HIGH);
+    }
+    analogWrite(_pinPWM, 0);
+  }
+};
+
+`;
+    
+    // StepperMotor class
+    code += `class StepperMotor {
+private:
+  int _pin1;
+  int _pin2;
+  int _stepsPerRev;
+  int32_t _position;
+  uint16_t _speed;
+  unsigned long _stepDelay;
+  
+public:
+  StepperMotor(int pin1, int pin2, int stepsPerRev) 
+    : _pin1(pin1), _pin2(pin2), _stepsPerRev(stepsPerRev), _position(0), _speed(60), _stepDelay(1000) {
+    pinMode(_pin1, OUTPUT);
+    pinMode(_pin2, OUTPUT);
+    setSpeed(60);
+  }
+  
+  void moveSteps(int32_t steps) {
+    for (int32_t i = 0; i < abs(steps); i++) {
+      if (steps > 0) {
+        digitalWrite(_pin1, HIGH);
+        delayMicroseconds(_stepDelay);
+        digitalWrite(_pin1, LOW);
+        delayMicroseconds(_stepDelay);
+        _position++;
+      } else {
+        digitalWrite(_pin2, HIGH);
+        delayMicroseconds(_stepDelay);
+        digitalWrite(_pin2, LOW);
+        delayMicroseconds(_stepDelay);
+        _position--;
+      }
+    }
+  }
+  
+  void setSpeed(uint16_t rpm) {
+    _speed = rpm;
+    // Calculate delay in microseconds
+    _stepDelay = (60L * 1000000L) / (_stepsPerRev * rpm) / 2;
+  }
+  
+  int32_t position() {
+    return _position;
+  }
+  
+  void resetPosition() {
+    _position = 0;
+  }
+};
+
+`;
+    
+    // Led class
+    code += `class Led {
+private:
+  int _pin;
+  bool _dimmable;
+  bool _state;
+  
+public:
+  Led(int pin) : _pin(pin), _dimmable(false), _state(false) {
+    pinMode(_pin, OUTPUT);
+  }
+  
+  Led(int pin, bool dimmable) : _pin(pin), _dimmable(dimmable), _state(false) {
+    pinMode(_pin, OUTPUT);
+  }
+  
+  void on() {
+    digitalWrite(_pin, HIGH);
+    _state = true;
+  }
+  
+  void off() {
+    digitalWrite(_pin, LOW);
+    _state = false;
+  }
+  
+  void toggle() {
+    _state = !_state;
+    digitalWrite(_pin, _state ? HIGH : LOW);
+  }
+  
+  void setBrightness(uint8_t level) {
+    if (_dimmable) {
+      analogWrite(_pin, level);
+    } else {
+      digitalWrite(_pin, level > 127 ? HIGH : LOW);
+    }
+  }
+};
+
+`;
+    
+    // RgbLed class
+    code += `class RgbLed {
+private:
+  int _pinR;
+  int _pinG;
+  int _pinB;
+  bool _commonAnode;
+  
+  void setColor(uint8_t r, uint8_t g, uint8_t b) {
+    if (_commonAnode) {
+      analogWrite(_pinR, 255 - r);
+      analogWrite(_pinG, 255 - g);
+      analogWrite(_pinB, 255 - b);
+    } else {
+      analogWrite(_pinR, r);
+      analogWrite(_pinG, g);
+      analogWrite(_pinB, b);
+    }
+  }
+  
+public:
+  RgbLed(int pinR, int pinG, int pinB) : _pinR(pinR), _pinG(pinG), _pinB(pinB), _commonAnode(false) {
+    pinMode(_pinR, OUTPUT);
+    pinMode(_pinG, OUTPUT);
+    pinMode(_pinB, OUTPUT);
+  }
+  
+  RgbLed(int pinR, int pinG, int pinB, bool commonAnode) 
+    : _pinR(pinR), _pinG(pinG), _pinB(pinB), _commonAnode(commonAnode) {
+    pinMode(_pinR, OUTPUT);
+    pinMode(_pinG, OUTPUT);
+    pinMode(_pinB, OUTPUT);
+  }
+  
+  void set(uint8_t r, uint8_t g, uint8_t b) {
+    setColor(r, g, b);
+  }
+  
+  void off() {
+    setColor(0, 0, 0);
+  }
+  
+  void red() {
+    setColor(255, 0, 0);
+  }
+  
+  void green() {
+    setColor(0, 255, 0);
+  }
+  
+  void blue() {
+    setColor(0, 0, 255);
+  }
+  
+  void yellow() {
+    setColor(255, 255, 0);
+  }
+  
+  void cyan() {
+    setColor(0, 255, 255);
+  }
+  
+  void magenta() {
+    setColor(255, 0, 255);
+  }
+  
+  void white() {
+    setColor(255, 255, 255);
+  }
+  
+  void orange() {
+    setColor(255, 165, 0);
+  }
+  
+  void purple() {
+    setColor(128, 0, 128);
+  }
+  
+  void pink() {
+    setColor(255, 192, 203);
+  }
+};
+
+`;
+    
+    // Button class
+    code += `class Button {
+private:
+  int _pin;
+  bool _pullup;
+  bool _activeLow;
+  bool _lastReading;
+  bool _currentState;
+  bool _previousState;
+  unsigned long _lastDebounceTime;
+  unsigned long _debounceDelay;
+  
+  bool readRaw() {
+    bool raw = digitalRead(_pin);
+    return _activeLow ? !raw : raw;
+  }
+  
+public:
+  Button(int pin) : _pin(pin), _pullup(true), _activeLow(true), _lastReading(false), 
+                    _currentState(false), _previousState(false), _lastDebounceTime(0), _debounceDelay(50) {
+    pinMode(_pin, _pullup ? INPUT_PULLUP : INPUT);
+    _currentState = readRaw();
+    _previousState = _currentState;
+    _lastReading = _currentState;
+  }
+  
+  Button(int pin, bool pullup, bool activeLow) 
+    : _pin(pin), _pullup(pullup), _activeLow(activeLow), _lastReading(false),
+      _currentState(false), _previousState(false), _lastDebounceTime(0), _debounceDelay(50) {
+    pinMode(_pin, _pullup ? INPUT_PULLUP : INPUT);
+    _currentState = readRaw();
+    _previousState = _currentState;
+    _lastReading = _currentState;
+  }
+  
+  void update() {
+    bool reading = readRaw();
+    if (reading != _lastReading) {
+      _lastDebounceTime = millis();
+    }
+    
+    if ((millis() - _lastDebounceTime) > _debounceDelay) {
+      if (reading != _currentState) {
+        _previousState = _currentState;
+        _currentState = reading;
+      }
+    }
+    _lastReading = reading;
+  }
+  
+  bool pressed() {
+    update();
+    return _currentState;
+  }
+  
+  bool released() {
+    update();
+    return !_currentState;
+  }
+  
+  bool justPressed() {
+    bool prev = _previousState;
+    update();
+    return _currentState && !prev;
+  }
+  
+  bool justReleased() {
+    bool prev = _previousState;
+    update();
+    return !_currentState && prev;
+  }
+};
+
+`;
+    
+    // Buzzer class
+    code += `class Buzzer {
+private:
+  int _pin;
+  bool _toneCapable;
+  
+public:
+  Buzzer(int pin) : _pin(pin), _toneCapable(false) {
+    pinMode(_pin, OUTPUT);
+  }
+  
+  Buzzer(int pin, bool toneCapable) : _pin(pin), _toneCapable(toneCapable) {
+    pinMode(_pin, OUTPUT);
+  }
+  
+  void on() {
+    digitalWrite(_pin, HIGH);
+  }
+  
+  void off() {
+    digitalWrite(_pin, LOW);
+    if (_toneCapable) {
+      noTone(_pin);
+    }
+  }
+  
+  void beep(unsigned long durationMs) {
+    on();
+    delay(durationMs);
+    off();
+  }
+  
+  void tone(uint16_t freq, unsigned long durationMs) {
+    if (_toneCapable) {
+      ::tone(_pin, freq, durationMs);
+    } else {
+      beep(durationMs);
+    }
+  }
+  
+  void noTone() {
+    if (_toneCapable) {
+      ::noTone(_pin);
+    }
+    off();
+  }
+};
+
+`;
     
     return code;
   }

@@ -1,0 +1,127 @@
+@main
+
+# Complete Hardware Types Showcase
+# Demonstrates all new hardware types in a single program
+
+config {
+  board: arduino_mega,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
+# Hardware instances
+mut Led statusLed = new Led(13)
+mut RgbLed rgb = new RgbLed(9, 10, 11)
+mut Button startBtn = new Button(2)
+mut Button stopBtn = new Button(3)
+mut Buzzer buz = new Buzzer(8, true)
+mut Servo panServo = new Servo(6)
+mut DCMotor motor = new DCMotor(5, 4)
+mut I2C bus = new I2C()
+mut UART serial = new UART(115200)
+mut UART debug = new UART(9600, 1)
+
+enum SystemState { IDLE, RUNNING, STOPPED }
+mut SystemState state = IDLE
+
+on start {
+  serial.println("=== Hardware Showcase Demo ===")
+  serial.println("Press button to start")
+  
+  # Initialize hardware
+  bus.begin()
+  panServo.attach(6)
+  panServo.writeAngle(90)
+  
+  # Welcome indication
+  rgb.green()
+  buz.beep(200)
+  wait 300ms
+  rgb.off()
+  
+  statusLed.on()
+  debug.println("System ready")
+}
+
+on loop {
+  # Update state based on button inputs
+  if (startBtn.justPressed() and state == IDLE) {
+    state = RUNNING
+    serial.println("Starting...")
+    rgb.green()
+    buz.tone(1000, 100)
+  }
+  
+  if (stopBtn.justPressed() and state == RUNNING) {
+    state = STOPPED
+    serial.println("Stopping...")
+    rgb.red()
+    buz.tone(500, 200)
+    motor.stop()
+  }
+  
+  # State machine
+  match state {
+    IDLE => {
+      statusLed.toggle()
+      rgb.blue()
+      wait 500ms
+    },
+    
+    RUNNING => {
+      statusLed.on()
+      rgb.green()
+      
+      # Run motor
+      motor.forward(200)
+      
+      # Sweep servo
+      for (int angle = 0; angle < 180; angle = angle + 10) {
+        panServo.writeAngle(angle)
+        wait 50ms
+      }
+      
+      for (int angle = 180; angle > 0; angle = angle - 10) {
+        panServo.writeAngle(angle)
+        wait 50ms
+      }
+      
+      # Scan I2C bus
+      mut List devices = bus.scan()
+      serial.print("I2C devices found: ")
+      serial.println(devices.length())
+      
+      # Send debug info
+      debug.print("Motor running, servo at: ")
+      debug.println(panServo.readAngle())
+    },
+    
+    STOPPED => {
+      statusLed.off()
+      rgb.red()
+      motor.stop()
+      panServo.writeAngle(90)
+      
+      serial.println("System stopped. Press start to resume.")
+      wait 2s
+      state = IDLE
+      rgb.off()
+    }
+  }
+  
+  wait 100ms
+}
+
+# Periodic status task
+task statusReport every 5s {
+  debug.print("Uptime: ")
+  debug.print(millis())
+  debug.print("ms, State: ")
+  
+  match state {
+    IDLE => debug.println("IDLE"),
+    RUNNING => debug.println("RUNNING"),
+    STOPPED => debug.println("STOPPED")
+  }
+}
