@@ -1,7 +1,7 @@
 @main
 
 # Sensor Reading Example
-# Read analog sensor and control LED based on threshold
+# Read analog sensor and control LED based on threshold using hardware types
 
 config {
   board: arduino_uno,
@@ -10,23 +10,28 @@ config {
   port: auto
 }
 
-const int SENSOR_PIN = 0
-const int LED_PIN = 13
+# Hardware types with automatic setup
+mut Analog sensor = new Analog(0)
+mut Led led = new Led(13)
+
 const int THRESHOLD = 512
 
 on start {
-    pinMode(LED_PIN, OUTPUT)
+    # No pinMode needed - hardware types handle it automatically
+    print("Sensor monitoring started")
 }
 
 on loop {
-    mut int sensorValue = analogRead(SENSOR_PIN)
+    mut int sensorValue = sensor.read()
     
     if (sensorValue > THRESHOLD) {
-        digitalWrite(LED_PIN, HIGH)
+        led.on()
+        print("Sensor value above threshold:")
+        print(sensorValue)
     } else {
-        digitalWrite(LED_PIN, LOW)
+        led.off()
     }
     
-    delay(100)
+    wait 100ms
 }
 

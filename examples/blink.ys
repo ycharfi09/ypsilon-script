@@ -1,7 +1,7 @@
 @main
 
 # Blink Example - Classic Arduino LED Blink
-# This demonstrates basic pin control and timing
+# This demonstrates modern hardware types and timing
 
 config {
   board: arduino_uno,
@@ -10,16 +10,18 @@ config {
   port: auto
 }
 
-const int LED_PIN = 13
+# Hardware type with automatic pinMode setup
+mut Led led = new Led(13)
 
 on start {
-    pinMode(LED_PIN, OUTPUT)
+    # No pinMode needed - Led type handles it automatically
+    print("Blink started")
 }
 
 on loop {
-    digitalWrite(LED_PIN, HIGH)
-    delay(1000)
-    digitalWrite(LED_PIN, LOW)
-    delay(1000)
+    led.on()
+    wait 1s
+    led.off()
+    wait 1s
 }
 
