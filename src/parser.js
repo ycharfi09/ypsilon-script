@@ -1078,7 +1078,7 @@ class Parser {
       
       case TOKEN_TYPES.IDENTIFIER:
         this.advance();
-        return { type: 'Identifier', name: token.value };
+        return { type: 'Identifier', name: token.value, line: token.line };
       
       case TOKEN_TYPES.LPAREN:
         this.advance();
