@@ -210,6 +210,7 @@ const float THRESHOLD = 3.5;`;
 
   test('should compile if statements with braces', () => {
     const source = `function void loop() {
+      int x = 10;
       if (x > 5) {
         digitalWrite(13, HIGH);
       } else {
@@ -239,6 +240,7 @@ const float THRESHOLD = 3.5;`;
 
   test('should compile while loops', () => {
     const source = `function void loop() {
+      int x = 0;
       while (x < 10) {
         int y = 5;
       }
@@ -252,6 +254,8 @@ const float THRESHOLD = 3.5;`;
 
   test('should handle logical operators', () => {
     const source = `function void loop() {
+      int x = 10;
+      int y = 5;
       if (x > 5 and y < 10) {
         int z = 1;
       }

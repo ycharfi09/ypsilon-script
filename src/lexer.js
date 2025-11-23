@@ -288,6 +288,25 @@ class Lexer {
     let num = '';
     let hasDecimal = false;
     
+    // Check for hex literals (0x or 0X)
+    if (this.peek() === '0' && (this.peek(1) === 'x' || this.peek(1) === 'X')) {
+      num += this.advance(); // '0'
+      num += this.advance(); // 'x' or 'X'
+      
+      // Read hex digits
+      while (this.peek() && /[0-9a-fA-F]/.test(this.peek())) {
+        num += this.advance();
+      }
+      
+      return {
+        type: TOKEN_TYPES.NUMBER,
+        value: parseInt(num, 16), // Parse as hexadecimal
+        unit: null,
+        line: this.line,
+        column: this.column - num.length
+      };
+    }
+    
     while (this.peek() && /[0-9.]/.test(this.peek())) {
       const char = this.peek();
       if (char === '.') {

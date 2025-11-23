@@ -6,6 +6,7 @@
 const { Lexer } = require('./lexer');
 const { Parser } = require('./parser');
 const { CodeGenerator } = require('./codegen');
+const { SemanticAnalyzer } = require('./semantic-analyzer');
 const fs = require('fs');
 const path = require('path');
 
@@ -29,6 +30,23 @@ class Compiler {
       // Parse
       const parser = new Parser(tokens);
       const ast = parser.parse();
+      
+      // Semantic analysis - check for undeclared variables, etc.
+      const analyzer = new SemanticAnalyzer(ast);
+      const analysisResult = analyzer.analyze();
+      
+      // If semantic analysis found errors, return them
+      if (!analysisResult.success) {
+        const errorMessages = analysisResult.errors.map(err => {
+          return `Error at line ${err.line}: ${err.message}`;
+        }).join('\n\n');
+        
+        return {
+          success: false,
+          error: errorMessages,
+          semanticErrors: analysisResult.errors
+        };
+      }
       
       // Check for @main directive
       const hasMain = ast.body.some(stmt => stmt.type === 'MainDirective');
