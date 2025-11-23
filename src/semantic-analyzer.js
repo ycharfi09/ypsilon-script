@@ -50,8 +50,8 @@ class SemanticAnalyzer {
       // Math constants
       'PI',
       
-      // Common C++ functions that might be used
-      'abs', 'round', 'ceil', 'floor'
+      // Common C++ math functions
+      'round', 'ceil', 'floor'
     ];
     
     for (const builtin of builtins) {
@@ -137,7 +137,10 @@ class SemanticAnalyzer {
   // Find similar variable names for suggestions
   findSimilarNames(name) {
     const suggestions = [];
-    // More lenient threshold for better suggestions
+    // Use edit distance with threshold based on name length
+    // For short names (≤6 chars), allow up to 3 edits
+    // For longer names, allow edits up to half the length
+    // This balances between being helpful and avoiding false suggestions
     const maxDistance = Math.max(3, Math.ceil(name.length / 2));
     
     for (const declaredName of this.allDeclaredNames) {
@@ -362,12 +365,14 @@ class SemanticAnalyzer {
   }
 
   analyzeVariableDeclaration(stmt) {
-    // First analyze the initialization expression (if any)
+    // Important: Analyze the initialization expression BEFORE declaring the variable
+    // This prevents cases like "mut int x = x + 1" from being valid
+    // The right-hand side should only reference previously declared variables
     if (stmt.init) {
       this.analyzeExpression(stmt.init);
     }
 
-    // Then declare the variable
+    // Then declare the variable so it's available in subsequent statements
     this.declare(stmt.name);
   }
 
