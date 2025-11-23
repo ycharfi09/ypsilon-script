@@ -42,7 +42,6 @@ class Motor {
 mut Motor motor = new Motor(100)
 mut Mode mode = AUTO
 mut int level = 2
-mut Point position = Point { x: 0, y: 0 }
 
 on start {
     # No pinMode needed - hardware types handle it
