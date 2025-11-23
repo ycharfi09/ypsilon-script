@@ -445,7 +445,7 @@ repeat(3) {
 # Flash indicator 5 times quickly
 repeat(5) {
     statusLed.toggle()
-    delay(100)
+    wait 100ms
 }
 
 # Send pulse sequence
@@ -1408,9 +1408,3 @@ on loop {
 28. **Aliases**: `alias name = value`
 29. **Config blocks**: Target configuration with `@main`
 30. **Inline C++**: `@cpp { }`
-18. **Time literals**: `ms`, `s`, `us`, `min`, `h`
-19. **Atomic blocks**: Interrupt-safe regions
-20. **Library loading**: `load <lib>` and `load <module.ys> as name`
-21. **Aliases**: `alias name = value`
-22. **Config blocks**: Target configuration
-23. **Inline C++**: `@cpp { }`
