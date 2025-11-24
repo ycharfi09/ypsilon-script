@@ -76,6 +76,11 @@ All variables and functions must be explicitly typed.
 - `float` - Floating-point number
 - `bool` - Boolean (true/false)
 - `string` - String type
+- **Width-specific integers**: `u8`, `u16`, `u32`, `u64` (unsigned), `i8`, `i16`, `i32`, `i64` (signed)
+- **Type aliases**: `byte` (u8), `short` (i16)
+- **Float types**: `f32` (32-bit float), `f64` (64-bit double)
+- **Hardware types**: `Digital`, `Analog`, `PWM`, `Led`, `Button`, `Servo`, etc.
+- **Collections**: `List`, `Map`
 - User-defined types: enums, structs, classes
 
 ## Variables
@@ -92,7 +97,35 @@ const bool DEBUG = true
 mut int counter = 0
 mut float temperature = 23.5
 mut bool isActive = false
+
+// Width-specific types
+mut u8 byteValue = 255
+mut i32 signedInt = -100000
+mut f32 singleFloat = 3.14
+mut f64 doubleFloat = 3.141592653589793
 ```
+
+### Array Declaration
+Arrays are declared with literal syntax and compile to native C++ arrays:
+
+```javascript
+// Array literals with automatic size inference
+mut u8 bytes = [1, 2, 3, 4, 5]
+const i32 values = [10, 20, 30]
+mut f32 floats = [1.5, 2.5, 3.5]
+mut f64 doubles = [3.14159, 2.71828]
+
+// Array access with subscript
+mut u8 first = bytes[0]
+bytes[1] = 10
+mut i32 sum = values[0] + values[1]
+```
+
+**Features:**
+- Automatic size inference from initializer list
+- Compiles to native C++ arrays (e.g., `uint8_t bytes[5] = {1, 2, 3, 4, 5}`)
+- Subscript access for read/write operations
+- Works with all integer and float types
 
 ### Type Annotations
 All variables must have explicit type annotations in the format `type name`:

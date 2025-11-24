@@ -19,6 +19,7 @@ Ypsilon Script (YS) is designed to make microcontroller development accessible, 
 - **Range Constraints**: `mut int value in 0...1023` for automatic bounds enforcement
 - **Type Conversion**: `.as<type>()` syntax for explicit type casting
 - **Collections**: `List` and `Map` types with standard methods
+- **Arrays**: C++ array literals with `[element, ...]` syntax and subscript access
 - **Object-Oriented Programming**: Classes with constructors and methods
 - **Enums and Structs**: Rust-style enums and C++-like structs
 - **Pattern Matching**: Match expressions like Rust for powerful control flow
@@ -228,7 +229,28 @@ All variables must be explicitly typed. Use `mut` for mutable variables:
 const int LED_PIN = 13
 mut int counter = 0
 mut float temperature = 23.5
+
+// Width-specific integer types
+mut u8 byteValue = 255          // 0 to 255
+mut u16 shortValue = 65535      // 0 to 65535  
+mut u32 longValue = 4294967295  // 0 to 4294967295
+mut i8 signedByte = -128        // -128 to 127
+mut i16 signedShort = -32768    // -32768 to 32767
+mut i32 signedLong = -2147483648 // -2147483648 to 2147483647
+
+// Float types
+mut f32 singlePrecision = 3.14   // 32-bit float
+mut f64 doublePrecision = 3.141592653589793  // 64-bit double
 ```
+
+**Available Types:**
+- **Basic types**: `int`, `float`, `bool`, `string`, `void`
+- **Unsigned integers**: `u8`, `u16`, `u32`, `u64`
+- **Signed integers**: `i8`, `i16`, `i32`, `i64`
+- **Type aliases**: `byte` (u8), `short` (i16)
+- **Float types**: `f32` (float), `f64` (double)
+- **Hardware types**: `Digital`, `Analog`, `PWM`, `Led`, `Button`, etc.
+- **Collections**: `List`, `Map`
 
 **Important:** Every complete YS program must have exactly one file with `@main` at the top. This marks the entry point of your program.
 
@@ -531,6 +553,47 @@ mut float b = a.as<float>()           // int to float
 
 const float voltage = 3.3
 mut int millivolts = voltage.as<int>()  // float to int
+```
+
+### Arrays
+
+C++ arrays with automatic size inference from initializer lists:
+
+```javascript
+// Array literal initialization
+mut u8 bytes = [1, 2, 3, 4, 5]
+const i32 values = [10, 20, 30]
+mut f32 temperatures = [20.5, 21.0, 22.5]
+mut f64 precise = [3.141592, 2.718281]
+
+// Subscript access for reading
+mut u8 first = bytes[0]
+mut i32 second = values[1]
+
+// Subscript access for writing
+bytes[2] = 100
+values[0] = 50
+
+// Use in expressions
+mut u8 sum = bytes[0] + bytes[1] + bytes[2]
+mut int index = 2
+mut u8 value = bytes[index]
+```
+
+**Features:**
+- Compiles to native C++ arrays (no wrapper overhead)
+- Automatic size inference from initializer
+- Support for all integer types (u8, u16, u32, i8, i16, i32, etc.)
+- Support for float types (f32, f64)
+- Subscript access with `array[index]`
+- Works in expressions and as function parameters
+
+**Generated C++ code:**
+```cpp
+uint8_t bytes[5] = {1, 2, 3, 4, 5};
+const int32_t values[3] = {10, 20, 30};
+float temperatures[3] = {20.5, 21.0, 22.5};
+double precise[2] = {3.141592, 2.718281};
 ```
 
 ### Collections
