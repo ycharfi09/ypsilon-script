@@ -528,6 +528,8 @@ class CodeGenerator {
       'i64': 'int64_t',
       'byte': 'uint8_t',
       'short': 'int16_t',
+      'f32': 'float',
+      'f64': 'double',
       'Digital': 'Digital',
       'Analog': 'Analog',
       'PWM': 'PWM',
@@ -617,8 +619,11 @@ class CodeGenerator {
     const volatilePrefix = isVolatile && varDecl.kind !== 'const' ? 'volatile ' : '';
     const type = this.mapType(varDecl.varType);
     
+    // Check if initializer is an array literal
+    const isArrayInit = varDecl.init && varDecl.init.type === 'ArrayLiteral';
+    
     // Compile-time range checking for literal values
-    if (varDecl.init) {
+    if (varDecl.init && !isArrayInit) {
       const range = this.getTypeRange(varDecl.varType);
       if (range) {
         let value = null;
@@ -644,14 +649,24 @@ class CodeGenerator {
       }
     }
     
-    let code = `${typePrefix}${volatilePrefix}${type} ${varDecl.name}`;
-    if (varDecl.init) {
+    let code;
+    
+    // Handle array initialization
+    if (isArrayInit) {
+      const arraySize = varDecl.init.elements.length;
+      code = `${typePrefix}${volatilePrefix}${type} ${varDecl.name}[${arraySize}]`;
       code += ' = ' + this.generateExpression(varDecl.init);
+      code += ';';
+    } else {
+      code = `${typePrefix}${volatilePrefix}${type} ${varDecl.name}`;
+      if (varDecl.init) {
+        code += ' = ' + this.generateExpression(varDecl.init);
+      }
+      code += ';';
     }
-    code += ';';
     
     // Add range check if specified
-    if (varDecl.range && !typePrefix.includes('const')) {
+    if (varDecl.range && !typePrefix.includes('const') && !isArrayInit) {
       const min = this.generateExpression(varDecl.range.min);
       const max = this.generateExpression(varDecl.range.max);
       code += `\n${this.getIndent()}${varDecl.name} = constrain(${varDecl.name}, ${min}, ${max});`;
@@ -758,6 +773,8 @@ class CodeGenerator {
         return this.generateTypeConversion(expr);
       case 'ErrorHandler':
         return this.generateErrorHandler(expr);
+      case 'ArrayLiteral':
+        return this.generateArrayLiteral(expr);
       default:
         return '';
     }
@@ -913,6 +930,12 @@ class CodeGenerator {
   generateNewExpression(expr) {
     const args = expr.arguments.map(arg => this.generateExpression(arg)).join(', ');
     return `${expr.className}(${args})`;
+  }
+
+  // Generate array literal
+  generateArrayLiteral(expr) {
+    const elements = expr.elements.map(el => this.generateExpression(el));
+    return `{${elements.join(', ')}}`;
   }
 
   // Generate type conversion (.as<type>())
