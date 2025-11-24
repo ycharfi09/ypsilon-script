@@ -1,7 +1,7 @@
 @main
 
 # Button and LED Example
-# Read button state and control LED
+# Read button state and control LED using hardware types
 
 config {
   board: arduino_uno,
@@ -10,22 +10,21 @@ config {
   port: auto
 }
 
-const int BUTTON_PIN = 2
-const int LED_PIN = 13
+# Hardware types with automatic setup
+mut Button btn = new Button(2)
+mut Led led = new Led(13)
 
 on start {
-    pinMode(BUTTON_PIN, INPUT_PULLUP)
-    pinMode(LED_PIN, OUTPUT)
+    # No pinMode needed - hardware types handle it automatically
+    print("Button control ready")
 }
 
 on loop {
-    mut int buttonState = digitalRead(BUTTON_PIN)
-    
-    if (buttonState == LOW) {
-        digitalWrite(LED_PIN, HIGH)
+    if (btn.pressed()) {
+        led.on()
     } else {
-        digitalWrite(LED_PIN, LOW)
+        led.off()
     }
     
-    delay(10)
+    wait 10ms
 }

@@ -1,7 +1,7 @@
 @main
 
 # Ultrasonic Distance Sensor Example
-# Demonstrates sensor reading, calculations, and conditional logic
+# Demonstrates sensor reading, calculations, and conditional logic with hardware types
 
 config {
   board: arduino_uno,
@@ -10,19 +10,20 @@ config {
   port: auto
 }
 
-const int TRIG_PIN = 9
-const int ECHO_PIN = 10
-const int LED_PIN = 13
+# Hardware types with automatic setup
+mut Digital trigPin = new Digital(9)
+mut Digital echoPin = new Digital(10)
+mut Led alertLed = new Led(13)
 
 const int THRESHOLD_DISTANCE = 20
 
 fn getDistance() -> int {
     # Trigger pulse
-    digitalWrite(TRIG_PIN, LOW)
-    delay(2)
-    digitalWrite(TRIG_PIN, HIGH)
-    delay(10)
-    digitalWrite(TRIG_PIN, LOW)
+    trigPin.low()
+    wait 2ms
+    trigPin.high()
+    wait 10ms
+    trigPin.low()
     
     # Read echo and return distance
     # In real code, this would use pulseIn()
@@ -31,21 +32,25 @@ fn getDistance() -> int {
 }
 
 on start {
-    pinMode(TRIG_PIN, OUTPUT)
-    pinMode(ECHO_PIN, INPUT)
-    pinMode(LED_PIN, OUTPUT)
+    # No pinMode needed - hardware types handle it
+    print("Ultrasonic sensor initialized")
+    print("Alert threshold: 20cm")
 }
 
 on loop {
     mut int distance = getDistance()
     
+    print("Distance:")
+    print(distance)
+    
     # Turn on LED if object is close
     if (distance < THRESHOLD_DISTANCE) {
-        digitalWrite(LED_PIN, HIGH)
+        alertLed.on()
+        print("Object detected!")
     } else {
-        digitalWrite(LED_PIN, LOW)
+        alertLed.off()
     }
     
-    delay(100)
+    wait 100ms
 }
 

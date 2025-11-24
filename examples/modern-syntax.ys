@@ -1,11 +1,22 @@
 @main
 
 # Modern Ypsilon Script Syntax Demo
-# Showcases all new features: fn, mut, self, enum, struct, match, on blocks
+# Showcases all new features: fn, mut, self, enum, struct, match, on blocks, hardware types, repeat
 
 load <servo>
-alias LED_PIN = 13
-alias BUTTON_PIN = 2
+
+# Config block
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
+# Hardware types with automatic setup
+mut Led statusLed = new Led(13)
+mut Button modeButton = new Button(2)
+mut Analog sensor = new Analog(0)
 
 # Enum for robot modes
 enum RobotMode { AUTO, MANUAL, CALIBRATE }
@@ -15,14 +26,6 @@ struct Position {
   int x
   int y
   int z
-}
-
-# Config block
-config {
-  board: arduino_uno,
-  clock: 16MHz,
-  uart: on,
-  port: auto
 }
 
 # Signal declarations
@@ -35,7 +38,6 @@ react mut int timestamp = 0
 
 # Global state
 mut RobotMode mode = AUTO
-mut int ledState = 0
 
 # Modern class with fn and self
 class Servo {
@@ -73,44 +75,51 @@ fn calculateDistance(int x1, int y1, int x2, int y2) -> float {
 fn updateLED() {
   match mode {
     AUTO => {
-      digitalWrite(LED_PIN, HIGH)
+      statusLed.on()
       wait 200ms
     },
     MANUAL => {
-      digitalWrite(LED_PIN, ledState)
+      statusLed.off()
     },
     CALIBRATE => {
-      # Blink rapidly during calibration
-      digitalWrite(LED_PIN, HIGH)
-      wait 50ms
-      digitalWrite(LED_PIN, LOW)
-      wait 50ms
+      # Blink rapidly during calibration using repeat
+      repeat(2) {
+        statusLed.toggle()
+        wait 50ms
+      }
     }
   }
 }
 
 # Setup using "on start" event block
 on start {
-  pinMode(LED_PIN, OUTPUT)
-  pinMode(BUTTON_PIN, INPUT_PULLUP)
+  # No pinMode needed - hardware types handle it
   
   armServo.setAngle(90)
   gripperServo.setAngle(45)
   
   print("Robot initialized")
+  print("Hardware types active")
 }
 
 # Main loop using "on loop" event block
 on loop {
   # Read sensor value atomically
   atomic {
-    sensorValue = analogRead(0)
+    sensorValue = sensor.read()
     timestamp = millis()
   }
   
-  # Handle button press
-  if (digitalRead(BUTTON_PIN) == LOW) {
+  # Handle button press with hardware type
+  if (modeButton.justPressed()) {
     emit buttonPressed
+    # Cycle through modes
+    match mode {
+      AUTO => mode = MANUAL,
+      MANUAL => mode = CALIBRATE,
+      CALIBRATE => mode = AUTO
+    }
+    print("Mode changed")
   }
   
   # Update robot based on mode
@@ -128,7 +137,7 @@ on loop {
     }
     default {
       # Calibration or other modes
-      print("Unknown mode")
+      print("Calibrating...")
     }
   }
   
@@ -143,9 +152,10 @@ task monitor background {
   }
 }
 
-# Periodic task for sensor reading
+# Periodic task for sensor reading with hardware type
 task readSensors every 100ms {
-  mut int temp = analogRead(1)
+  mut Analog tempSensor = new Analog(1)
+  mut int temp = tempSensor.read()
   if (temp > 700) {
     print("Temperature high!")
   }

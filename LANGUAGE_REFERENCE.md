@@ -422,6 +422,40 @@ for (mut i: int = 10; i > 0; i = i - 1) {
 }
 ```
 
+### Repeat Loop
+
+The `repeat` loop executes a block of code a fixed number of times (modern alternative to for loops when you just need to repeat an action):
+
+```javascript
+repeat(<count>) {
+    # code
+}
+```
+
+Examples:
+```javascript
+# Blink LED 3 times
+repeat(3) {
+    digitalWrite(LED_PIN, HIGH)
+    wait 500ms
+    digitalWrite(LED_PIN, LOW)
+    wait 500ms
+}
+
+# Flash indicator 5 times quickly
+repeat(5) {
+    statusLed.toggle()
+    wait 100ms
+}
+
+# Send pulse sequence
+const int PULSE_COUNT = 10
+repeat(PULSE_COUNT) {
+    sendPulse()
+    wait 50ms
+}
+```
+
 ### Match Expression
 
 Pattern matching for control flow (Rust-style):
@@ -534,24 +568,245 @@ switch command {
 ### Assignment
 - `=` Assign value
 
+## Hardware Types
+
+YS provides built-in hardware abstraction types that automatically handle pin configuration and provide clean, type-safe APIs for common hardware components.
+
+### Digital I/O Types
+
+#### Digital
+Basic digital I/O operations with automatic pinMode configuration:
+
+```javascript
+mut Digital pin = new Digital(7)
+
+pin.high()        # Set HIGH (auto-configures OUTPUT)
+pin.low()         # Set LOW
+pin.toggle()      # Toggle state
+pin.write(HIGH)   # Write value
+
+# Reading (auto-configures INPUT)
+if (pin.isHigh()) { }
+if (pin.isLow()) { }
+mut int value = pin.read()
+```
+
+#### Led
+LED control with PWM support for brightness:
+
+```javascript
+mut Led statusLed = new Led(13)
+mut Led dimmable = new Led(9, true)  # PWM-capable
+
+statusLed.on()
+statusLed.off()
+statusLed.toggle()
+dimmable.setBrightness(128)  # 0-255
+```
+
+#### RgbLed
+RGB LED with predefined colors and custom RGB values:
+
+```javascript
+mut RgbLed rgb = new RgbLed(9, 10, 11)
+mut RgbLed rgbAnode = new RgbLed(9, 10, 11, true)  # Common anode
+
+rgb.red()
+rgb.green()
+rgb.blue()
+rgb.yellow()
+rgb.cyan()
+rgb.magenta()
+rgb.white()
+rgb.orange()
+rgb.purple()
+rgb.pink()
+rgb.set(255, 128, 64)  # Custom RGB
+rgb.off()
+```
+
+#### Button
+Button input with debouncing and edge detection:
+
+```javascript
+mut Button btn = new Button(2)
+mut Button customBtn = new Button(3, false, true)  # pullup, activeLow
+
+if (btn.pressed()) { }
+if (btn.released()) { }
+if (btn.justPressed()) { }    # Edge detection
+if (btn.justReleased()) { }   # Edge detection
+```
+
+#### Buzzer
+Buzzer control with tone generation:
+
+```javascript
+mut Buzzer buz = new Buzzer(8)
+mut Buzzer toneBuz = new Buzzer(9, true)  # Tone-capable
+
+buz.on()
+buz.off()
+buz.beep(500)  # Duration in ms
+toneBuz.tone(440, 1000)  # Frequency, duration
+toneBuz.noTone()
+```
+
+### Analog & PWM Types
+
+#### Analog
+Analog input reading:
+
+```javascript
+mut Analog sensor = new Analog(0)
+
+mut int value = sensor.read()  # Returns 0-1023
+```
+
+#### PWM
+PWM output control with automatic board detection:
+
+```javascript
+mut PWM motor = new PWM(9)
+
+motor.set(128)  # 0-255 (auto-configures OUTPUT)
+mut int current = motor.get()
+```
+
+The PWM type automatically detects board type:
+- AVR boards (Uno, Nano, Mega): Uses `analogWrite()`
+- ESP boards (ESP32, ESP8266): Uses LEDC functions
+
+### Motor Control Types
+
+#### Servo
+Servo motor control with angle and microsecond positioning:
+
+```javascript
+mut Servo servo = new Servo(9)
+mut Servo customServo = new Servo(10, 1000, 2000)  # pin, minUs, maxUs
+
+servo.attach(9)
+servo.detach()
+servo.writeAngle(90)  # 0-180 degrees
+servo.writeMicroseconds(1500)
+mut u16 angle = servo.readAngle()
+mut u16 us = servo.readMicroseconds()
+```
+
+#### DCMotor
+DC motor control with direction and speed:
+
+```javascript
+mut DCMotor motor = new DCMotor(9, 8)        # PWM, DIR
+mut DCMotor motor2 = new DCMotor(9, 8, 7)    # PWM, DIR1, DIR2
+
+motor.setSpeed(150)   # -255 to 255
+motor.forward(200)    # 0-255
+motor.reverse(150)    # 0-255
+motor.stop()
+motor.brake()
+```
+
+#### StepperMotor
+Stepper motor control with position tracking:
+
+```javascript
+mut StepperMotor stepper = new StepperMotor(2, 3, 200)  # step, dir, stepsPerRev
+
+stepper.setSpeed(60)  # RPM
+stepper.moveSteps(200)  # Positive or negative
+mut i32 pos = stepper.position()
+stepper.resetPosition()
+```
+
+#### Encoder
+Rotary encoder with position and speed tracking:
+
+```javascript
+mut Encoder enc = new Encoder(2, 3, 400)  # pinA, pinB, pulsesPerRev
+
+mut i32 pos = enc.position()
+enc.reset()
+mut i32 speed = enc.rpm(1000)  # Window in ms
+```
+
+### Communication Types
+
+#### I2C
+I2C bus communication:
+
+```javascript
+mut I2C bus = new I2C()
+mut I2C i2c1 = new I2C(1)  # Bus number
+
+bus.begin()
+bus.write(0x50, [0x00, 0x01, 0x02])  # address, data
+mut List response = bus.read(0x50, 4)  # address, length
+mut List devices = bus.scan()  # Returns list of addresses
+```
+
+#### SPI
+SPI bus communication:
+
+```javascript
+mut SPI spi = new SPI()
+mut SPI spi1 = new SPI(1)  # Bus number
+
+spi.begin()
+mut u8 response = spi.transfer(0x42)
+mut List result = spi.transferBuffer([0x01, 0x02])
+spi.setClock(1000000)  # Frequency in Hz
+spi.setMode(0)  # 0-3
+spi.setBitOrder(1)  # 0=LSB, 1=MSB
+```
+
+#### UART
+Serial UART communication:
+
+```javascript
+mut UART serial = new UART(115200)
+mut UART debug = new UART(9600, 1)  # Baud, port
+
+serial.print("Hello")
+serial.println("World")
+mut i16 data = serial.read()
+mut u16 available = serial.available()
+serial.flush()
+```
+
+### Hardware Type Features
+
+- **Automatic Setup**: Pin modes and hardware initialization handled automatically
+- **Type Safety**: Compile-time checking prevents using wrong methods
+- **No Manual pinMode**: Hardware types configure pins automatically
+- **Clean API**: Intuitive method names matching hardware behavior
+- **Multiple Instances**: Create as many instances as needed
+- **Auto-Include**: Required libraries (Servo.h, Wire.h, SPI.h) included automatically
+
 ## Built-in Functions
 
-### Pin Control
+### Pin Control (Legacy - Use Hardware Types Instead)
 ```javascript
 pinMode(pin: int, mode: int)
 digitalWrite(pin: int, value: int)
 mut value: int = digitalRead(pin)
 ```
 
-### Analog I/O
+**Note**: For new code, prefer using hardware types like `Digital`, `Led`, `Button` which handle pinMode automatically.
+
+### Analog I/O (Legacy - Use Hardware Types Instead)
 ```javascript
 mut value: int = analogRead(pin)    # 0-1023
 analogWrite(pin: int, value: int)   # 0-255 (PWM)
 ```
 
+**Note**: For new code, prefer using `Analog` and `PWM` types which provide cleaner APIs.
+
 ### Timing
 ```javascript
 delay(milliseconds: int)
+wait <time>  # Modern syntax: wait 500ms, wait 2s
 mut time: int = millis()
 ```
 
@@ -560,6 +815,8 @@ mut time: int = millis()
 print(value)     # Prints value
 print("Hello")   # Prints string
 ```
+
+**Note**: For more control, use the `UART` hardware type.
 
 ### Constants
 - `HIGH` - Digital high (1)
@@ -577,68 +834,89 @@ print("Hello")   # Prints string
 ## Complete Example
 
 ```javascript
-enum Mode { AUTO, MANUAL }
+@main
 
-struct Point { x: int, y: int }
-
-class Motor {
-    mut speed: int
-    const maxSpeed: int
-    
-    constructor(initialSpeed: int, max: int) {
-        self.speed = initialSpeed
-        self.maxSpeed = max
-    }
-    
-    fn run() {
-        print("Motor running at:")
-        print(self.speed)
-    }
-    
-    fn setSpeed(newSpeed: int) {
-        if (newSpeed <= self.maxSpeed) {
-            self.speed = newSpeed
-        } else {
-            self.speed = self.maxSpeed
-        }
-    }
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
 }
 
-const SENSOR_PIN: int = 0
-const LED_PIN: int = 13
-mut motor: Motor = new Motor(100, 255)
-mut mode: Mode = Mode.AUTO
-mut position: Point = Point { x: 0, y: 0 }
+enum Mode { AUTO, MANUAL }
+
+struct Point { 
+  int x
+  int y 
+}
+
+# Hardware instances with automatic setup
+mut Led statusLed = new Led(13)
+mut Analog sensor = new Analog(0)
+
+class Motor {
+  mut int speed
+  const int maxSpeed
+  
+  constructor(int initialSpeed, int max) {
+    self.speed = initialSpeed
+    self.maxSpeed = max
+  }
+  
+  fn run() {
+    print("Motor running at:")
+    print(self.speed)
+  }
+  
+  fn setSpeed(int newSpeed) {
+    if (newSpeed <= self.maxSpeed) {
+      self.speed = newSpeed
+    } else {
+      self.speed = self.maxSpeed
+    }
+  }
+}
+
+mut Motor motor = new Motor(100, 255)
+mut Mode mode = AUTO
+mut Point position = Point { x: 0, y: 0 }
 
 on start {
-    pinMode(LED_PIN, OUTPUT)
-    motor.run()
+  # No pinMode needed - hardware types handle it automatically
+  motor.run()
+  print("System initialized")
 }
 
 on loop {
-    match mode {
-        AUTO => {
-            motor.setSpeed(200)
-            digitalWrite(LED_PIN, HIGH)
-        },
-        MANUAL => {
-            motor.setSpeed(100)
-            digitalWrite(LED_PIN, LOW)
-        }
+  match mode {
+    AUTO => {
+      motor.setSpeed(200)
+      statusLed.on()
+    },
+    MANUAL => {
+      motor.setSpeed(100)
+      statusLed.off()
     }
-    
-    mut sensorValue: int = analogRead(SENSOR_PIN)
-    mut level: int = sensorValue / 256
-    
-    switch level {
-        case 0 { print("Very low") }
-        case 1 { print("Low") }
-        case 2 { print("Medium") }
-        case 3 { print("High") }
-        default { print("Very high") }
-    }
-    
-    delay(100)
+  }
+  
+  mut int sensorValue = sensor.read()
+  mut int level = sensorValue / 256
+  
+  switch level {
+    case 0 { print("Very low") }
+    case 1 { print("Low") }
+    case 2 { print("Medium") }
+    case 3 { print("High") }
+    default { print("Very high") }
+  }
+  
+  # Flash LED 3 times using repeat
+  repeat(3) {
+    statusLed.toggle()
+    wait 100ms
+  }
+  
+  wait 1s
 }
 ```
 
@@ -655,14 +933,18 @@ ysc input.ys output.cpp  # Custom output name
 
 1. **Use explicit types**: All variables and functions must be typed
 2. **Use `mut` for mutable variables**: Makes mutability explicit and clear
-3. **Use `self` in classes**: For accessing instance members
-4. **Use enums for states**: Better than magic numbers or strings
-5. **Use structs for data**: Group related data together
-6. **Use match for enums**: More expressive than if-else chains
-7. **Keep functions small**: One task per function
-8. **Add comments**: Use `#` to explain what your code does
-9. **Use const for values that don't change**: Makes intent clear
-10. **Use event blocks**: `on start {}` and `on loop {}` for main handlers
+3. **Use hardware types**: Prefer `Led`, `Button`, `PWM`, etc. over manual `pinMode` and `digitalWrite`
+4. **Use `self` in classes**: For accessing instance members
+5. **Use enums for states**: Better than magic numbers or strings
+6. **Use structs for data**: Group related data together
+7. **Use match for enums**: More expressive than if-else chains
+8. **Use `repeat` for fixed iterations**: Cleaner than for loops when you just need to repeat an action
+9. **Use time literals**: `wait 500ms` instead of `delay(500)`
+10. **Keep functions small**: One task per function
+11. **Add comments**: Use `#` to explain what your code does
+12. **Use const for values that don't change**: Makes intent clear
+13. **Use event blocks**: `on start {}` and `on loop {}` for main handlers
+14. **Include @main and config**: Every program needs `@main` and a config block
 
 ## Syntax Summary
 
@@ -954,14 +1236,27 @@ use UART0
 ## Complete Modern Example
 
 ```javascript
+@main
+
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
 load <Servo>
-alias LED_PIN = 13
+
+# Hardware types with automatic setup
+mut Led statusLed = new Led(13)
+mut Button modeBtn = new Button(2)
+mut Analog sensor = new Analog(0)
 
 enum Mode { AUTO, MANUAL }
-struct Point { x: int, y: int }
+struct Point { int x, int y }
 
 signal modeChange
-react mut sensorValue: int = 0
+react mut int sensorValue = 0
 
 mut Mode currentMode = AUTO
 mut int counter = 0
@@ -985,13 +1280,20 @@ class Motor {
 mut Motor motor = new Motor(100)
 
 on start {
-  pinMode(LED_PIN, OUTPUT)
+  # No pinMode needed - hardware types handle it
   print("System ready")
+  statusLed.on()
 }
 
 on loop {
+  # Check button for mode toggle
+  if (modeBtn.justPressed()) {
+    currentMode = (currentMode == AUTO) ? MANUAL : AUTO
+    emit modeChange
+  }
+  
   atomic {
-    sensorValue = analogRead(0)
+    sensorValue = sensor.read()
   }
   
   match currentMode {
@@ -1003,13 +1305,18 @@ on loop {
     }
   }
   
+  # Flash indicator using repeat
+  repeat(2) {
+    statusLed.toggle()
+    wait 50ms
+  }
+  
   wait 10ms
 }
 
 task blink every 500ms {
-  digitalWrite(LED_PIN, HIGH)
+  statusLed.toggle()
   wait 250ms
-  digitalWrite(LED_PIN, LOW)
 }
 ```
 
@@ -1039,19 +1346,31 @@ void loop() {
 
 ### Modern Ypsilon Script
 ```javascript
-alias LED = 13
+@main
+
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
+# Hardware type with automatic pinMode
+mut Led led = new Led(13)
+
 enum State { ON, OFF }
 
 mut State currentState = ON
 
 on start {
-  pinMode(LED, OUTPUT)
+  # No pinMode needed - Led type handles it
+  print("System ready")
 }
 
 on loop {
   match currentState {
-    ON => digitalWrite(LED, HIGH),
-    OFF => digitalWrite(LED, LOW)
+    ON => led.on(),
+    OFF => led.off()
   }
   wait 1s
 }
@@ -1069,16 +1388,23 @@ on loop {
 8. **Structs**: C++-style data structures
 9. **Classes**: OOP with constructors and methods
 10. **`new` keyword**: Object instantiation
-11. **Event blocks**: `on start {}`, `on loop {}`
-12. **Interrupt handlers**: `interrupt <name?> on PIN# (rising|falling|change|low|high) { }`
-13. **Match expressions**: Pattern matching with `=>`
-14. **Switch statements**: C++-style with braces
-15. **Tasks**: Periodic (`every`) and background execution
-16. **Signals**: Event-driven communication
-17. **Reactive vars**: Volatile variables with `react`
-18. **Time literals**: `ms`, `s`, `us`, `min`, `h`
-19. **Atomic blocks**: Interrupt-safe regions
-20. **Library loading**: `load <lib>` and `load <module.ys> as name`
-21. **Aliases**: `alias name = value`
-22. **Config blocks**: Target configuration
-23. **Inline C++**: `@cpp { }`
+11. **Hardware types**: `Digital`, `Analog`, `PWM`, `Led`, `RgbLed`, `Button`, `Buzzer`, `Servo`, `DCMotor`, `StepperMotor`, `Encoder`, `I2C`, `SPI`, `UART` with automatic setup
+12. **Event blocks**: `on start {}`, `on loop {}`
+13. **Interrupt handlers**: `interrupt <name?> on PIN# (rising|falling|change|low|high) { }`
+14. **Match expressions**: Pattern matching with `=>`
+15. **Switch statements**: C++-style with braces
+16. **Repeat loop**: `repeat(count) {}` for fixed iterations
+17. **Tasks**: Periodic (`every`) and background execution
+18. **Signals**: Event-driven communication
+19. **Reactive vars**: Volatile variables with `react`
+20. **Time literals**: `ms`, `s`, `us`, `min`, `h`
+21. **Unit system**: Time, frequency, angle, distance, speed units
+22. **Range constraints**: `in min...max` for automatic bounds
+23. **Type conversion**: `.as<type>()` for explicit casting
+24. **Collections**: `List` and `Map` types
+25. **Error handling**: `!catch` for error propagation
+26. **Atomic blocks**: Interrupt-safe regions
+27. **Library loading**: `load <lib>` and `load <module.ys> as name`
+28. **Aliases**: `alias name = value`
+29. **Config blocks**: Target configuration with `@main`
+30. **Inline C++**: `@cpp { }`

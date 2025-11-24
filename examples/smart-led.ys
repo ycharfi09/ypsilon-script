@@ -1,7 +1,7 @@
 @main
 
 # Smart LED Controller with Modern YS Syntax
-# Demonstrates: enums, match, tasks, signals, time units
+# Demonstrates: enums, match, tasks, signals, time units, hardware types, repeat
 
 config {
   board: arduino_uno,
@@ -19,11 +19,11 @@ struct RGB {
   int b
 }
 
-# Configuration
-alias RED_PIN = 9
-alias GREEN_PIN = 10
-alias BLUE_PIN = 11
-alias BUTTON_PIN = 2
+# Hardware types with automatic setup
+mut PWM redLed = new PWM(9)
+mut PWM greenLed = new PWM(10)
+mut PWM blueLed = new PWM(11)
+mut Button patternBtn = new Button(2)
 
 # Signals for events
 signal patternChange
@@ -54,9 +54,9 @@ class RGBColor {
   }
   
   fn apply() {
-    analogWrite(RED_PIN, self.red)
-    analogWrite(GREEN_PIN, self.green)
-    analogWrite(BLUE_PIN, self.blue)
+    redLed.set(self.red)
+    greenLed.set(self.green)
+    blueLed.set(self.blue)
   }
 }
 
@@ -72,12 +72,9 @@ fn getColor(Color c) -> RGBColor {
 }
 
 on start {
-  pinMode(RED_PIN, OUTPUT)
-  pinMode(GREEN_PIN, OUTPUT)
-  pinMode(BLUE_PIN, OUTPUT)
-  pinMode(BUTTON_PIN, INPUT_PULLUP)
-  
+  # No pinMode needed - hardware types handle it
   print("Smart LED Controller Ready")
+  print("Using hardware types for automatic setup")
 }
 
 # Pattern execution task
@@ -92,13 +89,13 @@ task executePattern every 50ms {
       # Implementation would toggle
       color.apply()
       wait 500ms
-      analogWrite(RED_PIN, 0)
-      analogWrite(GREEN_PIN, 0)
-      analogWrite(BLUE_PIN, 0)
+      redLed.set(0)
+      greenLed.set(0)
+      blueLed.set(0)
       wait 500ms
     },
     FADE => {
-      # Fade in and out
+      # Fade in and out using repeat
       repeat(255) {
         color.setBrightness(brightness)
         color.apply()
@@ -112,23 +109,20 @@ task executePattern every 50ms {
   }
 }
 
-# Button handler task
+# Button handler task with hardware type
 task handleButton every 10ms {
-  if (digitalRead(BUTTON_PIN) == LOW) {
-    wait 50ms  # Debounce
-    if (digitalRead(BUTTON_PIN) == LOW) {
-      emit patternChange
-      
-      # Cycle through patterns
-      switch currentPattern {
-        case SOLID { currentPattern = BLINK }
-        case BLINK { currentPattern = FADE }
-        case FADE { currentPattern = PULSE }
-        case PULSE { currentPattern = SOLID }
-      }
-      
-      print("Pattern changed")
+  if (patternBtn.justPressed()) {
+    emit patternChange
+    
+    # Cycle through patterns
+    switch currentPattern {
+      case SOLID { currentPattern = BLINK }
+      case BLINK { currentPattern = FADE }
+      case FADE { currentPattern = PULSE }
+      case PULSE { currentPattern = SOLID }
     }
+    
+    print("Pattern changed")
   }
 }
 

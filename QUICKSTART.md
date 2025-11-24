@@ -18,22 +18,30 @@ Create `hello.ys`:
 ```javascript
 @main
 
-const int LED = 13
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
+# Hardware type with automatic setup
+mut Led led = new Led(13)
 
 on start {
-    pinMode(LED, OUTPUT)
+    # No pinMode needed - Led type handles it
     print("Hello from Ypsilon Script!")
 }
 
 on loop {
-    digitalWrite(LED, HIGH)
-    delay(1000)
-    digitalWrite(LED, LOW)
-    delay(1000)
+    led.on()
+    wait 1s
+    led.off()
+    wait 1s
 }
 ```
 
-**Important:** Every YS program must have exactly one file with `@main` at the top. This marks the entry point of your program.
+**Important:** Every YS program must have exactly one file with `@main` at the top and a config block. This marks the entry point of your program.
 
 ## Compile It
 
@@ -110,18 +118,24 @@ The compiler will automatically find the file with `@main` and compile it.
 - Braces required for all blocks
 - No semicolons needed
 - Use `@main` to mark the entry file
+- Config block required with board settings
 - Use `fn` for functions
 - Use `self` in classes (not `this`)
 - Use `mut` for mutable variables
+- Use hardware types (Led, Button, PWM, etc.) instead of manual pinMode
+- Use `wait` with time units instead of delay
 - Variables declared as `type name` (e.g., `int x`)
 
 ### Powerful Features
+- Hardware types: Digital, Analog, PWM, Led, RgbLed, Button, Buzzer, Servo, DCMotor, etc.
 - Enums (Rust-style)
 - Structs (C++-style)
 - Classes with constructors and methods
 - Pattern matching with `match`
 - Switch statements
+- Repeat loops for fixed iterations
 - Event blocks (`on start {}`, `on loop {}`)
+- Time literals (`wait 500ms`, `wait 2s`)
 
 ## Common Patterns
 
@@ -130,17 +144,26 @@ The compiler will automatically find the file with `@main` and compile it.
 ```javascript
 @main
 
-const int LED = 13
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
+# Hardware type with automatic setup
+mut Led led = new Led(13)
 
 on start {
-    pinMode(LED, OUTPUT)
+    # No pinMode needed - Led type handles it
+    print("Blink started")
 }
 
 on loop {
-    digitalWrite(LED, HIGH)
-    delay(1000)
-    digitalWrite(LED, LOW)
-    delay(1000)
+    led.on()
+    wait 1s
+    led.off()
+    wait 1s
 }
 ```
 
@@ -149,27 +172,35 @@ on loop {
 ```javascript
 @main
 
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
 enum State { ON, OFF }
 
 mut State ledState = OFF
-const int LED_PIN = 13
+mut Led led = new Led(13)
 
 on start {
-    pinMode(LED_PIN, OUTPUT)
+    # No pinMode needed - Led type handles it
+    print("State machine started")
 }
 
 on loop {
     match ledState {
         ON => {
-            digitalWrite(LED_PIN, HIGH)
+            led.on()
             ledState = OFF
         },
         OFF => {
-            digitalWrite(LED_PIN, LOW)
+            led.off()
             ledState = ON
         }
     }
-    delay(1000)
+    wait 1s
 }
 ```
 
@@ -178,22 +209,29 @@ on loop {
 ```javascript
 @main
 
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
 struct Config {
     int threshold
     bool enabled
 }
 
-const int SENSOR = 0
+mut Analog sensor = new Analog(0)
 mut Config config = Config { threshold: 512, enabled: true }
 
 on loop {
     if (config.enabled) {
-        mut int value = analogRead(SENSOR)
+        mut int value = sensor.read()
         if (value > config.threshold) {
             print("Threshold exceeded!")
         }
     }
-    delay(100)
+    wait 100ms
 }
 ```
 
@@ -202,19 +240,25 @@ on loop {
 ```javascript
 @main
 
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
 class Motor {
     mut int speed
-    const int pin
+    mut PWM pwm
     
     constructor(int motorPin) {
-        self.pin = motorPin
+        self.pwm = new PWM(motorPin)
         self.speed = 0
-        pinMode(self.pin, OUTPUT)
     }
     
     fn setSpeed(int newSpeed) {
         self.speed = newSpeed
-        analogWrite(self.pin, self.speed)
+        self.pwm.set(self.speed)
     }
     
     fn run() {
@@ -228,11 +272,12 @@ mut Motor motor
 on start {
     motor = new Motor(9)
     motor.setSpeed(128)
+    print("Motor initialized")
 }
 
 on loop {
     motor.run()
-    delay(1000)
+    wait 1s
 }
 ```
 
@@ -240,6 +285,13 @@ on loop {
 
 ```javascript
 @main
+
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
 
 enum Mode { AUTO, MANUAL, SLEEP }
 
@@ -251,7 +303,7 @@ on loop {
         MANUAL => print("Manual control"),
         SLEEP => print("Power saving")
     }
-    delay(1000)
+    wait 1s
 }
 ```
 
@@ -259,6 +311,13 @@ on loop {
 
 ```javascript
 @main
+
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
 
 mut int command = 1
 
@@ -280,7 +339,35 @@ on loop {
             print("Error")
         }
     }
-    delay(1000)
+    wait 1s
+}
+```
+
+### Repeat Loops
+
+```javascript
+@main
+
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
+mut Led statusLed = new Led(13)
+
+on start {
+    print("Blink sequence demo")
+}
+
+on loop {
+    # Blink LED 5 times
+    repeat(5) {
+        statusLed.toggle()
+        wait 200ms
+    }
+    wait 1s
 }
 ```
 ```

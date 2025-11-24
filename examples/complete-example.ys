@@ -1,7 +1,7 @@
 @main
 
 # Complete Ypsilon Script Example
-# Demonstrates all key language features from the specification
+# Demonstrates all key language features with modern syntax
 
 config {
   board: arduino_uno,
@@ -17,6 +17,10 @@ struct Point {
   int y
 }
 
+# Hardware types with automatic setup
+mut Led statusLed = new Led(13)
+mut Analog sensor = new Analog(0)
+
 class Motor {
     mut int speed
     
@@ -28,6 +32,10 @@ class Motor {
         print("Motor running at speed:")
         print(self.speed)
     }
+    
+    fn setSpeed(int newSpeed) {
+        self.speed = newSpeed
+    }
 }
 
 # Global variables
@@ -36,20 +44,45 @@ mut Mode mode = AUTO
 mut int level = 2
 
 on start {
+    # No pinMode needed - hardware types handle it
     motor.run()
+    statusLed.on()
+    print("System initialized")
 }
 
 on loop {
+    # Read sensor and update mode
+    mut int sensorValue = sensor.read()
+    
     match mode {
-        AUTO => print("auto"),
-        MANUAL => print("manual")
+        AUTO => {
+            print("auto mode")
+            motor.setSpeed(sensorValue / 4)
+            statusLed.on()
+        },
+        MANUAL => {
+            print("manual mode")
+            motor.setSpeed(100)
+            statusLed.off()
+        }
     }
+    
+    # Calculate level
+    level = sensorValue / 256
     
     switch level {
+        case 0 { print("very low") }
         case 1 { print("low") }
         case 2 { print("mid") }
-        default { print("high") }
+        case 3 { print("high") }
+        default { print("very high") }
     }
     
-    delay(1000)
+    # Blink status LED using repeat
+    repeat(2) {
+        statusLed.toggle()
+        wait 100ms
+    }
+    
+    wait 1s
 }

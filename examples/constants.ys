@@ -1,6 +1,6 @@
 @main
 
-# Test all Arduino constants and pin modes
+# Test all Arduino constants and pin modes with hardware types
 
 config {
   board: arduino_uno,
@@ -9,24 +9,25 @@ config {
   port: auto
 }
 
-const int BUTTON = 2
-const int LED = 13
+# Hardware types with automatic setup
+mut Button button = new Button(2)
+mut Led led = new Led(13)
 
 on start {
-    pinMode(BUTTON, INPUT_PULLUP)
-    pinMode(LED, OUTPUT)
+    # No pinMode needed - hardware types handle it automatically
+    print("Constants test ready")
 }
 
 on loop {
-    mut int reading = digitalRead(BUTTON)
-    
-    # Test all constants
-    if (reading == HIGH) {
-        digitalWrite(LED, LOW)
+    # Test with hardware types (automatically handles HIGH/LOW)
+    if (button.released()) {
+        led.off()
     }
     
-    if (reading == LOW) {
-        digitalWrite(LED, HIGH)
+    if (button.pressed()) {
+        led.on()
     }
+    
+    wait 10ms
 }
 

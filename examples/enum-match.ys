@@ -1,7 +1,7 @@
 @main
 
 # Enum and Match Example
-# Shows modern pattern matching with enums
+# Shows modern pattern matching with enums and hardware types
 
 config {
   board: arduino_uno,
@@ -12,11 +12,14 @@ config {
 
 enum State { IDLE, RUNNING, STOPPED, ERROR }
 
+# Hardware type with automatic setup
+mut Led statusLed = new Led(13)
+
 mut State currentState = IDLE
 mut int counter = 0
 
 on start {
-  pinMode(13, OUTPUT)
+  # No pinMode needed - Led type handles it
   print("State machine started")
 }
 
@@ -26,28 +29,34 @@ on loop {
   # State machine using match
   match currentState {
     IDLE => {
-      digitalWrite(13, LOW)
+      statusLed.off()
       if (counter > 10) {
         currentState = RUNNING
         print("Starting...")
       }
     },
     RUNNING => {
-      digitalWrite(13, HIGH)
+      statusLed.on()
       if (counter > 100) {
         currentState = STOPPED
         print("Stopping...")
       }
     },
     STOPPED => {
-      digitalWrite(13, LOW)
+      statusLed.off()
       counter = 0
       currentState = IDLE
       print("Reset")
+      # Blink to indicate reset using repeat
+      repeat(3) {
+        statusLed.toggle()
+        wait 100ms
+      }
     },
-    _ => {
-      currentState = ERROR
+    ERROR => {
       print("Error state")
+      # Flash rapidly on error
+      statusLed.toggle()
     }
   }
   

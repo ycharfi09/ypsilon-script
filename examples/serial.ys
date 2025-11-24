@@ -1,7 +1,7 @@
 @main
 
 # Serial Print Example
-# Demonstrates Serial communication
+# Demonstrates Serial communication with hardware types
 
 config {
   board: arduino_uno,
@@ -10,15 +10,18 @@ config {
   port: auto
 }
 
-const int SENSOR_PIN = 0
+# Analog sensor with automatic setup
+mut Analog sensor = new Analog(0)
 
 on start {
     print("Starting sensor monitoring...")
+    print("Reading analog values every 500ms")
 }
 
 on loop {
-    mut int value = analogRead(SENSOR_PIN)
+    mut int value = sensor.read()
+    print("Sensor value:")
     print(value)
-    delay(500)
+    wait 500ms
 }
 

@@ -1,7 +1,7 @@
 @main
 
 # Fade LED using PWM
-# This example shows analog output control
+# This example shows PWM control with hardware type
 
 config {
   board: arduino_uno,
@@ -10,23 +10,25 @@ config {
   port: auto
 }
 
-const int LED_PIN = 9
+# PWM hardware type with automatic setup
+mut PWM led = new PWM(9)
 
 on start {
-    pinMode(LED_PIN, OUTPUT)
+    # No pinMode needed - PWM type handles it automatically
+    print("Fade started")
 }
 
 on loop {
     # Fade in
     for (int brightness = 0; brightness < 256; brightness = brightness + 5) {
-        analogWrite(LED_PIN, brightness)
-        delay(30)
+        led.set(brightness)
+        wait 30ms
     }
     
     # Fade out
     for (int brightness = 255; brightness > 0; brightness = brightness - 5) {
-        analogWrite(LED_PIN, brightness)
-        delay(30)
+        led.set(brightness)
+        wait 30ms
     }
 }
 

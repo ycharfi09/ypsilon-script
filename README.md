@@ -418,16 +418,16 @@ alias LED = 13
 **If Statements:**
 ```javascript
 if (sensorValue > 512) {
-    digitalWrite(LED_PIN, HIGH)
+    led.on()
 } else {
-    digitalWrite(LED_PIN, LOW)
+    led.off()
 }
 ```
 
 **While Loops:**
 ```javascript
-while (digitalRead(BUTTON_PIN) == HIGH) {
-    delay(10)
+while (button.pressed()) {
+    wait 10ms
 }
 ```
 
@@ -435,6 +435,15 @@ while (digitalRead(BUTTON_PIN) == HIGH) {
 ```javascript
 for (mut i: int = 0; i < 10; i = i + 1) {
     print(i)
+}
+```
+
+**Repeat Loops:**
+```javascript
+# Repeat a fixed number of times
+repeat(3) {
+    led.toggle()
+    wait 500ms
 }
 ```
 
@@ -772,6 +781,7 @@ YS syntax:
 - **Event blocks**: `on start {}`, `on loop {}`
 - **Match expressions**: Pattern matching with `=>`
 - **Switch statements**: C++-style with braces
+- **Repeat loop**: `repeat(count) {}` for fixed iterations
 - **Tasks**: Periodic (`every`) and background execution
 - **Signals**: Event-driven with `signal`/`emit`
 - **Reactive vars**: Volatile variables with `react`
@@ -788,12 +798,23 @@ YS syntax:
 ```javascript
 @main
 
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
 enum Mode { AUTO, MANUAL }
 
 struct Point {
   int x
   int y
 }
+
+# Hardware types with automatic setup
+mut Led statusLed = new Led(13)
+mut Analog sensor = new Analog(0)
 
 class Motor {
     mut int speed
@@ -817,7 +838,9 @@ mut Mode currentMode = AUTO
 mut Point position = Point { x: 0, y: 0 }
 
 on start {
+    # No pinMode needed - hardware types handle it
     motor.run()
+    statusLed.on()
     print("Initialized")
 }
 
@@ -825,15 +848,17 @@ on loop {
     match currentMode {
         AUTO => {
             motor.setSpeed(200)
+            statusLed.on()
             print("Auto mode")
         },
         MANUAL => {
             motor.setSpeed(100)
+            statusLed.off()
             print("Manual mode")
         }
     }
     
-    mut int level = analogRead(0) / 256
+    mut int level = sensor.read() / 256
     
     switch level {
         case 1 { print("Low power") }
@@ -842,7 +867,13 @@ on loop {
         default { print("Max power") }
     }
     
-    delay(1000)
+    # Blink status LED using repeat
+    repeat(2) {
+        statusLed.toggle()
+        wait 100ms
+    }
+    
+    wait 1s
 }
 ```
 
@@ -1041,22 +1072,31 @@ void loop() {
 ```javascript
 @main
 
-# Clean, type-safe, expressive
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
+# Clean, type-safe, expressive with hardware types
 enum LedState { ON, OFF }
 
+# Hardware type with automatic pinMode
+mut Led led = new Led(13)
 mut LedState state = ON
-const int LED_PIN = 13
 
 on start {
-    pinMode(LED_PIN, OUTPUT)
+    # No pinMode needed - Led type handles it
+    print("System ready")
 }
 
 on loop {
     match state {
-        ON => digitalWrite(LED_PIN, HIGH),
-        OFF => digitalWrite(LED_PIN, LOW)
+        ON => led.on(),
+        OFF => led.off()
     }
-    delay(1000)
+    wait 1s
 }
 ```
 
