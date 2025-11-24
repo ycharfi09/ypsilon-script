@@ -765,6 +765,8 @@ class CodeGenerator {
         return this.generateCallExpression(expr);
       case 'MemberExpression':
         return this.generateMemberExpression(expr);
+      case 'SubscriptExpression':
+        return this.generateSubscriptExpression(expr);
       case 'ThisExpression':
         return 'this';
       case 'NewExpression':
@@ -797,6 +799,12 @@ class CodeGenerator {
     }
     
     return `${object}.${expr.property}`;
+  }
+
+  generateSubscriptExpression(expr) {
+    const array = this.generateExpression(expr.array);
+    const index = this.generateExpression(expr.index);
+    return `${array}[${index}]`;
   }
 
   generateLiteral(expr) {

@@ -988,6 +988,16 @@ class Parser {
           callee: expr,
           arguments: args
         };
+      } else if (this.peek().type === TOKEN_TYPES.LBRACKET) {
+        // Array subscript access
+        this.advance();
+        const index = this.parseExpression();
+        this.expect(TOKEN_TYPES.RBRACKET);
+        expr = {
+          type: 'SubscriptExpression',
+          array: expr,
+          index
+        };
       } else if (this.peek().type === TOKEN_TYPES.DOT) {
         // Member access or type conversion
         this.advance();
