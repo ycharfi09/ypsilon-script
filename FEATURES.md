@@ -1100,7 +1100,7 @@ ysc --version
 
 ## Examples Available
 
-The repository includes 49+ working examples demonstrating:
+The repository includes 54+ working examples demonstrating:
 1. `blink.ys` - Basic LED blinking
 2. `blink-modern.ys` - Modern syntax blink
 3. `button.ys` - Button input and LED control
