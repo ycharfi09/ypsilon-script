@@ -573,6 +573,229 @@ if (gps.update()) {
 }
 ```
 
+### Module-Specific Hardware Types
+
+YS also provides hardware types that map directly to specific IC modules:
+
+#### Module-Specific Sensor Types
+```javascript
+# LM35 Temperature Sensor (analog)
+mut LM35 temp = new LM35(A0)
+mut float celsius = temp.readCelsius()
+mut float fahrenheit = temp.readFahrenheit()
+
+# DS18B20 1-Wire Temperature Sensor
+mut DS18B20 temp = new DS18B20(2)
+temp.begin()
+mut float celsius = temp.readCelsius()
+
+# DHT11/DHT22 Digital Humidity Sensors
+mut DHT11 humidity = new DHT11(2)
+mut DHT22 humidity22 = new DHT22(3)
+humidity.begin()
+mut float temp = humidity.readTemperature()
+mut float hum = humidity.readHumidity()
+
+# HC-SR04 Ultrasonic Distance Sensor
+mut HC_SR04 sonar = new HC_SR04(9, 10)
+mut float dist = sonar.readCm()
+mut bool inRange = sonar.inRange(5, 50)
+
+# GP2Y0A21 IR Distance Sensor
+mut GP2Y0A21 ir = new GP2Y0A21(A0)
+mut float dist = ir.readCm()
+
+# LDR Light Sensor (photoresistor)
+mut LDR ldr = new LDR(A0)
+mut int level = ldr.read()
+if (ldr.isDark()) { ... }
+
+# BH1750 I2C Lux Sensor
+mut BH1750 light = new BH1750(0)
+light.begin()
+mut float lux = light.readLux()
+
+# PIR Motion Sensor (HC-SR501)
+mut PIR pir = new PIR(2)
+if (pir.detected()) { ... }
+
+# Pot Potentiometer
+mut Pot pot = new Pot(A0)
+mut int percent = pot.readPercent()
+mut int mapped = pot.readMapped(0, 180)
+
+# BMP280 Barometric Pressure Sensor
+mut BMP280 pressure = new BMP280(0)
+pressure.begin()
+mut float p = pressure.readPressure()
+mut float alt = pressure.readAltitude()
+
+# TTP223 Capacitive Touch Sensor
+mut TTP223 touch = new TTP223(2)
+if (touch.isTouched()) { ... }
+
+# MQ-2 Gas/Smoke Sensor
+mut MQ2 gas = new MQ2(A0)
+if (gas.detected()) { ... }
+mut int smoke = gas.readSmoke()
+
+# TCS34725 I2C Color Sensor
+mut TCS34725 color = new TCS34725(0)
+color.begin()
+mut int r = color.readRed()
+mut int g = color.readGreen()
+mut int b = color.readBlue()
+
+# MPU6050 Accelerometer + Gyroscope
+mut MPU6050 accel = new MPU6050(0)
+accel.begin()
+mut float ax = accel.readAccelX()
+mut float gx = accel.readGyroX()
+
+# NEO-6M GPS Module
+mut NEO6M gps = new NEO6M(10, 11)
+gps.begin()
+if (gps.update()) {
+    mut float lat = gps.latitude()
+    mut float lon = gps.longitude()
+}
+```
+
+#### Module-Specific Display Types
+```javascript
+# HD44780 16x2 LCD
+mut HD44780 lcd = new HD44780(12, 11, 5, 4, 3, 2, 16, 2)
+lcd.begin()
+lcd.setCursor(0, 0)
+lcd.print("Hello World")
+
+# SSD1306 128x64 I2C OLED
+mut SSD1306 oled = new SSD1306(0, 128, 64)
+oled.begin()
+oled.clear()
+oled.print("Hello")
+oled.display()
+
+# WS2812 RGB LED Strip (NeoPixel)
+mut WS2812 strip = new WS2812(6, 30)
+strip.begin()
+strip.setPixel(0, 255, 0, 0)
+strip.fill(0, 0, 255)
+strip.show()
+
+# TM1637 4-Digit 7-Segment Display
+mut TM1637 seg = new TM1637(2, 3)
+seg.begin()
+seg.setBrightness(5)
+seg.displayNumber(1234)
+```
+
+#### Module-Specific Wireless Types
+```javascript
+# HC-05 UART Bluetooth Module
+mut HC05 bt = new HC05(10, 11, 9600)
+bt.begin()
+if (bt.available()) { ... }
+bt.println("Hello Bluetooth")
+
+# ESP8266 WiFi Module
+mut ESP8266 wifi = new ESP8266()
+wifi.connect("SSID", "password")
+if (wifi.isConnected()) { ... }
+
+# SX1278 LoRa Module
+mut SX1278 lora = new SX1278(10, 9, 2)
+lora.begin(915000000)
+lora.print("Hello LoRa")
+
+# NRF24L01 2.4GHz Transceiver
+mut NRF24L01 radio = new NRF24L01(9, 10)
+radio.begin()
+radio.startListening()
+```
+
+#### Module-Specific Actuator Types
+```javascript
+# Relay5V Standard 5V Relay
+mut Relay5V relay = new Relay5V(7)
+relay.on()
+relay.off()
+relay.toggle()
+
+# FanPWM PWM Controlled Fan
+mut FanPWM fan = new FanPWM(9)
+fan.setSpeed(200)
+fan.on()
+fan.off()
+
+# DCPump DC Water Pump
+mut DCPump pump = new DCPump(10)
+pump.setSpeed(255)
+pump.on()
+pump.off()
+
+# SolenoidValve 5V Solenoid Valve
+mut SolenoidValve valve = new SolenoidValve(8)
+valve.open()
+valve.close()
+```
+
+#### Module-Specific Motor Driver Types
+```javascript
+# L298N Dual H-Bridge Motor Driver
+mut L298N motor = new L298N(9, 8)
+motor.forward(200)
+motor.reverse(150)
+motor.stop()
+
+# TB6612FNG Dual Motor Driver
+mut TB6612FNG driver = new TB6612FNG(3, 4, 5, 6)
+driver.setMotorA(255)
+driver.setMotorB(-128)
+driver.stopAll()
+
+# PCA9685 16-Channel Servo Driver
+mut PCA9685 servos = new PCA9685(0, 50)
+servos.begin()
+servos.setAngle(0, 90)
+```
+
+#### Module-Specific Power & Timing Types
+```javascript
+# LiPo Battery Monitor
+mut LiPo batt = new LiPo(A0, 4.2, 3.0)
+mut int percent = batt.readPercent()
+if (batt.isLow(20)) { ... }
+
+# SolarPanel Voltage/Current Monitor
+mut SolarPanel panel = new SolarPanel(A0, A1)
+mut float voltage = panel.readVoltage()
+mut float current = panel.readCurrent()
+mut float power = panel.readPower()
+
+# DS3231 Real-Time Clock
+mut DS3231 rtc = new DS3231(0)
+rtc.begin()
+mut int h = rtc.hour()
+mut int m = rtc.minute()
+mut float temp = rtc.readTemperature()
+```
+
+#### Module-Specific Audio Types
+```javascript
+# MAX4466 Electret Microphone
+mut MAX4466 mic = new MAX4466(A0)
+mut int level = mic.read()
+if (mic.isLoud()) { ... }
+
+# DFPlayerMini UART MP3 Player
+mut DFPlayerMini player = new DFPlayerMini(10, 11)
+player.begin()
+player.setVolume(15)
+player.play(1)
+player.next()
+```
+
 ### 14. Unit System
 
 Support for physical unit literals that are automatically converted at compile time:
@@ -837,17 +1060,25 @@ ysc --version
 - timeout statements
 
 ### Hardware Integration: ✅ Advanced
-- Hardware types (Digital, Analog, PWM, and 60+ more)
+- Hardware types (Digital, Analog, PWM, and 100+ more)
 - Multiplexer types (Mux4, Mux8, Mux16, Mux32)
-- Sensor types (TempSensor, HumiditySensor, PressureSensor, LightSensor, DistanceSensor, MotionSensor, TouchSensor, SoundSensor, GasSensor, ColorSensor, Accelerometer, Gyroscope, Magnetometer, IMU, GPS, LoadCell, Potentiometer, Joystick, RotaryEncoder, IRRemote, RFID)
-- Display types (LCD, OLED, NeoPixel, SevenSegment, Matrix, TFT)
-- Actuator types (Relay, Solenoid, Fan, Heater, Pump, Valve)
-- Motor driver types (HBridge, MotorDriver, ServoDriver)
-- Communication types (I2C, SPI, UART, Bluetooth, WiFi, LoRa, CAN, RS485, Ethernet, NRF24, ZigBee)
+- Generic sensor types (TempSensor, HumiditySensor, PressureSensor, LightSensor, DistanceSensor, MotionSensor, TouchSensor, SoundSensor, GasSensor, ColorSensor, Accelerometer, Gyroscope, Magnetometer, IMU, GPS, LoadCell, Potentiometer, Joystick, RotaryEncoder, IRRemote, RFID)
+- Module-specific sensor types (LM35, DS18B20, DHT11, DHT22, HC_SR04, GP2Y0A21, LDR, BH1750, PIR, Pot, BMP280, TTP223, MQ2, TCS34725, MPU6050, NEO6M)
+- Generic display types (LCD, OLED, NeoPixel, SevenSegment, Matrix, TFT)
+- Module-specific display types (HD44780, SSD1306, WS2812, TM1637)
+- Generic actuator types (Relay, Solenoid, Fan, Heater, Pump, Valve)
+- Module-specific actuator types (Relay5V, FanPWM, DCPump, SolenoidValve)
+- Generic motor driver types (HBridge, MotorDriver, ServoDriver)
+- Module-specific motor driver types (L298N, TB6612FNG, PCA9685)
+- Generic communication types (I2C, SPI, UART, Bluetooth, WiFi, LoRa, CAN, RS485, Ethernet, NRF24, ZigBee)
+- Module-specific communication types (HC05, ESP8266, SX1278, NRF24L01)
 - Storage types (SDCard, EEPROM, Flash)
-- Power types (Battery, Solar)
-- Timing types (Timer, RTC)
-- Audio types (Speaker, Microphone, DFPlayer)
+- Generic power types (Battery, Solar)
+- Module-specific power types (LiPo, SolarPanel)
+- Generic timing types (Timer, RTC)
+- Module-specific timing types (DS3231)
+- Generic audio types (Speaker, Microphone, DFPlayer)
+- Module-specific audio types (MAX4466, DFPlayerMini)
 - Natural variable-like syntax for hardware types
 - Auto pinMode detection
 - Board-specific PWM implementation

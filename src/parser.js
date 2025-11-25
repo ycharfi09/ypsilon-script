@@ -66,6 +66,23 @@ function isTypeToken(tokenType) {
     TOKEN_TYPES.TYPE_ROTARYENCODER,
     TOKEN_TYPES.TYPE_IRREMOTE,
     TOKEN_TYPES.TYPE_RFID,
+    // New Module-Specific Sensors
+    TOKEN_TYPES.TYPE_LM35,
+    TOKEN_TYPES.TYPE_DS18B20,
+    TOKEN_TYPES.TYPE_DHT11,
+    TOKEN_TYPES.TYPE_DHT22,
+    TOKEN_TYPES.TYPE_HC_SR04,
+    TOKEN_TYPES.TYPE_GP2Y0A21,
+    TOKEN_TYPES.TYPE_LDR,
+    TOKEN_TYPES.TYPE_BH1750,
+    TOKEN_TYPES.TYPE_PIR,
+    TOKEN_TYPES.TYPE_POT,
+    TOKEN_TYPES.TYPE_BMP280,
+    TOKEN_TYPES.TYPE_TTP223,
+    TOKEN_TYPES.TYPE_MQ2,
+    TOKEN_TYPES.TYPE_TCS34725,
+    TOKEN_TYPES.TYPE_MPU6050,
+    TOKEN_TYPES.TYPE_NEO6M,
     // Displays
     TOKEN_TYPES.TYPE_LCD,
     TOKEN_TYPES.TYPE_OLED,
@@ -73,6 +90,11 @@ function isTypeToken(tokenType) {
     TOKEN_TYPES.TYPE_MATRIX,
     TOKEN_TYPES.TYPE_TFT,
     TOKEN_TYPES.TYPE_NEOPIXEL,
+    // New Module-Specific Displays
+    TOKEN_TYPES.TYPE_HD44780,
+    TOKEN_TYPES.TYPE_SSD1306,
+    TOKEN_TYPES.TYPE_WS2812,
+    TOKEN_TYPES.TYPE_TM1637,
     // Actuators
     TOKEN_TYPES.TYPE_RELAY,
     TOKEN_TYPES.TYPE_SOLENOID,
@@ -80,6 +102,11 @@ function isTypeToken(tokenType) {
     TOKEN_TYPES.TYPE_HEATER,
     TOKEN_TYPES.TYPE_PUMP,
     TOKEN_TYPES.TYPE_VALVE,
+    // New Module-Specific Actuators
+    TOKEN_TYPES.TYPE_RELAY5V,
+    TOKEN_TYPES.TYPE_FANPWM,
+    TOKEN_TYPES.TYPE_DCPUMP,
+    TOKEN_TYPES.TYPE_SOLENOIDVALVE,
     // Communication
     TOKEN_TYPES.TYPE_BLUETOOTH,
     TOKEN_TYPES.TYPE_WIFI,
@@ -89,6 +116,11 @@ function isTypeToken(tokenType) {
     TOKEN_TYPES.TYPE_ETHERNET,
     TOKEN_TYPES.TYPE_NRF24,
     TOKEN_TYPES.TYPE_ZIGBEE,
+    // New Module-Specific Communication
+    TOKEN_TYPES.TYPE_HC05,
+    TOKEN_TYPES.TYPE_ESP8266,
+    TOKEN_TYPES.TYPE_SX1278,
+    TOKEN_TYPES.TYPE_NRF24L01,
     // Storage
     TOKEN_TYPES.TYPE_SDCARD,
     TOKEN_TYPES.TYPE_EEPROM,
@@ -96,17 +128,29 @@ function isTypeToken(tokenType) {
     // Power
     TOKEN_TYPES.TYPE_BATTERY,
     TOKEN_TYPES.TYPE_SOLAR,
+    // New Module-Specific Power
+    TOKEN_TYPES.TYPE_LIPO,
+    TOKEN_TYPES.TYPE_SOLARPANEL,
     // Motor Drivers
     TOKEN_TYPES.TYPE_HBRIDGE,
     TOKEN_TYPES.TYPE_MOTORDRIVER,
     TOKEN_TYPES.TYPE_SERVODRIVER,
+    // New Module-Specific Motor Drivers
+    TOKEN_TYPES.TYPE_L298N,
+    TOKEN_TYPES.TYPE_TB6612FNG,
+    TOKEN_TYPES.TYPE_PCA9685,
     // Timing
     TOKEN_TYPES.TYPE_RTC,
     TOKEN_TYPES.TYPE_TIMER,
+    // New Module-Specific Timing
+    TOKEN_TYPES.TYPE_DS3231,
     // Audio
     TOKEN_TYPES.TYPE_SPEAKER,
     TOKEN_TYPES.TYPE_MICROPHONE,
     TOKEN_TYPES.TYPE_DFPLAYER,
+    // New Module-Specific Audio
+    TOKEN_TYPES.TYPE_MAX4466,
+    TOKEN_TYPES.TYPE_DFPLAYERMINI,
     // Collections
     TOKEN_TYPES.TYPE_LIST,
     TOKEN_TYPES.TYPE_MAP
@@ -174,6 +218,23 @@ function tokenTypeToString(tokenType) {
     [TOKEN_TYPES.TYPE_ROTARYENCODER]: 'RotaryEncoder',
     [TOKEN_TYPES.TYPE_IRREMOTE]: 'IRRemote',
     [TOKEN_TYPES.TYPE_RFID]: 'RFID',
+    // New Module-Specific Sensors
+    [TOKEN_TYPES.TYPE_LM35]: 'LM35',
+    [TOKEN_TYPES.TYPE_DS18B20]: 'DS18B20',
+    [TOKEN_TYPES.TYPE_DHT11]: 'DHT11',
+    [TOKEN_TYPES.TYPE_DHT22]: 'DHT22',
+    [TOKEN_TYPES.TYPE_HC_SR04]: 'HC_SR04',
+    [TOKEN_TYPES.TYPE_GP2Y0A21]: 'GP2Y0A21',
+    [TOKEN_TYPES.TYPE_LDR]: 'LDR',
+    [TOKEN_TYPES.TYPE_BH1750]: 'BH1750',
+    [TOKEN_TYPES.TYPE_PIR]: 'PIR',
+    [TOKEN_TYPES.TYPE_POT]: 'Pot',
+    [TOKEN_TYPES.TYPE_BMP280]: 'BMP280',
+    [TOKEN_TYPES.TYPE_TTP223]: 'TTP223',
+    [TOKEN_TYPES.TYPE_MQ2]: 'MQ2',
+    [TOKEN_TYPES.TYPE_TCS34725]: 'TCS34725',
+    [TOKEN_TYPES.TYPE_MPU6050]: 'MPU6050',
+    [TOKEN_TYPES.TYPE_NEO6M]: 'NEO6M',
     // Displays
     [TOKEN_TYPES.TYPE_LCD]: 'LCD',
     [TOKEN_TYPES.TYPE_OLED]: 'OLED',
@@ -181,6 +242,11 @@ function tokenTypeToString(tokenType) {
     [TOKEN_TYPES.TYPE_MATRIX]: 'Matrix',
     [TOKEN_TYPES.TYPE_TFT]: 'TFT',
     [TOKEN_TYPES.TYPE_NEOPIXEL]: 'NeoPixel',
+    // New Module-Specific Displays
+    [TOKEN_TYPES.TYPE_HD44780]: 'HD44780',
+    [TOKEN_TYPES.TYPE_SSD1306]: 'SSD1306',
+    [TOKEN_TYPES.TYPE_WS2812]: 'WS2812',
+    [TOKEN_TYPES.TYPE_TM1637]: 'TM1637',
     // Actuators
     [TOKEN_TYPES.TYPE_RELAY]: 'Relay',
     [TOKEN_TYPES.TYPE_SOLENOID]: 'Solenoid',
@@ -188,6 +254,11 @@ function tokenTypeToString(tokenType) {
     [TOKEN_TYPES.TYPE_HEATER]: 'Heater',
     [TOKEN_TYPES.TYPE_PUMP]: 'Pump',
     [TOKEN_TYPES.TYPE_VALVE]: 'Valve',
+    // New Module-Specific Actuators
+    [TOKEN_TYPES.TYPE_RELAY5V]: 'Relay5V',
+    [TOKEN_TYPES.TYPE_FANPWM]: 'FanPWM',
+    [TOKEN_TYPES.TYPE_DCPUMP]: 'DCPump',
+    [TOKEN_TYPES.TYPE_SOLENOIDVALVE]: 'SolenoidValve',
     // Communication
     [TOKEN_TYPES.TYPE_BLUETOOTH]: 'Bluetooth',
     [TOKEN_TYPES.TYPE_WIFI]: 'WiFi',
@@ -197,6 +268,11 @@ function tokenTypeToString(tokenType) {
     [TOKEN_TYPES.TYPE_ETHERNET]: 'Ethernet',
     [TOKEN_TYPES.TYPE_NRF24]: 'NRF24',
     [TOKEN_TYPES.TYPE_ZIGBEE]: 'ZigBee',
+    // New Module-Specific Communication
+    [TOKEN_TYPES.TYPE_HC05]: 'HC05',
+    [TOKEN_TYPES.TYPE_ESP8266]: 'ESP8266',
+    [TOKEN_TYPES.TYPE_SX1278]: 'SX1278',
+    [TOKEN_TYPES.TYPE_NRF24L01]: 'NRF24L01',
     // Storage
     [TOKEN_TYPES.TYPE_SDCARD]: 'SDCard',
     [TOKEN_TYPES.TYPE_EEPROM]: 'EEPROM',
@@ -204,17 +280,29 @@ function tokenTypeToString(tokenType) {
     // Power
     [TOKEN_TYPES.TYPE_BATTERY]: 'Battery',
     [TOKEN_TYPES.TYPE_SOLAR]: 'Solar',
+    // New Module-Specific Power
+    [TOKEN_TYPES.TYPE_LIPO]: 'LiPo',
+    [TOKEN_TYPES.TYPE_SOLARPANEL]: 'SolarPanel',
     // Motor Drivers
     [TOKEN_TYPES.TYPE_HBRIDGE]: 'HBridge',
     [TOKEN_TYPES.TYPE_MOTORDRIVER]: 'MotorDriver',
     [TOKEN_TYPES.TYPE_SERVODRIVER]: 'ServoDriver',
+    // New Module-Specific Motor Drivers
+    [TOKEN_TYPES.TYPE_L298N]: 'L298N',
+    [TOKEN_TYPES.TYPE_TB6612FNG]: 'TB6612FNG',
+    [TOKEN_TYPES.TYPE_PCA9685]: 'PCA9685',
     // Timing
     [TOKEN_TYPES.TYPE_RTC]: 'RTC',
     [TOKEN_TYPES.TYPE_TIMER]: 'Timer',
+    // New Module-Specific Timing
+    [TOKEN_TYPES.TYPE_DS3231]: 'DS3231',
     // Audio
     [TOKEN_TYPES.TYPE_SPEAKER]: 'Speaker',
     [TOKEN_TYPES.TYPE_MICROPHONE]: 'Microphone',
     [TOKEN_TYPES.TYPE_DFPLAYER]: 'DFPlayer',
+    // New Module-Specific Audio
+    [TOKEN_TYPES.TYPE_MAX4466]: 'MAX4466',
+    [TOKEN_TYPES.TYPE_DFPLAYERMINI]: 'DFPlayerMini',
     // Collections
     [TOKEN_TYPES.TYPE_LIST]: 'List',
     [TOKEN_TYPES.TYPE_MAP]: 'Map'
