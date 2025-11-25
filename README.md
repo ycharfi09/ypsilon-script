@@ -882,7 +882,7 @@ mut MotionSensor pir = new MotionSensor(2)
 
 if (pir.detected()) { }
 if (pir.isIdle(5000)) { }
-mut unsigned long time = pir.timeSinceMotion()
+mut u32 time = pir.timeSinceMotion()
 ```
 
 #### Potentiometer
@@ -1128,7 +1128,7 @@ mut Timer timer = new Timer()
 
 timer.start(5000)  // 5 seconds
 if (timer.isExpired()) { }
-mut unsigned long remaining = timer.remaining()
+mut u32 remaining = timer.remaining()
 timer.reset()
 ```
 

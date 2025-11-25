@@ -457,7 +457,7 @@ driver.stopAll()
 mut Timer timer = new Timer()
 timer.start(5000)  # 5 seconds
 if (timer.isExpired()) { ... }
-mut unsigned long remaining = timer.remaining()
+mut u32 remaining = timer.remaining()
 
 # Real-time clock
 mut RTC clock = new RTC()

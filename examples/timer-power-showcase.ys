@@ -62,7 +62,7 @@ on loop {
     countdownTimer.start(5000)
     statusLed.toggle()
   } else {
-    mut unsigned long remaining = countdownTimer.remaining()
+    mut u32 remaining = countdownTimer.remaining()
     print("Countdown remaining (ms):")
     print(remaining)
   }
