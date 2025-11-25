@@ -310,6 +310,181 @@ The PWM type detects board type and uses appropriate implementation:
 - AVR boards (Uno, Nano, Mega): `analogWrite()`
 - ESP boards (ESP32, ESP8266): LEDC functions with channel management
 
+#### Natural Variable Syntax
+
+Hardware types that accept a single pin argument support natural variable-like syntax:
+```javascript
+# Natural syntax (like creating a normal variable)
+mut Led led = 13
+mut Button btn = 2
+mut Analog sensor = A0
+
+# Equivalent to:
+mut Led led = new Led(13)
+mut Button btn = new Button(2)
+mut Analog sensor = new Analog(A0)
+```
+
+Supported natural syntax types: Digital, Analog, PWM, Led, Button, Buzzer, Relay, Solenoid, Fan, Heater, Pump, Valve, TempSensor, HumiditySensor, PressureSensor, LightSensor, MotionSensor, TouchSensor, SoundSensor, GasSensor, Potentiometer, Speaker, Microphone, Timer
+
+#### Multiplexer Types
+```javascript
+# 4-channel multiplexer
+mut Mux4 mux4 = new Mux4(sigPin, s0, s1)
+mut Mux4 mux4en = new Mux4(sigPin, s0, s1, enablePin)
+mux4.selectChannel(2)
+mut int value = mux4.read(1)
+mux4.enable()
+mux4.disable()
+
+# 8-channel multiplexer
+mut Mux8 mux8 = new Mux8(sigPin, s0, s1, s2)
+
+# 16-channel multiplexer (CD74HC4067)
+mut Mux16 mux16 = new Mux16(sigPin, s0, s1, s2, s3)
+
+# 32-channel multiplexer
+mut Mux32 mux32 = new Mux32(sigPin, s0, s1, s2, s3, s4)
+```
+
+#### Sensor Types
+```javascript
+# Temperature sensor
+mut TempSensor temp = new TempSensor(A0)
+mut float celsius = temp.readCelsius()
+mut float fahrenheit = temp.readFahrenheit()
+
+# Humidity sensor
+mut HumiditySensor humidity = new HumiditySensor(A1)
+mut float percent = humidity.readPercent()
+
+# Distance sensor (ultrasonic)
+mut DistanceSensor sonar = new DistanceSensor(trigPin, echoPin)
+mut float cm = sonar.readCm()
+mut bool detected = sonar.inRange(5, 50)
+
+# Light sensor
+mut LightSensor ldr = new LightSensor(A0)
+if (ldr.isDark()) { ... }
+if (ldr.isBright()) { ... }
+
+# Motion sensor (PIR)
+mut MotionSensor pir = new MotionSensor(2)
+if (pir.detected()) { ... }
+if (pir.isIdle(5000)) { ... }
+
+# Joystick
+mut Joystick joy = new Joystick(A0, A1, btnPin)
+mut int x = joy.readX()
+mut int y = joy.readY()
+if (joy.isPressed()) { ... }
+
+# Potentiometer
+mut Potentiometer pot = new Potentiometer(A0)
+mut int percent = pot.readPercent()
+mut int mapped = pot.readMapped(0, 180)
+
+# Rotary encoder
+mut RotaryEncoder enc = new RotaryEncoder(pinA, pinB, btnPin)
+enc.update()
+mut i32 pos = enc.position()
+```
+
+#### Display Types
+```javascript
+# OLED display
+mut OLED display = new OLED(128, 64)
+display.begin()
+display.clear()
+display.setCursor(0, 0)
+display.print("Hello")
+display.display()
+
+# NeoPixel LED strip
+mut NeoPixel strip = new NeoPixel(pin, numLeds)
+strip.setPixel(0, 255, 0, 0)  # Red
+strip.fill(0, 0, 255)          # All blue
+strip.show()
+
+# Seven-segment display
+mut SevenSegment seg = new SevenSegment(a, b, c, d, e, f, g)
+seg.display(5)
+seg.clear()
+```
+
+#### Actuator Types
+```javascript
+# Relay
+mut Relay relay = new Relay(7)
+relay.on()
+relay.off()
+relay.toggle()
+
+# Fan/Pump (PWM speed control)
+mut Fan cooler = new Fan(9)
+cooler.setSpeed(200)
+
+# Valve
+mut Valve valve = new Valve(8)
+valve.open()
+valve.close()
+
+# Solenoid
+mut Solenoid sol = new Solenoid(6)
+sol.activate()
+sol.pulse(100)  # 100ms pulse
+```
+
+#### Motor Driver Types
+```javascript
+# H-Bridge motor control
+mut HBridge motor = new HBridge(in1, in2, enablePin)
+motor.forward(200)
+motor.reverse(150)
+motor.stop()
+motor.brake()
+
+# Dual motor driver
+mut MotorDriver driver = new MotorDriver(pwmA, dirA, pwmB, dirB)
+driver.setMotorA(255)
+driver.setMotorB(-128)
+driver.stopAll()
+```
+
+#### Timing Types
+```javascript
+# Timer
+mut Timer timer = new Timer()
+timer.start(5000)  # 5 seconds
+if (timer.isExpired()) { ... }
+mut unsigned long remaining = timer.remaining()
+
+# Real-time clock
+mut RTC clock = new RTC()
+mut int hour = clock.hour()
+mut int minute = clock.minute()
+```
+
+#### Audio Types
+```javascript
+# Speaker
+mut Speaker spk = new Speaker(8)
+spk.tone(440, 500)  # 440Hz for 500ms
+spk.beep(1000, 200)
+
+# Microphone
+mut Microphone mic = new Microphone(A0)
+if (mic.isLoud()) { ... }
+```
+
+#### Power Types
+```javascript
+# Battery monitor
+mut Battery batt = new Battery(A0, 4.2, 3.0)
+mut int percent = batt.readPercent()
+if (batt.isLow(20)) { ... }
+```
+
 ### 14. Unit System
 
 Support for physical unit literals that are automatically converted at compile time:
@@ -574,7 +749,14 @@ ysc --version
 - timeout statements
 
 ### Hardware Integration: ✅ Advanced
-- Hardware types (Digital, Analog, PWM)
+- Hardware types (Digital, Analog, PWM, and 50+ more)
+- Multiplexer types (Mux4, Mux8, Mux16, Mux32)
+- Sensor types (TempSensor, DistanceSensor, LightSensor, MotionSensor, etc.)
+- Display types (LCD, OLED, NeoPixel, SevenSegment, etc.)
+- Actuator types (Relay, Solenoid, Fan, Pump, Valve, etc.)
+- Motor driver types (HBridge, MotorDriver, ServoDriver)
+- Communication types (Bluetooth, WiFi, LoRa, etc.)
+- Natural variable-like syntax for hardware types
 - Auto pinMode detection
 - Board-specific PWM implementation
 - Pin control (digital and analog)

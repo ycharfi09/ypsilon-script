@@ -39,6 +39,75 @@ function isTypeToken(tokenType) {
     TOKEN_TYPES.TYPE_RGBLED,
     TOKEN_TYPES.TYPE_BUTTON,
     TOKEN_TYPES.TYPE_BUZZER,
+    // Multiplexers
+    TOKEN_TYPES.TYPE_MUX4,
+    TOKEN_TYPES.TYPE_MUX8,
+    TOKEN_TYPES.TYPE_MUX16,
+    TOKEN_TYPES.TYPE_MUX32,
+    // Sensors
+    TOKEN_TYPES.TYPE_TEMPSENSOR,
+    TOKEN_TYPES.TYPE_HUMIDITYSENSOR,
+    TOKEN_TYPES.TYPE_PRESSURESENSOR,
+    TOKEN_TYPES.TYPE_LIGHTSENSOR,
+    TOKEN_TYPES.TYPE_DISTANCESENSOR,
+    TOKEN_TYPES.TYPE_MOTIONSENSOR,
+    TOKEN_TYPES.TYPE_TOUCHSENSOR,
+    TOKEN_TYPES.TYPE_SOUNDSENSOR,
+    TOKEN_TYPES.TYPE_GASSENSOR,
+    TOKEN_TYPES.TYPE_COLORSENSOR,
+    TOKEN_TYPES.TYPE_ACCELEROMETER,
+    TOKEN_TYPES.TYPE_GYROSCOPE,
+    TOKEN_TYPES.TYPE_MAGNETOMETER,
+    TOKEN_TYPES.TYPE_IMU,
+    TOKEN_TYPES.TYPE_GPS,
+    TOKEN_TYPES.TYPE_LOADCELL,
+    TOKEN_TYPES.TYPE_POTENTIOMETER,
+    TOKEN_TYPES.TYPE_JOYSTICK,
+    TOKEN_TYPES.TYPE_ROTARYENCODER,
+    TOKEN_TYPES.TYPE_IRREMOTE,
+    TOKEN_TYPES.TYPE_RFID,
+    // Displays
+    TOKEN_TYPES.TYPE_LCD,
+    TOKEN_TYPES.TYPE_OLED,
+    TOKEN_TYPES.TYPE_SEVENSEGMENT,
+    TOKEN_TYPES.TYPE_MATRIX,
+    TOKEN_TYPES.TYPE_TFT,
+    TOKEN_TYPES.TYPE_NEOPIXEL,
+    // Actuators
+    TOKEN_TYPES.TYPE_RELAY,
+    TOKEN_TYPES.TYPE_SOLENOID,
+    TOKEN_TYPES.TYPE_FAN,
+    TOKEN_TYPES.TYPE_HEATER,
+    TOKEN_TYPES.TYPE_PUMP,
+    TOKEN_TYPES.TYPE_VALVE,
+    // Communication
+    TOKEN_TYPES.TYPE_BLUETOOTH,
+    TOKEN_TYPES.TYPE_WIFI,
+    TOKEN_TYPES.TYPE_LORA,
+    TOKEN_TYPES.TYPE_CAN,
+    TOKEN_TYPES.TYPE_RS485,
+    TOKEN_TYPES.TYPE_ETHERNET,
+    TOKEN_TYPES.TYPE_NRF24,
+    TOKEN_TYPES.TYPE_ZIGBEE,
+    // Storage
+    TOKEN_TYPES.TYPE_SDCARD,
+    TOKEN_TYPES.TYPE_EEPROM,
+    TOKEN_TYPES.TYPE_FLASH,
+    // Power
+    TOKEN_TYPES.TYPE_BATTERY,
+    TOKEN_TYPES.TYPE_SOLAR,
+    // Motor Drivers
+    TOKEN_TYPES.TYPE_HBRIDGE,
+    TOKEN_TYPES.TYPE_MOTORDRIVER,
+    TOKEN_TYPES.TYPE_SERVODRIVER,
+    // Timing
+    TOKEN_TYPES.TYPE_RTC,
+    TOKEN_TYPES.TYPE_TIMER,
+    // Audio
+    TOKEN_TYPES.TYPE_SPEAKER,
+    TOKEN_TYPES.TYPE_MICROPHONE,
+    TOKEN_TYPES.TYPE_DFPLAYER,
+    // Collections
     TOKEN_TYPES.TYPE_LIST,
     TOKEN_TYPES.TYPE_MAP
   ].includes(tokenType);
@@ -78,10 +147,92 @@ function tokenTypeToString(tokenType) {
     [TOKEN_TYPES.TYPE_RGBLED]: 'RgbLed',
     [TOKEN_TYPES.TYPE_BUTTON]: 'Button',
     [TOKEN_TYPES.TYPE_BUZZER]: 'Buzzer',
+    // Multiplexers
+    [TOKEN_TYPES.TYPE_MUX4]: 'Mux4',
+    [TOKEN_TYPES.TYPE_MUX8]: 'Mux8',
+    [TOKEN_TYPES.TYPE_MUX16]: 'Mux16',
+    [TOKEN_TYPES.TYPE_MUX32]: 'Mux32',
+    // Sensors
+    [TOKEN_TYPES.TYPE_TEMPSENSOR]: 'TempSensor',
+    [TOKEN_TYPES.TYPE_HUMIDITYSENSOR]: 'HumiditySensor',
+    [TOKEN_TYPES.TYPE_PRESSURESENSOR]: 'PressureSensor',
+    [TOKEN_TYPES.TYPE_LIGHTSENSOR]: 'LightSensor',
+    [TOKEN_TYPES.TYPE_DISTANCESENSOR]: 'DistanceSensor',
+    [TOKEN_TYPES.TYPE_MOTIONSENSOR]: 'MotionSensor',
+    [TOKEN_TYPES.TYPE_TOUCHSENSOR]: 'TouchSensor',
+    [TOKEN_TYPES.TYPE_SOUNDSENSOR]: 'SoundSensor',
+    [TOKEN_TYPES.TYPE_GASSENSOR]: 'GasSensor',
+    [TOKEN_TYPES.TYPE_COLORSENSOR]: 'ColorSensor',
+    [TOKEN_TYPES.TYPE_ACCELEROMETER]: 'Accelerometer',
+    [TOKEN_TYPES.TYPE_GYROSCOPE]: 'Gyroscope',
+    [TOKEN_TYPES.TYPE_MAGNETOMETER]: 'Magnetometer',
+    [TOKEN_TYPES.TYPE_IMU]: 'IMU',
+    [TOKEN_TYPES.TYPE_GPS]: 'GPS',
+    [TOKEN_TYPES.TYPE_LOADCELL]: 'LoadCell',
+    [TOKEN_TYPES.TYPE_POTENTIOMETER]: 'Potentiometer',
+    [TOKEN_TYPES.TYPE_JOYSTICK]: 'Joystick',
+    [TOKEN_TYPES.TYPE_ROTARYENCODER]: 'RotaryEncoder',
+    [TOKEN_TYPES.TYPE_IRREMOTE]: 'IRRemote',
+    [TOKEN_TYPES.TYPE_RFID]: 'RFID',
+    // Displays
+    [TOKEN_TYPES.TYPE_LCD]: 'LCD',
+    [TOKEN_TYPES.TYPE_OLED]: 'OLED',
+    [TOKEN_TYPES.TYPE_SEVENSEGMENT]: 'SevenSegment',
+    [TOKEN_TYPES.TYPE_MATRIX]: 'Matrix',
+    [TOKEN_TYPES.TYPE_TFT]: 'TFT',
+    [TOKEN_TYPES.TYPE_NEOPIXEL]: 'NeoPixel',
+    // Actuators
+    [TOKEN_TYPES.TYPE_RELAY]: 'Relay',
+    [TOKEN_TYPES.TYPE_SOLENOID]: 'Solenoid',
+    [TOKEN_TYPES.TYPE_FAN]: 'Fan',
+    [TOKEN_TYPES.TYPE_HEATER]: 'Heater',
+    [TOKEN_TYPES.TYPE_PUMP]: 'Pump',
+    [TOKEN_TYPES.TYPE_VALVE]: 'Valve',
+    // Communication
+    [TOKEN_TYPES.TYPE_BLUETOOTH]: 'Bluetooth',
+    [TOKEN_TYPES.TYPE_WIFI]: 'WiFi',
+    [TOKEN_TYPES.TYPE_LORA]: 'LoRa',
+    [TOKEN_TYPES.TYPE_CAN]: 'CAN',
+    [TOKEN_TYPES.TYPE_RS485]: 'RS485',
+    [TOKEN_TYPES.TYPE_ETHERNET]: 'Ethernet',
+    [TOKEN_TYPES.TYPE_NRF24]: 'NRF24',
+    [TOKEN_TYPES.TYPE_ZIGBEE]: 'ZigBee',
+    // Storage
+    [TOKEN_TYPES.TYPE_SDCARD]: 'SDCard',
+    [TOKEN_TYPES.TYPE_EEPROM]: 'EEPROM',
+    [TOKEN_TYPES.TYPE_FLASH]: 'Flash',
+    // Power
+    [TOKEN_TYPES.TYPE_BATTERY]: 'Battery',
+    [TOKEN_TYPES.TYPE_SOLAR]: 'Solar',
+    // Motor Drivers
+    [TOKEN_TYPES.TYPE_HBRIDGE]: 'HBridge',
+    [TOKEN_TYPES.TYPE_MOTORDRIVER]: 'MotorDriver',
+    [TOKEN_TYPES.TYPE_SERVODRIVER]: 'ServoDriver',
+    // Timing
+    [TOKEN_TYPES.TYPE_RTC]: 'RTC',
+    [TOKEN_TYPES.TYPE_TIMER]: 'Timer',
+    // Audio
+    [TOKEN_TYPES.TYPE_SPEAKER]: 'Speaker',
+    [TOKEN_TYPES.TYPE_MICROPHONE]: 'Microphone',
+    [TOKEN_TYPES.TYPE_DFPLAYER]: 'DFPlayer',
+    // Collections
     [TOKEN_TYPES.TYPE_LIST]: 'List',
     [TOKEN_TYPES.TYPE_MAP]: 'Map'
   };
   return typeMap[tokenType] || 'int';
+}
+
+// Hardware types that support natural variable-like syntax (Type name = value instead of Type name = new Type(value))
+const NATURAL_SYNTAX_HARDWARE_TYPES = [
+  'Digital', 'Analog', 'PWM', 'Led', 'Button', 'Buzzer', 'Relay', 'Solenoid',
+  'Fan', 'Heater', 'Pump', 'Valve', 'TempSensor', 'HumiditySensor', 'PressureSensor',
+  'LightSensor', 'MotionSensor', 'TouchSensor', 'SoundSensor', 'GasSensor',
+  'Potentiometer', 'Speaker', 'Microphone', 'Timer'
+];
+
+// Check if a type supports natural syntax for initialization
+function supportsNaturalSyntax(typeName) {
+  return NATURAL_SYNTAX_HARDWARE_TYPES.includes(typeName);
 }
 
 class Parser {
@@ -773,6 +924,25 @@ class Parser {
     if (this.peek().type === TOKEN_TYPES.ASSIGN) {
       this.advance();
       init = this.parseExpression();
+      
+      // Natural syntax support: If the type supports natural syntax and the initializer
+      // is not already a NewExpression, wrap the value(s) in a NewExpression
+      if (supportsNaturalSyntax(varType) && init && init.type !== 'NewExpression') {
+        // Collect arguments - if it's a single value, wrap it in an array
+        // If it's an array literal, use its elements as arguments
+        let args;
+        if (init.type === 'ArrayLiteral') {
+          args = init.elements;
+        } else {
+          args = [init];
+        }
+        
+        init = {
+          type: 'NewExpression',
+          className: varType,
+          arguments: args
+        };
+      }
     }
     this.optionalExpect(TOKEN_TYPES.SEMICOLON);
 
@@ -794,6 +964,25 @@ class Parser {
     if (this.peek().type === TOKEN_TYPES.ASSIGN) {
       this.advance();
       init = this.parseExpression();
+      
+      // Natural syntax support: If the type supports natural syntax and the initializer
+      // is not already a NewExpression, wrap the value(s) in a NewExpression
+      if (supportsNaturalSyntax(varType) && init && init.type !== 'NewExpression') {
+        // Collect arguments - if it's a single value, wrap it in an array
+        // If it's an array literal, use its elements as arguments
+        let args;
+        if (init.type === 'ArrayLiteral') {
+          args = init.elements;
+        } else {
+          args = [init];
+        }
+        
+        init = {
+          type: 'NewExpression',
+          className: varType,
+          arguments: args
+        };
+      }
     }
     this.optionalExpect(TOKEN_TYPES.SEMICOLON);
 

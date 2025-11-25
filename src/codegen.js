@@ -78,7 +78,31 @@ class CodeGenerator {
       const hardwareTypes = [
         'Digital', 'Analog', 'PWM', 'I2C', 'SPI', 'UART',
         'Servo', 'Encoder', 'DCMotor', 'StepperMotor',
-        'Led', 'RgbLed', 'Button', 'Buzzer'
+        'Led', 'RgbLed', 'Button', 'Buzzer',
+        // Multiplexers
+        'Mux4', 'Mux8', 'Mux16', 'Mux32',
+        // Sensors
+        'TempSensor', 'HumiditySensor', 'PressureSensor', 'LightSensor',
+        'DistanceSensor', 'MotionSensor', 'TouchSensor', 'SoundSensor',
+        'GasSensor', 'ColorSensor', 'Accelerometer', 'Gyroscope',
+        'Magnetometer', 'IMU', 'GPS', 'LoadCell', 'Potentiometer',
+        'Joystick', 'RotaryEncoder', 'IRRemote', 'RFID',
+        // Displays
+        'LCD', 'OLED', 'SevenSegment', 'Matrix', 'TFT', 'NeoPixel',
+        // Actuators
+        'Relay', 'Solenoid', 'Fan', 'Heater', 'Pump', 'Valve',
+        // Communication
+        'Bluetooth', 'WiFi', 'LoRa', 'CAN', 'RS485', 'Ethernet', 'NRF24', 'ZigBee',
+        // Storage
+        'SDCard', 'EEPROM', 'Flash',
+        // Power
+        'Battery', 'Solar',
+        // Motor Drivers
+        'HBridge', 'MotorDriver', 'ServoDriver',
+        // Timing
+        'RTC', 'Timer',
+        // Audio
+        'Speaker', 'Microphone', 'DFPlayer'
       ];
       if (hardwareTypes.includes(node.varType)) {
         this.usedHardwareTypes.add(node.varType);
@@ -544,6 +568,75 @@ class CodeGenerator {
       'RgbLed': 'RgbLed',
       'Button': 'Button',
       'Buzzer': 'Buzzer',
+      // Multiplexers
+      'Mux4': 'Mux4',
+      'Mux8': 'Mux8',
+      'Mux16': 'Mux16',
+      'Mux32': 'Mux32',
+      // Sensors
+      'TempSensor': 'TempSensor',
+      'HumiditySensor': 'HumiditySensor',
+      'PressureSensor': 'PressureSensor',
+      'LightSensor': 'LightSensor',
+      'DistanceSensor': 'DistanceSensor',
+      'MotionSensor': 'MotionSensor',
+      'TouchSensor': 'TouchSensor',
+      'SoundSensor': 'SoundSensor',
+      'GasSensor': 'GasSensor',
+      'ColorSensor': 'ColorSensor',
+      'Accelerometer': 'Accelerometer',
+      'Gyroscope': 'Gyroscope',
+      'Magnetometer': 'Magnetometer',
+      'IMU': 'IMU',
+      'GPS': 'GPS',
+      'LoadCell': 'LoadCell',
+      'Potentiometer': 'Potentiometer',
+      'Joystick': 'Joystick',
+      'RotaryEncoder': 'RotaryEncoder',
+      'IRRemote': 'IRRemote',
+      'RFID': 'RFID',
+      // Displays
+      'LCD': 'LCD',
+      'OLED': 'OLED',
+      'SevenSegment': 'SevenSegment',
+      'Matrix': 'Matrix',
+      'TFT': 'TFT',
+      'NeoPixel': 'NeoPixel',
+      // Actuators
+      'Relay': 'Relay',
+      'Solenoid': 'Solenoid',
+      'Fan': 'Fan',
+      'Heater': 'Heater',
+      'Pump': 'Pump',
+      'Valve': 'Valve',
+      // Communication
+      'Bluetooth': 'Bluetooth',
+      'WiFi': 'WiFi',
+      'LoRa': 'LoRa',
+      'CAN': 'CAN',
+      'RS485': 'RS485',
+      'Ethernet': 'Ethernet',
+      'NRF24': 'NRF24',
+      'ZigBee': 'ZigBee',
+      // Storage
+      'SDCard': 'SDCard',
+      'EEPROM': 'EEPROM',
+      'Flash': 'Flash',
+      // Power
+      'Battery': 'Battery',
+      'Solar': 'Solar',
+      // Motor Drivers
+      'HBridge': 'HBridge',
+      'MotorDriver': 'MotorDriver',
+      'ServoDriver': 'ServoDriver',
+      // Timing
+      'RTC': 'RTC',
+      'Timer': 'Timer',
+      // Audio
+      'Speaker': 'Speaker',
+      'Microphone': 'Microphone',
+      'DFPlayer': 'DFPlayer',
+      // Collections
       'List': 'List',
       'Map': 'Map'
     };
@@ -2154,6 +2247,1414 @@ public:
     }
     off();
   }
+};
+
+`;
+    }
+    
+    // Multiplexer classes (Mux4, Mux8, Mux16, Mux32)
+    if (this.usedHardwareTypes.has('Mux4')) {
+      code += `class Mux4 {
+private:
+  int _sigPin;
+  int _s0, _s1;
+  bool _enablePin;
+  int _en;
+  
+public:
+  Mux4(int sigPin, int s0, int s1) : _sigPin(sigPin), _s0(s0), _s1(s1), _enablePin(false), _en(-1) {
+    pinMode(_s0, OUTPUT);
+    pinMode(_s1, OUTPUT);
+  }
+  
+  Mux4(int sigPin, int s0, int s1, int en) : _sigPin(sigPin), _s0(s0), _s1(s1), _enablePin(true), _en(en) {
+    pinMode(_s0, OUTPUT);
+    pinMode(_s1, OUTPUT);
+    pinMode(_en, OUTPUT);
+    enable();
+  }
+  
+  void selectChannel(uint8_t channel) {
+    channel = channel & 0x03;
+    digitalWrite(_s0, channel & 0x01);
+    digitalWrite(_s1, (channel >> 1) & 0x01);
+  }
+  
+  int read(uint8_t channel) {
+    selectChannel(channel);
+    return analogRead(_sigPin);
+  }
+  
+  void enable() { if (_enablePin) digitalWrite(_en, LOW); }
+  void disable() { if (_enablePin) digitalWrite(_en, HIGH); }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('Mux8')) {
+      code += `class Mux8 {
+private:
+  int _sigPin;
+  int _s0, _s1, _s2;
+  bool _enablePin;
+  int _en;
+  
+public:
+  Mux8(int sigPin, int s0, int s1, int s2) : _sigPin(sigPin), _s0(s0), _s1(s1), _s2(s2), _enablePin(false), _en(-1) {
+    pinMode(_s0, OUTPUT);
+    pinMode(_s1, OUTPUT);
+    pinMode(_s2, OUTPUT);
+  }
+  
+  Mux8(int sigPin, int s0, int s1, int s2, int en) : _sigPin(sigPin), _s0(s0), _s1(s1), _s2(s2), _enablePin(true), _en(en) {
+    pinMode(_s0, OUTPUT);
+    pinMode(_s1, OUTPUT);
+    pinMode(_s2, OUTPUT);
+    pinMode(_en, OUTPUT);
+    enable();
+  }
+  
+  void selectChannel(uint8_t channel) {
+    channel = channel & 0x07;
+    digitalWrite(_s0, channel & 0x01);
+    digitalWrite(_s1, (channel >> 1) & 0x01);
+    digitalWrite(_s2, (channel >> 2) & 0x01);
+  }
+  
+  int read(uint8_t channel) {
+    selectChannel(channel);
+    return analogRead(_sigPin);
+  }
+  
+  void enable() { if (_enablePin) digitalWrite(_en, LOW); }
+  void disable() { if (_enablePin) digitalWrite(_en, HIGH); }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('Mux16')) {
+      code += `class Mux16 {
+private:
+  int _sigPin;
+  int _s0, _s1, _s2, _s3;
+  bool _enablePin;
+  int _en;
+  
+public:
+  Mux16(int sigPin, int s0, int s1, int s2, int s3) : _sigPin(sigPin), _s0(s0), _s1(s1), _s2(s2), _s3(s3), _enablePin(false), _en(-1) {
+    pinMode(_s0, OUTPUT);
+    pinMode(_s1, OUTPUT);
+    pinMode(_s2, OUTPUT);
+    pinMode(_s3, OUTPUT);
+  }
+  
+  Mux16(int sigPin, int s0, int s1, int s2, int s3, int en) : _sigPin(sigPin), _s0(s0), _s1(s1), _s2(s2), _s3(s3), _enablePin(true), _en(en) {
+    pinMode(_s0, OUTPUT);
+    pinMode(_s1, OUTPUT);
+    pinMode(_s2, OUTPUT);
+    pinMode(_s3, OUTPUT);
+    pinMode(_en, OUTPUT);
+    enable();
+  }
+  
+  void selectChannel(uint8_t channel) {
+    channel = channel & 0x0F;
+    digitalWrite(_s0, channel & 0x01);
+    digitalWrite(_s1, (channel >> 1) & 0x01);
+    digitalWrite(_s2, (channel >> 2) & 0x01);
+    digitalWrite(_s3, (channel >> 3) & 0x01);
+  }
+  
+  int read(uint8_t channel) {
+    selectChannel(channel);
+    return analogRead(_sigPin);
+  }
+  
+  void enable() { if (_enablePin) digitalWrite(_en, LOW); }
+  void disable() { if (_enablePin) digitalWrite(_en, HIGH); }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('Mux32')) {
+      code += `class Mux32 {
+private:
+  int _sigPin;
+  int _s0, _s1, _s2, _s3, _s4;
+  bool _enablePin;
+  int _en;
+  
+public:
+  Mux32(int sigPin, int s0, int s1, int s2, int s3, int s4) : _sigPin(sigPin), _s0(s0), _s1(s1), _s2(s2), _s3(s3), _s4(s4), _enablePin(false), _en(-1) {
+    pinMode(_s0, OUTPUT);
+    pinMode(_s1, OUTPUT);
+    pinMode(_s2, OUTPUT);
+    pinMode(_s3, OUTPUT);
+    pinMode(_s4, OUTPUT);
+  }
+  
+  Mux32(int sigPin, int s0, int s1, int s2, int s3, int s4, int en) : _sigPin(sigPin), _s0(s0), _s1(s1), _s2(s2), _s3(s3), _s4(s4), _enablePin(true), _en(en) {
+    pinMode(_s0, OUTPUT);
+    pinMode(_s1, OUTPUT);
+    pinMode(_s2, OUTPUT);
+    pinMode(_s3, OUTPUT);
+    pinMode(_s4, OUTPUT);
+    pinMode(_en, OUTPUT);
+    enable();
+  }
+  
+  void selectChannel(uint8_t channel) {
+    channel = channel & 0x1F;
+    digitalWrite(_s0, channel & 0x01);
+    digitalWrite(_s1, (channel >> 1) & 0x01);
+    digitalWrite(_s2, (channel >> 2) & 0x01);
+    digitalWrite(_s3, (channel >> 3) & 0x01);
+    digitalWrite(_s4, (channel >> 4) & 0x01);
+  }
+  
+  int read(uint8_t channel) {
+    selectChannel(channel);
+    return analogRead(_sigPin);
+  }
+  
+  void enable() { if (_enablePin) digitalWrite(_en, LOW); }
+  void disable() { if (_enablePin) digitalWrite(_en, HIGH); }
+};
+
+`;
+    }
+    
+    // Sensor classes
+    if (this.usedHardwareTypes.has('TempSensor')) {
+      code += `class TempSensor {
+private:
+  int _pin;
+  float _offset;
+  
+public:
+  TempSensor(int pin) : _pin(pin), _offset(0) { pinMode(_pin, INPUT); }
+  TempSensor(int pin, float offset) : _pin(pin), _offset(offset) { pinMode(_pin, INPUT); }
+  
+  float readCelsius() {
+    int raw = analogRead(_pin);
+    float voltage = raw * (5.0 / 1023.0);
+    return (voltage - 0.5) * 100.0 + _offset;
+  }
+  
+  float readFahrenheit() { return readCelsius() * 9.0 / 5.0 + 32.0; }
+  float readKelvin() { return readCelsius() + 273.15; }
+  int readRaw() { return analogRead(_pin); }
+  void setOffset(float offset) { _offset = offset; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('HumiditySensor')) {
+      code += `class HumiditySensor {
+private:
+  int _pin;
+  
+public:
+  HumiditySensor(int pin) : _pin(pin) { pinMode(_pin, INPUT); }
+  
+  float readPercent() {
+    int raw = analogRead(_pin);
+    return map(raw, 0, 1023, 0, 100);
+  }
+  
+  int readRaw() { return analogRead(_pin); }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('PressureSensor')) {
+      code += `class PressureSensor {
+private:
+  int _pin;
+  float _minPressure;
+  float _maxPressure;
+  
+public:
+  PressureSensor(int pin) : _pin(pin), _minPressure(0), _maxPressure(1000) { pinMode(_pin, INPUT); }
+  PressureSensor(int pin, float minP, float maxP) : _pin(pin), _minPressure(minP), _maxPressure(maxP) { pinMode(_pin, INPUT); }
+  
+  float read() {
+    int raw = analogRead(_pin);
+    return map(raw, 0, 1023, _minPressure * 100, _maxPressure * 100) / 100.0;
+  }
+  
+  int readRaw() { return analogRead(_pin); }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('LightSensor')) {
+      code += `class LightSensor {
+private:
+  int _pin;
+  
+public:
+  LightSensor(int pin) : _pin(pin) { pinMode(_pin, INPUT); }
+  
+  int read() { return analogRead(_pin); }
+  int readPercent() { return map(analogRead(_pin), 0, 1023, 0, 100); }
+  bool isDark(int threshold = 100) { return analogRead(_pin) < threshold; }
+  bool isBright(int threshold = 800) { return analogRead(_pin) > threshold; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('DistanceSensor')) {
+      code += `class DistanceSensor {
+private:
+  int _trigPin;
+  int _echoPin;
+  
+public:
+  DistanceSensor(int trigPin, int echoPin) : _trigPin(trigPin), _echoPin(echoPin) {
+    pinMode(_trigPin, OUTPUT);
+    pinMode(_echoPin, INPUT);
+  }
+  
+  float readCm() {
+    digitalWrite(_trigPin, LOW);
+    delayMicroseconds(2);
+    digitalWrite(_trigPin, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(_trigPin, LOW);
+    long duration = pulseIn(_echoPin, HIGH, 30000);
+    return duration * 0.034 / 2.0;
+  }
+  
+  float readInches() { return readCm() / 2.54; }
+  float readMm() { return readCm() * 10.0; }
+  bool inRange(float minCm, float maxCm) { float d = readCm(); return d >= minCm && d <= maxCm; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('MotionSensor')) {
+      code += `class MotionSensor {
+private:
+  int _pin;
+  unsigned long _lastMotion;
+  
+public:
+  MotionSensor(int pin) : _pin(pin), _lastMotion(0) { pinMode(_pin, INPUT); }
+  
+  bool detected() {
+    if (digitalRead(_pin) == HIGH) {
+      _lastMotion = millis();
+      return true;
+    }
+    return false;
+  }
+  
+  unsigned long timeSinceMotion() { return millis() - _lastMotion; }
+  bool isIdle(unsigned long timeoutMs) { return timeSinceMotion() > timeoutMs; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('TouchSensor')) {
+      code += `class TouchSensor {
+private:
+  int _pin;
+  int _threshold;
+  
+public:
+  TouchSensor(int pin) : _pin(pin), _threshold(500) { pinMode(_pin, INPUT); }
+  TouchSensor(int pin, int threshold) : _pin(pin), _threshold(threshold) { pinMode(_pin, INPUT); }
+  
+  bool isTouched() { return analogRead(_pin) > _threshold; }
+  int read() { return analogRead(_pin); }
+  void setThreshold(int threshold) { _threshold = threshold; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('SoundSensor')) {
+      code += `class SoundSensor {
+private:
+  int _pin;
+  int _threshold;
+  
+public:
+  SoundSensor(int pin) : _pin(pin), _threshold(500) { pinMode(_pin, INPUT); }
+  SoundSensor(int pin, int threshold) : _pin(pin), _threshold(threshold) { pinMode(_pin, INPUT); }
+  
+  int read() { return analogRead(_pin); }
+  bool isLoud() { return analogRead(_pin) > _threshold; }
+  void setThreshold(int threshold) { _threshold = threshold; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('GasSensor')) {
+      code += `class GasSensor {
+private:
+  int _pin;
+  int _threshold;
+  
+public:
+  GasSensor(int pin) : _pin(pin), _threshold(300) { pinMode(_pin, INPUT); }
+  GasSensor(int pin, int threshold) : _pin(pin), _threshold(threshold) { pinMode(_pin, INPUT); }
+  
+  int read() { return analogRead(_pin); }
+  bool detected() { return analogRead(_pin) > _threshold; }
+  void setThreshold(int threshold) { _threshold = threshold; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('ColorSensor')) {
+      code += `class ColorSensor {
+private:
+  int _s0, _s1, _s2, _s3, _out;
+  
+public:
+  ColorSensor(int s0, int s1, int s2, int s3, int out) : _s0(s0), _s1(s1), _s2(s2), _s3(s3), _out(out) {
+    pinMode(_s0, OUTPUT);
+    pinMode(_s1, OUTPUT);
+    pinMode(_s2, OUTPUT);
+    pinMode(_s3, OUTPUT);
+    pinMode(_out, INPUT);
+    digitalWrite(_s0, HIGH);
+    digitalWrite(_s1, LOW);
+  }
+  
+  int readRed() {
+    digitalWrite(_s2, LOW);
+    digitalWrite(_s3, LOW);
+    return pulseIn(_out, LOW, 50000);
+  }
+  
+  int readGreen() {
+    digitalWrite(_s2, HIGH);
+    digitalWrite(_s3, HIGH);
+    return pulseIn(_out, LOW, 50000);
+  }
+  
+  int readBlue() {
+    digitalWrite(_s2, LOW);
+    digitalWrite(_s3, HIGH);
+    return pulseIn(_out, LOW, 50000);
+  }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('Accelerometer')) {
+      code += `class Accelerometer {
+private:
+  int _xPin, _yPin, _zPin;
+  float _scale;
+  
+public:
+  Accelerometer(int xPin, int yPin, int zPin) : _xPin(xPin), _yPin(yPin), _zPin(zPin), _scale(1.0) {
+    pinMode(_xPin, INPUT);
+    pinMode(_yPin, INPUT);
+    pinMode(_zPin, INPUT);
+  }
+  
+  float readX() { return (analogRead(_xPin) - 512) * _scale / 102.4; }
+  float readY() { return (analogRead(_yPin) - 512) * _scale / 102.4; }
+  float readZ() { return (analogRead(_zPin) - 512) * _scale / 102.4; }
+  void setScale(float scale) { _scale = scale; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('Gyroscope')) {
+      code += `class Gyroscope {
+private:
+  int _xPin, _yPin, _zPin;
+  float _scale;
+  
+public:
+  Gyroscope(int xPin, int yPin, int zPin) : _xPin(xPin), _yPin(yPin), _zPin(zPin), _scale(1.0) {
+    pinMode(_xPin, INPUT);
+    pinMode(_yPin, INPUT);
+    pinMode(_zPin, INPUT);
+  }
+  
+  float readX() { return (analogRead(_xPin) - 512) * _scale; }
+  float readY() { return (analogRead(_yPin) - 512) * _scale; }
+  float readZ() { return (analogRead(_zPin) - 512) * _scale; }
+  void setScale(float scale) { _scale = scale; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('Magnetometer')) {
+      code += `class Magnetometer {
+private:
+  int _xPin, _yPin, _zPin;
+  
+public:
+  Magnetometer(int xPin, int yPin, int zPin) : _xPin(xPin), _yPin(yPin), _zPin(zPin) {
+    pinMode(_xPin, INPUT);
+    pinMode(_yPin, INPUT);
+    pinMode(_zPin, INPUT);
+  }
+  
+  int readX() { return analogRead(_xPin) - 512; }
+  int readY() { return analogRead(_yPin) - 512; }
+  int readZ() { return analogRead(_zPin) - 512; }
+  float heading() { return atan2(readY(), readX()) * 180.0 / 3.14159; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('IMU')) {
+      code += `class IMU {
+private:
+  int _address;
+  bool _initialized;
+  
+public:
+  IMU(int address = 0x68) : _address(address), _initialized(false) {}
+  
+  void begin() { _initialized = true; Wire.begin(); }
+  float readAccelX() { return 0; }
+  float readAccelY() { return 0; }
+  float readAccelZ() { return 0; }
+  float readGyroX() { return 0; }
+  float readGyroY() { return 0; }
+  float readGyroZ() { return 0; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('GPS')) {
+      code += `class GPS {
+private:
+  int _rxPin, _txPin;
+  float _lat, _lon, _alt;
+  
+public:
+  GPS(int rxPin, int txPin) : _rxPin(rxPin), _txPin(txPin), _lat(0), _lon(0), _alt(0) {}
+  
+  void begin(long baud = 9600) {}
+  bool update() { return false; }
+  float latitude() { return _lat; }
+  float longitude() { return _lon; }
+  float altitude() { return _alt; }
+  float speed() { return 0; }
+  int satellites() { return 0; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('LoadCell')) {
+      code += `class LoadCell {
+private:
+  int _doutPin, _sckPin;
+  float _scale;
+  long _offset;
+  
+public:
+  LoadCell(int doutPin, int sckPin) : _doutPin(doutPin), _sckPin(sckPin), _scale(1.0), _offset(0) {
+    pinMode(_doutPin, INPUT);
+    pinMode(_sckPin, OUTPUT);
+  }
+  
+  void setScale(float scale) { _scale = scale; }
+  void tare() { _offset = readRaw(); }
+  long readRaw() { return 0; }
+  float read() { return (readRaw() - _offset) / _scale; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('Potentiometer')) {
+      code += `class Potentiometer {
+private:
+  int _pin;
+  int _minVal, _maxVal;
+  
+public:
+  Potentiometer(int pin) : _pin(pin), _minVal(0), _maxVal(1023) { pinMode(_pin, INPUT); }
+  
+  int read() { return analogRead(_pin); }
+  int readPercent() { return map(analogRead(_pin), _minVal, _maxVal, 0, 100); }
+  int readMapped(int outMin, int outMax) { return map(analogRead(_pin), _minVal, _maxVal, outMin, outMax); }
+  void calibrate(int minVal, int maxVal) { _minVal = minVal; _maxVal = maxVal; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('Joystick')) {
+      code += `class Joystick {
+private:
+  int _xPin, _yPin, _btnPin;
+  int _centerX, _centerY;
+  int _deadzone;
+  
+public:
+  Joystick(int xPin, int yPin) : _xPin(xPin), _yPin(yPin), _btnPin(-1), _centerX(512), _centerY(512), _deadzone(50) {
+    pinMode(_xPin, INPUT);
+    pinMode(_yPin, INPUT);
+  }
+  
+  Joystick(int xPin, int yPin, int btnPin) : _xPin(xPin), _yPin(yPin), _btnPin(btnPin), _centerX(512), _centerY(512), _deadzone(50) {
+    pinMode(_xPin, INPUT);
+    pinMode(_yPin, INPUT);
+    pinMode(_btnPin, INPUT_PULLUP);
+  }
+  
+  int readX() { return analogRead(_xPin) - _centerX; }
+  int readY() { return analogRead(_yPin) - _centerY; }
+  bool isPressed() { return _btnPin >= 0 && digitalRead(_btnPin) == LOW; }
+  void calibrate() { _centerX = analogRead(_xPin); _centerY = analogRead(_yPin); }
+  void setDeadzone(int dz) { _deadzone = dz; }
+  bool isIdle() { return abs(readX()) < _deadzone && abs(readY()) < _deadzone; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('RotaryEncoder')) {
+      code += `class RotaryEncoder {
+private:
+  int _pinA, _pinB, _btnPin;
+  volatile int32_t _position;
+  int _lastA;
+  
+public:
+  RotaryEncoder(int pinA, int pinB) : _pinA(pinA), _pinB(pinB), _btnPin(-1), _position(0), _lastA(0) {
+    pinMode(_pinA, INPUT_PULLUP);
+    pinMode(_pinB, INPUT_PULLUP);
+    _lastA = digitalRead(_pinA);
+  }
+  
+  RotaryEncoder(int pinA, int pinB, int btnPin) : _pinA(pinA), _pinB(pinB), _btnPin(btnPin), _position(0), _lastA(0) {
+    pinMode(_pinA, INPUT_PULLUP);
+    pinMode(_pinB, INPUT_PULLUP);
+    pinMode(_btnPin, INPUT_PULLUP);
+    _lastA = digitalRead(_pinA);
+  }
+  
+  void update() {
+    int a = digitalRead(_pinA);
+    if (a != _lastA) {
+      if (digitalRead(_pinB) != a) _position++;
+      else _position--;
+      _lastA = a;
+    }
+  }
+  
+  int32_t position() { return _position; }
+  void reset() { _position = 0; }
+  bool isPressed() { return _btnPin >= 0 && digitalRead(_btnPin) == LOW; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('IRRemote')) {
+      code += `class IRRemote {
+private:
+  int _pin;
+  unsigned long _lastCode;
+  
+public:
+  IRRemote(int pin) : _pin(pin), _lastCode(0) { pinMode(_pin, INPUT); }
+  
+  bool available() { return false; }
+  unsigned long read() { return _lastCode; }
+  void resume() {}
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('RFID')) {
+      code += `class RFID {
+private:
+  int _ssPin, _rstPin;
+  
+public:
+  RFID(int ssPin, int rstPin) : _ssPin(ssPin), _rstPin(rstPin) {
+    pinMode(_ssPin, OUTPUT);
+    pinMode(_rstPin, OUTPUT);
+  }
+  
+  void begin() {}
+  bool cardPresent() { return false; }
+  String readUID() { return ""; }
+};
+
+`;
+    }
+    
+    // Display types
+    if (this.usedHardwareTypes.has('LCD')) {
+      code += `class LCD {
+private:
+  int _cols, _rows;
+  int _rs, _en, _d4, _d5, _d6, _d7;
+  
+public:
+  LCD(int rs, int en, int d4, int d5, int d6, int d7, int cols = 16, int rows = 2) 
+    : _rs(rs), _en(en), _d4(d4), _d5(d5), _d6(d6), _d7(d7), _cols(cols), _rows(rows) {}
+  
+  void begin() {}
+  void clear() {}
+  void home() {}
+  void setCursor(int col, int row) {}
+  void print(const char* text) {}
+  void print(int value) {}
+  void print(float value) {}
+  void backlight() {}
+  void noBacklight() {}
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('OLED')) {
+      code += `class OLED {
+private:
+  int _width, _height;
+  int _address;
+  
+public:
+  OLED(int width = 128, int height = 64, int address = 0x3C) : _width(width), _height(height), _address(address) {}
+  
+  void begin() {}
+  void clear() {}
+  void display() {}
+  void setCursor(int x, int y) {}
+  void print(const char* text) {}
+  void print(int value) {}
+  void drawPixel(int x, int y, bool color = true) {}
+  void drawLine(int x0, int y0, int x1, int y1) {}
+  void drawRect(int x, int y, int w, int h) {}
+  void fillRect(int x, int y, int w, int h) {}
+  void drawCircle(int x, int y, int r) {}
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('SevenSegment')) {
+      code += `class SevenSegment {
+private:
+  int _pins[8];
+  bool _commonCathode;
+  
+public:
+  SevenSegment(int a, int b, int c, int d, int e, int f, int g, bool commonCathode = true) : _commonCathode(commonCathode) {
+    _pins[0] = a; _pins[1] = b; _pins[2] = c; _pins[3] = d;
+    _pins[4] = e; _pins[5] = f; _pins[6] = g;
+    for (int i = 0; i < 7; i++) pinMode(_pins[i], OUTPUT);
+  }
+  
+  void display(int digit) {
+    const uint8_t segments[] = {0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F};
+    if (digit < 0 || digit > 9) return;
+    uint8_t seg = segments[digit];
+    for (int i = 0; i < 7; i++) {
+      bool on = (seg >> i) & 1;
+      digitalWrite(_pins[i], _commonCathode ? on : !on);
+    }
+  }
+  
+  void clear() {
+    for (int i = 0; i < 7; i++) digitalWrite(_pins[i], _commonCathode ? LOW : HIGH);
+  }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('Matrix')) {
+      code += `class Matrix {
+private:
+  int _dataPin, _clockPin, _csPin;
+  int _numDevices;
+  
+public:
+  Matrix(int dataPin, int clockPin, int csPin, int numDevices = 1) 
+    : _dataPin(dataPin), _clockPin(clockPin), _csPin(csPin), _numDevices(numDevices) {
+    pinMode(_dataPin, OUTPUT);
+    pinMode(_clockPin, OUTPUT);
+    pinMode(_csPin, OUTPUT);
+  }
+  
+  void begin() {}
+  void clear() {}
+  void setPixel(int x, int y, bool on = true) {}
+  void setRow(int row, uint8_t value) {}
+  void setColumn(int col, uint8_t value) {}
+  void setBrightness(int level) {}
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('TFT')) {
+      code += `class TFT {
+private:
+  int _csPin, _dcPin, _rstPin;
+  int _width, _height;
+  
+public:
+  TFT(int csPin, int dcPin, int rstPin = -1, int width = 240, int height = 320) 
+    : _csPin(csPin), _dcPin(dcPin), _rstPin(rstPin), _width(width), _height(height) {}
+  
+  void begin() {}
+  void fillScreen(uint16_t color) {}
+  void drawPixel(int x, int y, uint16_t color) {}
+  void drawLine(int x0, int y0, int x1, int y1, uint16_t color) {}
+  void drawRect(int x, int y, int w, int h, uint16_t color) {}
+  void fillRect(int x, int y, int w, int h, uint16_t color) {}
+  void drawCircle(int x, int y, int r, uint16_t color) {}
+  void setCursor(int x, int y) {}
+  void setTextColor(uint16_t color) {}
+  void setTextSize(int size) {}
+  void print(const char* text) {}
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('NeoPixel')) {
+      code += `class NeoPixel {
+private:
+  int _pin;
+  int _numLeds;
+  uint8_t* _pixels;
+  
+public:
+  NeoPixel(int pin, int numLeds) : _pin(pin), _numLeds(numLeds) {
+    _pixels = new uint8_t[numLeds * 3];
+    memset(_pixels, 0, numLeds * 3);
+    pinMode(_pin, OUTPUT);
+  }
+  
+  ~NeoPixel() { delete[] _pixels; }
+  
+  void begin() {}
+  void show() {}
+  void clear() { memset(_pixels, 0, _numLeds * 3); }
+  void setPixel(int index, uint8_t r, uint8_t g, uint8_t b) {
+    if (index >= 0 && index < _numLeds) {
+      _pixels[index * 3] = r;
+      _pixels[index * 3 + 1] = g;
+      _pixels[index * 3 + 2] = b;
+    }
+  }
+  void setBrightness(uint8_t brightness) {}
+  void fill(uint8_t r, uint8_t g, uint8_t b) {
+    for (int i = 0; i < _numLeds; i++) setPixel(i, r, g, b);
+  }
+  int numPixels() { return _numLeds; }
+};
+
+`;
+    }
+    
+    // Actuator types
+    if (this.usedHardwareTypes.has('Relay')) {
+      code += `class Relay {
+private:
+  int _pin;
+  bool _activeLow;
+  bool _state;
+  
+public:
+  Relay(int pin) : _pin(pin), _activeLow(true), _state(false) {
+    pinMode(_pin, OUTPUT);
+    off();
+  }
+  
+  Relay(int pin, bool activeLow) : _pin(pin), _activeLow(activeLow), _state(false) {
+    pinMode(_pin, OUTPUT);
+    off();
+  }
+  
+  void on() { _state = true; digitalWrite(_pin, _activeLow ? LOW : HIGH); }
+  void off() { _state = false; digitalWrite(_pin, _activeLow ? HIGH : LOW); }
+  void toggle() { _state ? off() : on(); }
+  bool isOn() { return _state; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('Solenoid')) {
+      code += `class Solenoid {
+private:
+  int _pin;
+  bool _state;
+  
+public:
+  Solenoid(int pin) : _pin(pin), _state(false) { pinMode(_pin, OUTPUT); off(); }
+  
+  void activate() { _state = true; digitalWrite(_pin, HIGH); }
+  void deactivate() { _state = false; digitalWrite(_pin, LOW); }
+  void pulse(unsigned long durationMs) { activate(); delay(durationMs); deactivate(); }
+  bool isActive() { return _state; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('Fan')) {
+      code += `class Fan {
+private:
+  int _pin;
+  int _speed;
+  
+public:
+  Fan(int pin) : _pin(pin), _speed(0) { pinMode(_pin, OUTPUT); }
+  
+  void on() { setSpeed(255); }
+  void off() { setSpeed(0); }
+  void setSpeed(int speed) { _speed = constrain(speed, 0, 255); analogWrite(_pin, _speed); }
+  int getSpeed() { return _speed; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('Heater')) {
+      code += `class Heater {
+private:
+  int _pin;
+  int _power;
+  
+public:
+  Heater(int pin) : _pin(pin), _power(0) { pinMode(_pin, OUTPUT); }
+  
+  void on() { setPower(255); }
+  void off() { setPower(0); }
+  void setPower(int power) { _power = constrain(power, 0, 255); analogWrite(_pin, _power); }
+  int getPower() { return _power; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('Pump')) {
+      code += `class Pump {
+private:
+  int _pin;
+  int _speed;
+  
+public:
+  Pump(int pin) : _pin(pin), _speed(0) { pinMode(_pin, OUTPUT); }
+  
+  void on() { setSpeed(255); }
+  void off() { setSpeed(0); }
+  void setSpeed(int speed) { _speed = constrain(speed, 0, 255); analogWrite(_pin, _speed); }
+  int getSpeed() { return _speed; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('Valve')) {
+      code += `class Valve {
+private:
+  int _pin;
+  bool _state;
+  
+public:
+  Valve(int pin) : _pin(pin), _state(false) { pinMode(_pin, OUTPUT); close(); }
+  
+  void open() { _state = true; digitalWrite(_pin, HIGH); }
+  void close() { _state = false; digitalWrite(_pin, LOW); }
+  bool isOpen() { return _state; }
+};
+
+`;
+    }
+    
+    // Communication types
+    if (this.usedHardwareTypes.has('Bluetooth')) {
+      code += `class Bluetooth {
+private:
+  int _rxPin, _txPin;
+  long _baud;
+  
+public:
+  Bluetooth(int rxPin, int txPin, long baud = 9600) : _rxPin(rxPin), _txPin(txPin), _baud(baud) {}
+  
+  void begin() {}
+  bool available() { return false; }
+  char read() { return 0; }
+  void print(const char* text) {}
+  void println(const char* text) {}
+  bool isConnected() { return false; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('WiFi')) {
+      code += `class WiFi {
+private:
+  String _ssid;
+  String _password;
+  bool _connected;
+  
+public:
+  WiFi() : _connected(false) {}
+  
+  bool connect(const char* ssid, const char* password) { _ssid = ssid; _password = password; return false; }
+  void disconnect() { _connected = false; }
+  bool isConnected() { return _connected; }
+  String localIP() { return "0.0.0.0"; }
+  int rssi() { return 0; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('LoRa')) {
+      code += `class LoRa {
+private:
+  int _ssPin, _rstPin, _dioPin;
+  long _frequency;
+  
+public:
+  LoRa(int ssPin, int rstPin, int dioPin) : _ssPin(ssPin), _rstPin(rstPin), _dioPin(dioPin), _frequency(915000000) {}
+  
+  bool begin(long frequency = 915000000) { _frequency = frequency; return false; }
+  void end() {}
+  int available() { return 0; }
+  int read() { return -1; }
+  void write(uint8_t byte) {}
+  void print(const char* text) {}
+  int packetRssi() { return 0; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('CAN')) {
+      code += `class CAN {
+private:
+  int _csPin;
+  long _speed;
+  
+public:
+  CAN(int csPin, long speed = 500000) : _csPin(csPin), _speed(speed) {}
+  
+  bool begin() { return false; }
+  bool send(uint32_t id, uint8_t* data, uint8_t len) { return false; }
+  bool receive(uint32_t* id, uint8_t* data, uint8_t* len) { return false; }
+  bool available() { return false; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('RS485')) {
+      code += `class RS485 {
+private:
+  int _txPin, _rxPin, _dePin;
+  long _baud;
+  
+public:
+  RS485(int txPin, int rxPin, int dePin, long baud = 9600) : _txPin(txPin), _rxPin(rxPin), _dePin(dePin), _baud(baud) {
+    pinMode(_dePin, OUTPUT);
+    digitalWrite(_dePin, LOW);
+  }
+  
+  void begin() {}
+  void enableTx() { digitalWrite(_dePin, HIGH); }
+  void enableRx() { digitalWrite(_dePin, LOW); }
+  void write(uint8_t byte) {}
+  int read() { return -1; }
+  bool available() { return false; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('Ethernet')) {
+      code += `class Ethernet {
+private:
+  int _csPin;
+  uint8_t _mac[6];
+  
+public:
+  Ethernet(int csPin) : _csPin(csPin) {
+    _mac[0] = 0xDE; _mac[1] = 0xAD; _mac[2] = 0xBE;
+    _mac[3] = 0xEF; _mac[4] = 0xFE; _mac[5] = 0xED;
+  }
+  
+  bool begin() { return false; }
+  bool begin(uint8_t* ip) { return false; }
+  String localIP() { return "0.0.0.0"; }
+  bool linkStatus() { return false; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('NRF24')) {
+      code += `class NRF24 {
+private:
+  int _cePin, _csPin;
+  
+public:
+  NRF24(int cePin, int csPin) : _cePin(cePin), _csPin(csPin) {}
+  
+  bool begin() { return false; }
+  void openWritingPipe(uint64_t address) {}
+  void openReadingPipe(uint8_t pipe, uint64_t address) {}
+  void startListening() {}
+  void stopListening() {}
+  bool available() { return false; }
+  bool write(void* data, uint8_t len) { return false; }
+  void read(void* data, uint8_t len) {}
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('ZigBee')) {
+      code += `class ZigBee {
+private:
+  int _rxPin, _txPin;
+  
+public:
+  ZigBee(int rxPin, int txPin) : _rxPin(rxPin), _txPin(txPin) {}
+  
+  void begin(long baud = 9600) {}
+  bool available() { return false; }
+  int read() { return -1; }
+  void write(uint8_t byte) {}
+  void send(uint8_t* data, uint8_t len) {}
+};
+
+`;
+    }
+    
+    // Storage types
+    if (this.usedHardwareTypes.has('SDCard')) {
+      code += `class SDCard {
+private:
+  int _csPin;
+  bool _initialized;
+  
+public:
+  SDCard(int csPin) : _csPin(csPin), _initialized(false) {}
+  
+  bool begin() { _initialized = true; return false; }
+  bool exists(const char* filename) { return false; }
+  bool remove(const char* filename) { return false; }
+  bool mkdir(const char* path) { return false; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('EEPROM')) {
+      code += `class EEPROM {
+private:
+  int _size;
+  
+public:
+  EEPROM(int size = 512) : _size(size) {}
+  
+  uint8_t read(int address) { return 0; }
+  void write(int address, uint8_t value) {}
+  void update(int address, uint8_t value) {}
+  int length() { return _size; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('Flash')) {
+      code += `class Flash {
+private:
+  int _size;
+  
+public:
+  Flash(int size = 4096) : _size(size) {}
+  
+  bool begin() { return false; }
+  uint8_t read(uint32_t address) { return 0; }
+  void write(uint32_t address, uint8_t value) {}
+  void erase(uint32_t address, uint32_t length) {}
+  int size() { return _size; }
+};
+
+`;
+    }
+    
+    // Power types
+    if (this.usedHardwareTypes.has('Battery')) {
+      code += `class Battery {
+private:
+  int _pin;
+  float _maxVoltage;
+  float _minVoltage;
+  
+public:
+  Battery(int pin, float maxVoltage = 4.2, float minVoltage = 3.0) 
+    : _pin(pin), _maxVoltage(maxVoltage), _minVoltage(minVoltage) { pinMode(_pin, INPUT); }
+  
+  float readVoltage() { return analogRead(_pin) * _maxVoltage / 1023.0; }
+  int readPercent() {
+    float v = readVoltage();
+    int pct = (v - _minVoltage) / (_maxVoltage - _minVoltage) * 100;
+    return constrain(pct, 0, 100);
+  }
+  bool isLow(int threshold = 20) { return readPercent() < threshold; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('Solar')) {
+      code += `class Solar {
+private:
+  int _voltagePin;
+  int _currentPin;
+  float _maxVoltage;
+  
+public:
+  Solar(int voltagePin) : _voltagePin(voltagePin), _currentPin(-1), _maxVoltage(5.0) { pinMode(_voltagePin, INPUT); }
+  Solar(int voltagePin, int currentPin) : _voltagePin(voltagePin), _currentPin(currentPin), _maxVoltage(5.0) {
+    pinMode(_voltagePin, INPUT);
+    if (_currentPin >= 0) pinMode(_currentPin, INPUT);
+  }
+  
+  float readVoltage() { return analogRead(_voltagePin) * _maxVoltage / 1023.0; }
+  float readCurrent() { return _currentPin >= 0 ? analogRead(_currentPin) * 5.0 / 1023.0 : 0; }
+  float readPower() { return readVoltage() * readCurrent(); }
+};
+
+`;
+    }
+    
+    // Motor driver types
+    if (this.usedHardwareTypes.has('HBridge')) {
+      code += `class HBridge {
+private:
+  int _in1, _in2, _enPin;
+  bool _hasEnable;
+  
+public:
+  HBridge(int in1, int in2) : _in1(in1), _in2(in2), _enPin(-1), _hasEnable(false) {
+    pinMode(_in1, OUTPUT);
+    pinMode(_in2, OUTPUT);
+  }
+  
+  HBridge(int in1, int in2, int enPin) : _in1(in1), _in2(in2), _enPin(enPin), _hasEnable(true) {
+    pinMode(_in1, OUTPUT);
+    pinMode(_in2, OUTPUT);
+    pinMode(_enPin, OUTPUT);
+  }
+  
+  void forward(int speed = 255) {
+    if (_hasEnable) analogWrite(_enPin, speed);
+    digitalWrite(_in1, HIGH);
+    digitalWrite(_in2, LOW);
+  }
+  
+  void reverse(int speed = 255) {
+    if (_hasEnable) analogWrite(_enPin, speed);
+    digitalWrite(_in1, LOW);
+    digitalWrite(_in2, HIGH);
+  }
+  
+  void stop() {
+    digitalWrite(_in1, LOW);
+    digitalWrite(_in2, LOW);
+    if (_hasEnable) analogWrite(_enPin, 0);
+  }
+  
+  void brake() {
+    digitalWrite(_in1, HIGH);
+    digitalWrite(_in2, HIGH);
+  }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('MotorDriver')) {
+      code += `class MotorDriver {
+private:
+  int _pwmA, _dirA, _pwmB, _dirB;
+  
+public:
+  MotorDriver(int pwmA, int dirA, int pwmB, int dirB) : _pwmA(pwmA), _dirA(dirA), _pwmB(pwmB), _dirB(dirB) {
+    pinMode(_pwmA, OUTPUT);
+    pinMode(_dirA, OUTPUT);
+    pinMode(_pwmB, OUTPUT);
+    pinMode(_dirB, OUTPUT);
+  }
+  
+  void setMotorA(int speed) {
+    digitalWrite(_dirA, speed >= 0 ? HIGH : LOW);
+    analogWrite(_pwmA, abs(speed));
+  }
+  
+  void setMotorB(int speed) {
+    digitalWrite(_dirB, speed >= 0 ? HIGH : LOW);
+    analogWrite(_pwmB, abs(speed));
+  }
+  
+  void stopAll() { setMotorA(0); setMotorB(0); }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('ServoDriver')) {
+      code += `class ServoDriver {
+private:
+  int _address;
+  int _numChannels;
+  
+public:
+  ServoDriver(int address = 0x40, int numChannels = 16) : _address(address), _numChannels(numChannels) {}
+  
+  void begin() {}
+  void setPWMFreq(float freq) {}
+  void setAngle(int channel, int angle) {}
+  void setPulse(int channel, int pulse) {}
+  int numChannels() { return _numChannels; }
+};
+
+`;
+    }
+    
+    // Timing types
+    if (this.usedHardwareTypes.has('RTC')) {
+      code += `class RTC {
+private:
+  int _address;
+  
+public:
+  RTC(int address = 0x68) : _address(address) {}
+  
+  void begin() {}
+  int hour() { return 0; }
+  int minute() { return 0; }
+  int second() { return 0; }
+  int day() { return 1; }
+  int month() { return 1; }
+  int year() { return 2024; }
+  void setTime(int h, int m, int s) {}
+  void setDate(int d, int mo, int y) {}
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('Timer')) {
+      code += `class Timer {
+private:
+  unsigned long _startTime;
+  unsigned long _duration;
+  bool _running;
+  
+public:
+  Timer() : _startTime(0), _duration(0), _running(false) {}
+  
+  void start(unsigned long durationMs) { _startTime = millis(); _duration = durationMs; _running = true; }
+  void stop() { _running = false; }
+  void reset() { _startTime = millis(); }
+  bool isExpired() { return _running && (millis() - _startTime >= _duration); }
+  bool isRunning() { return _running && !isExpired(); }
+  unsigned long remaining() { return _running ? (_duration - (millis() - _startTime)) : 0; }
+  unsigned long elapsed() { return _running ? (millis() - _startTime) : 0; }
+};
+
+`;
+    }
+    
+    // Audio types
+    if (this.usedHardwareTypes.has('Speaker')) {
+      code += `class Speaker {
+private:
+  int _pin;
+  
+public:
+  Speaker(int pin) : _pin(pin) { pinMode(_pin, OUTPUT); }
+  
+  void tone(uint16_t freq) { ::tone(_pin, freq); }
+  void tone(uint16_t freq, unsigned long duration) { ::tone(_pin, freq, duration); }
+  void noTone() { ::noTone(_pin); }
+  void beep(uint16_t freq, unsigned long duration) { tone(freq, duration); }
+  void playNote(char note, int octave, unsigned long duration) {
+    int notes[] = {262, 294, 330, 349, 392, 440, 494};
+    int idx = (note >= 'A' && note <= 'G') ? note - 'A' : 0;
+    int freq = notes[idx] * (1 << (octave - 4));
+    tone(freq, duration);
+  }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('Microphone')) {
+      code += `class Microphone {
+private:
+  int _pin;
+  int _threshold;
+  
+public:
+  Microphone(int pin) : _pin(pin), _threshold(512) { pinMode(_pin, INPUT); }
+  
+  int read() { return analogRead(_pin); }
+  int readAmplitude() { return abs(analogRead(_pin) - 512); }
+  bool isLoud() { return readAmplitude() > _threshold; }
+  void setThreshold(int threshold) { _threshold = threshold; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('DFPlayer')) {
+      code += `class DFPlayer {
+private:
+  int _rxPin, _txPin;
+  int _volume;
+  
+public:
+  DFPlayer(int rxPin, int txPin) : _rxPin(rxPin), _txPin(txPin), _volume(15) {}
+  
+  void begin() {}
+  void play(int track) {}
+  void pause() {}
+  void stop() {}
+  void next() {}
+  void previous() {}
+  void setVolume(int vol) { _volume = constrain(vol, 0, 30); }
+  int getVolume() { return _volume; }
+  void playFolder(int folder, int track) {}
 };
 
 `;
