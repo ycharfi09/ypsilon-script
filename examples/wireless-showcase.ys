@@ -55,13 +55,13 @@ on loop {
   # Check for Bluetooth data
   if (bt.available()) {
     btLed.on()
-    mut char data = bt.read()
+    mut int receivedData = bt.read()
     print("Bluetooth received:")
-    print(data)
+    print(receivedData)
     
     # Echo back
     bt.print("Received: ")
-    bt.println(data)
+    bt.println(receivedData)
   } else {
     btLed.off()
   }
