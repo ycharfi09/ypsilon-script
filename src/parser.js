@@ -23,6 +23,8 @@ function isTypeToken(tokenType) {
     TOKEN_TYPES.TYPE_I64,
     TOKEN_TYPES.TYPE_BYTE,
     TOKEN_TYPES.TYPE_SHORT,
+    TOKEN_TYPES.TYPE_F32,
+    TOKEN_TYPES.TYPE_F64,
     TOKEN_TYPES.TYPE_DIGITAL,
     TOKEN_TYPES.TYPE_ANALOG,
     TOKEN_TYPES.TYPE_PWM,
@@ -60,6 +62,8 @@ function tokenTypeToString(tokenType) {
     [TOKEN_TYPES.TYPE_I64]: 'i64',
     [TOKEN_TYPES.TYPE_BYTE]: 'byte',
     [TOKEN_TYPES.TYPE_SHORT]: 'short',
+    [TOKEN_TYPES.TYPE_F32]: 'f32',
+    [TOKEN_TYPES.TYPE_F64]: 'f64',
     [TOKEN_TYPES.TYPE_DIGITAL]: 'Digital',
     [TOKEN_TYPES.TYPE_ANALOG]: 'Analog',
     [TOKEN_TYPES.TYPE_PWM]: 'PWM',
@@ -984,6 +988,16 @@ class Parser {
           callee: expr,
           arguments: args
         };
+      } else if (this.peek().type === TOKEN_TYPES.LBRACKET) {
+        // Array subscript access
+        this.advance();
+        const index = this.parseExpression();
+        this.expect(TOKEN_TYPES.RBRACKET);
+        expr = {
+          type: 'SubscriptExpression',
+          array: expr,
+          index
+        };
       } else if (this.peek().type === TOKEN_TYPES.DOT) {
         // Member access or type conversion
         this.advance();
@@ -1086,6 +1100,9 @@ class Parser {
         this.expect(TOKEN_TYPES.RPAREN);
         return expr;
       
+      case TOKEN_TYPES.LBRACKET:
+        return this.parseArrayLiteral();
+      
       default:
         throw new Error(`Unexpected token ${token.type} at line ${token.line}`);
     }
@@ -1120,6 +1137,27 @@ class Parser {
       type: 'NewExpression',
       className,
       arguments: args
+    };
+  }
+
+  parseArrayLiteral() {
+    this.expect(TOKEN_TYPES.LBRACKET);
+    
+    const elements = [];
+    while (this.peek().type !== TOKEN_TYPES.RBRACKET && this.peek().type !== TOKEN_TYPES.EOF) {
+      elements.push(this.parseExpression());
+      if (this.peek().type === TOKEN_TYPES.COMMA) {
+        this.advance();
+      } else if (this.peek().type !== TOKEN_TYPES.RBRACKET) {
+        throw new Error(`Expected ',' or ']' in array literal at line ${this.peek().line}`);
+      }
+    }
+    
+    this.expect(TOKEN_TYPES.RBRACKET);
+    
+    return {
+      type: 'ArrayLiteral',
+      elements
     };
   }
 

@@ -92,6 +92,10 @@ const TOKEN_TYPES = {
   TYPE_BYTE: 'TYPE_BYTE',
   TYPE_SHORT: 'TYPE_SHORT',
   
+  // Width-specific float types
+  TYPE_F32: 'TYPE_F32',
+  TYPE_F64: 'TYPE_F64',
+  
   // Hardware Type Keywords
   TYPE_DIGITAL: 'TYPE_DIGITAL',
   TYPE_ANALOG: 'TYPE_ANALOG',
@@ -218,6 +222,8 @@ const KEYWORDS = {
   'i64': TOKEN_TYPES.TYPE_I64,
   'byte': TOKEN_TYPES.TYPE_BYTE,
   'short': TOKEN_TYPES.TYPE_SHORT,
+  'f32': TOKEN_TYPES.TYPE_F32,
+  'f64': TOKEN_TYPES.TYPE_F64,
   'Digital': TOKEN_TYPES.TYPE_DIGITAL,
   'Analog': TOKEN_TYPES.TYPE_ANALOG,
   'PWM': TOKEN_TYPES.TYPE_PWM,
