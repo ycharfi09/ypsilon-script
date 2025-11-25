@@ -1,0 +1,89 @@
+@main
+
+# Multiplexer Types Showcase
+# Demonstrates Mux4, Mux8, and Mux16 for reading multiple analog inputs
+
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
+# Create multiplexer instance (16-channel CD74HC4067)
+# Signal pin on A0, select pins on digital 2-5
+mut Mux16 mux = new Mux16(A0, 2, 3, 4, 5)
+
+# Status LED
+mut Led led = new Led(13)
+
+# Number of channels on the multiplexer
+const int NUM_CHANNELS = 16
+
+# Store readings from all channels (initialized to 0)
+mut i32 readings = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+on start {
+  print("=== Multiplexer Showcase ===")
+  print("Reading 16 analog channels through MUX")
+  
+  # Enable the multiplexer
+  mux.enable()
+  
+  led.on()
+}
+
+on loop {
+  print("--- Scanning all channels ---")
+  
+  # Read all channels
+  for (int channel = 0; channel < NUM_CHANNELS; channel = channel + 1) {
+    # Select and read the channel
+    mux.selectChannel(channel)
+    wait 10ms  # Allow settling time
+    
+    mut int value = mux.read(channel)
+    
+    # Store the reading
+    readings[channel] = value
+    
+    # Print channel reading
+    print("Ch ")
+    print(channel)
+    print(": ")
+    print(value)
+  }
+  
+  # Find min and max values
+  mut int minVal = 1023
+  mut int maxVal = 0
+  mut int minCh = 0
+  mut int maxCh = 0
+  
+  for (int i = 0; i < NUM_CHANNELS; i = i + 1) {
+    if (readings[i] < minVal) {
+      minVal = readings[i]
+      minCh = i
+    }
+    if (readings[i] > maxVal) {
+      maxVal = readings[i]
+      maxCh = i
+    }
+  }
+  
+  print("Min value:")
+  print(minVal)
+  print(" on channel ")
+  print(minCh)
+  
+  print("Max value:")
+  print(maxVal)
+  print(" on channel ")
+  print(maxCh)
+  
+  # Blink LED to show activity
+  led.toggle()
+  
+  print("===================")
+  wait 2s
+}

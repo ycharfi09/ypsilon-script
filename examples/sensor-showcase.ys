@@ -1,0 +1,63 @@
+@main
+
+# Sensor Types Showcase
+# Demonstrates various sensor hardware types
+
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
+# Create sensor instances
+mut TempSensor temp = new TempSensor(A0)
+mut LightSensor light = new LightSensor(A1)
+mut Potentiometer pot = new Potentiometer(A2)
+mut DistanceSensor distance = new DistanceSensor(2, 3)
+
+# LED for visual feedback
+mut Led indicator = new Led(13)
+
+on start {
+  print("=== Sensor Showcase ===")
+  print("Reading multiple sensors")
+}
+
+on loop {
+  # Read temperature
+  mut float celsius = temp.readCelsius()
+  print("Temperature:")
+  print(celsius)
+  
+  # Read light level
+  mut int lightLevel = light.readPercent()
+  print("Light level:")
+  print(lightLevel)
+  
+  # Check if it's dark
+  if (light.isDark()) {
+    indicator.on()
+    print("It's dark!")
+  } else {
+    indicator.off()
+  }
+  
+  # Read potentiometer
+  mut int potValue = pot.readPercent()
+  print("Pot position:")
+  print(potValue)
+  
+  # Read distance
+  mut float cm = distance.readCm()
+  print("Distance (cm):")
+  print(cm)
+  
+  # Check if object is in range
+  if (distance.inRange(5, 30)) {
+    print("Object detected in range!")
+  }
+  
+  print("---")
+  wait 1s
+}

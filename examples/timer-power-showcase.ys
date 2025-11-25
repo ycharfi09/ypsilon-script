@@ -1,0 +1,96 @@
+@main
+
+# Timer and Power Monitoring Showcase
+# Demonstrates Timer, RTC, and Battery types
+
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
+# Create timing and power instances
+mut Timer countdownTimer = new Timer()
+mut Timer intervalTimer = new Timer()
+mut RTC clock = new RTC()
+mut Battery battery = new Battery(A0, 4.2, 3.0)
+
+# Status LEDs
+mut Led statusLed = new Led(13)
+mut Led lowBattLed = new Led(12)
+
+mut int eventCount = 0
+
+on start {
+  print("=== Timer & Power Showcase ===")
+  
+  # Initialize RTC
+  clock.begin()
+  
+  # Start a 5-second countdown timer
+  countdownTimer.start(5000)
+  print("5-second countdown started")
+  
+  # Start an interval timer for periodic tasks
+  intervalTimer.start(2000)
+  
+  statusLed.on()
+}
+
+on loop {
+  # Display current time
+  mut int hour = clock.hour()
+  mut int minute = clock.minute()
+  mut int second = clock.second()
+  
+  print("Time:")
+  print(hour)
+  print(":")
+  print(minute)
+  print(":")
+  print(second)
+  
+  # Check countdown timer
+  if (countdownTimer.isExpired()) {
+    print("COUNTDOWN EXPIRED!")
+    eventCount = eventCount + 1
+    print("Event count:")
+    print(eventCount)
+    
+    # Restart the timer
+    countdownTimer.start(5000)
+    statusLed.toggle()
+  } else {
+    mut u32 remaining = countdownTimer.remaining()
+    print("Countdown remaining (ms):")
+    print(remaining)
+  }
+  
+  # Check interval timer
+  if (intervalTimer.isExpired()) {
+    # Reset interval timer
+    intervalTimer.reset()
+    intervalTimer.start(2000)
+    
+    # Monitor battery
+    mut float voltage = battery.readVoltage()
+    mut int percent = battery.readPercent()
+    
+    print("Battery:")
+    print(voltage)
+    print("V (")
+    print(percent)
+    print("%)")
+    
+    # Low battery warning
+    if (battery.isLow(20)) {
+      lowBattLed.on()
+      print("WARNING: Low battery!")
+    } else {
+      lowBattLed.off()
+    }
+  }
+  
+  wait 500ms
+}

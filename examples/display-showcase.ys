@@ -1,0 +1,74 @@
+@main
+
+# Display Types Showcase
+# Demonstrates LCD, OLED, and NeoPixel display types
+
+config {
+  board: arduino_mega,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
+# Create display instances
+mut OLED oled = new OLED(128, 64)
+mut NeoPixel strip = new NeoPixel(6, 8)  # Pin 6, 8 LEDs
+mut SevenSegment seg = new SevenSegment(2, 3, 4, 5, 6, 7, 8)
+
+mut int counter = 0
+
+on start {
+  print("=== Display Showcase ===")
+  
+  # Initialize OLED
+  oled.begin()
+  oled.clear()
+  oled.setCursor(0, 0)
+  oled.print("YS Display Demo")
+  oled.display()
+  
+  # Initialize NeoPixel
+  strip.begin()
+  strip.clear()
+  strip.show()
+  
+  print("Displays initialized")
+}
+
+on loop {
+  # Update counter display
+  counter = counter + 1
+  if (counter > 9) {
+    counter = 0
+  }
+  
+  # Show counter on seven segment
+  seg.display(counter)
+  
+  # Update OLED
+  oled.clear()
+  oled.setCursor(0, 0)
+  oled.print("Count:")
+  oled.print(counter)
+  oled.display()
+  
+  # Cycle NeoPixel colors
+  match counter {
+    0 => strip.fill(255, 0, 0),      # Red
+    1 => strip.fill(255, 127, 0),    # Orange
+    2 => strip.fill(255, 255, 0),    # Yellow
+    3 => strip.fill(0, 255, 0),      # Green
+    4 => strip.fill(0, 255, 255),    # Cyan
+    5 => strip.fill(0, 0, 255),      # Blue
+    6 => strip.fill(127, 0, 255),    # Purple
+    7 => strip.fill(255, 0, 255),    # Magenta
+    8 => strip.fill(255, 255, 255),  # White
+    _ => strip.fill(0, 0, 0)         # Off
+  }
+  strip.show()
+  
+  print("Counter:")
+  print(counter)
+  
+  wait 1s
+}
