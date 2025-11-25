@@ -439,7 +439,7 @@ describe('Module-Specific Wireless Types', () => {
       
       on loop {
         if (bt.available()) {
-          mut string data = bt.read()
+          mut int data = bt.read()
         }
       }
     `;

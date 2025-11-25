@@ -3843,6 +3843,7 @@ public:
   
   float readCm() {
     int raw = analogRead(_pin);
+    if (raw < 10) raw = 10;  // Prevent division by zero
     float voltage = raw * (5.0 / 1023.0);
     return 27.86 * pow(voltage, -1.15);
   }
@@ -4106,19 +4107,21 @@ private:
   uint8_t* _pixels;
   
 public:
-  WS2812(int pin, int numLeds) : _pin(pin), _numLeds(numLeds) {
-    _pixels = new uint8_t[numLeds * 3];
-    memset(_pixels, 0, numLeds * 3);
+  WS2812(int pin, int numLeds) : _pin(pin), _numLeds(numLeds), _pixels(nullptr) {
+    if (numLeds > 0) {
+      _pixels = new (std::nothrow) uint8_t[numLeds * 3];
+      if (_pixels) memset(_pixels, 0, numLeds * 3);
+    }
     pinMode(_pin, OUTPUT);
   }
   
-  ~WS2812() { delete[] _pixels; }
+  ~WS2812() { if (_pixels) delete[] _pixels; }
   
   void begin() {}
   void show() {}
-  void clear() { memset(_pixels, 0, _numLeds * 3); }
+  void clear() { if (_pixels) memset(_pixels, 0, _numLeds * 3); }
   void setPixel(int index, uint8_t r, uint8_t g, uint8_t b) {
-    if (index >= 0 && index < _numLeds) {
+    if (_pixels && index >= 0 && index < _numLeds) {
       _pixels[index * 3] = r;
       _pixels[index * 3 + 1] = g;
       _pixels[index * 3 + 2] = b;
@@ -4245,7 +4248,7 @@ public:
   
   void begin() {}
   bool available() { return false; }
-  char read() { return 0; }
+  int read() { return -1; }
   void print(const char* text) {}
   void println(const char* text) {}
   bool isConnected() { return false; }
@@ -4326,12 +4329,14 @@ private:
   
 public:
   LiPo(int pin, float maxVoltage = 4.2, float minVoltage = 3.0) 
-    : _pin(pin), _maxVoltage(maxVoltage), _minVoltage(minVoltage) { pinMode(_pin, INPUT); }
+    : _pin(pin), _maxVoltage(maxVoltage), _minVoltage(minVoltage > maxVoltage ? maxVoltage - 0.1 : minVoltage) { pinMode(_pin, INPUT); }
   
   float readVoltage() { return analogRead(_pin) * _maxVoltage / 1023.0; }
   int readPercent() {
     float v = readVoltage();
-    int pct = (v - _minVoltage) / (_maxVoltage - _minVoltage) * 100;
+    float range = _maxVoltage - _minVoltage;
+    if (range <= 0) range = 0.1;  // Prevent division by zero
+    int pct = (v - _minVoltage) / range * 100;
     return constrain(pct, 0, 100);
   }
   bool isLow(int threshold = 20) { return readPercent() < threshold; }
