@@ -235,6 +235,29 @@ function supportsNaturalSyntax(typeName) {
   return NATURAL_SYNTAX_HARDWARE_TYPES.includes(typeName);
 }
 
+// Transform initializer expression to NewExpression for hardware types with natural syntax
+function transformToNaturalSyntax(varType, init) {
+  // If the type supports natural syntax and the initializer is not already a NewExpression,
+  // wrap the value(s) in a NewExpression
+  if (supportsNaturalSyntax(varType) && init && init.type !== 'NewExpression') {
+    // Collect arguments - if it's a single value, wrap it in an array
+    // If it's an array literal, use its elements as arguments
+    let args;
+    if (init.type === 'ArrayLiteral') {
+      args = init.elements;
+    } else {
+      args = [init];
+    }
+    
+    return {
+      type: 'NewExpression',
+      className: varType,
+      arguments: args
+    };
+  }
+  return init;
+}
+
 class Parser {
   constructor(tokens) {
     this.tokens = tokens;
@@ -924,25 +947,7 @@ class Parser {
     if (this.peek().type === TOKEN_TYPES.ASSIGN) {
       this.advance();
       init = this.parseExpression();
-      
-      // Natural syntax support: If the type supports natural syntax and the initializer
-      // is not already a NewExpression, wrap the value(s) in a NewExpression
-      if (supportsNaturalSyntax(varType) && init && init.type !== 'NewExpression') {
-        // Collect arguments - if it's a single value, wrap it in an array
-        // If it's an array literal, use its elements as arguments
-        let args;
-        if (init.type === 'ArrayLiteral') {
-          args = init.elements;
-        } else {
-          args = [init];
-        }
-        
-        init = {
-          type: 'NewExpression',
-          className: varType,
-          arguments: args
-        };
-      }
+      init = transformToNaturalSyntax(varType, init);
     }
     this.optionalExpect(TOKEN_TYPES.SEMICOLON);
 
@@ -964,25 +969,7 @@ class Parser {
     if (this.peek().type === TOKEN_TYPES.ASSIGN) {
       this.advance();
       init = this.parseExpression();
-      
-      // Natural syntax support: If the type supports natural syntax and the initializer
-      // is not already a NewExpression, wrap the value(s) in a NewExpression
-      if (supportsNaturalSyntax(varType) && init && init.type !== 'NewExpression') {
-        // Collect arguments - if it's a single value, wrap it in an array
-        // If it's an array literal, use its elements as arguments
-        let args;
-        if (init.type === 'ArrayLiteral') {
-          args = init.elements;
-        } else {
-          args = [init];
-        }
-        
-        init = {
-          type: 'NewExpression',
-          className: varType,
-          arguments: args
-        };
-      }
+      init = transformToNaturalSyntax(varType, init);
     }
     this.optionalExpect(TOKEN_TYPES.SEMICOLON);
 
