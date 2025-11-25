@@ -87,22 +87,40 @@ class CodeGenerator {
         'GasSensor', 'ColorSensor', 'Accelerometer', 'Gyroscope',
         'Magnetometer', 'IMU', 'GPS', 'LoadCell', 'Potentiometer',
         'Joystick', 'RotaryEncoder', 'IRRemote', 'RFID',
+        // New Module-Specific Sensors
+        'LM35', 'DS18B20', 'DHT11', 'DHT22', 'HC_SR04', 'GP2Y0A21',
+        'LDR', 'BH1750', 'PIR', 'Pot', 'BMP280', 'TTP223', 'MQ2',
+        'TCS34725', 'MPU6050', 'NEO6M',
         // Displays
         'LCD', 'OLED', 'SevenSegment', 'Matrix', 'TFT', 'NeoPixel',
+        // New Module-Specific Displays
+        'HD44780', 'SSD1306', 'WS2812', 'TM1637',
         // Actuators
         'Relay', 'Solenoid', 'Fan', 'Heater', 'Pump', 'Valve',
+        // New Module-Specific Actuators
+        'Relay5V', 'FanPWM', 'DCPump', 'SolenoidValve',
         // Communication
         'Bluetooth', 'WiFi', 'LoRa', 'CAN', 'RS485', 'Ethernet', 'NRF24', 'ZigBee',
+        // New Module-Specific Communication
+        'HC05', 'ESP8266', 'SX1278', 'NRF24L01',
         // Storage
         'SDCard', 'EEPROM', 'Flash',
         // Power
         'Battery', 'Solar',
+        // New Module-Specific Power
+        'LiPo', 'SolarPanel',
         // Motor Drivers
         'HBridge', 'MotorDriver', 'ServoDriver',
+        // New Module-Specific Motor Drivers
+        'L298N', 'TB6612FNG', 'PCA9685',
         // Timing
         'RTC', 'Timer',
+        // New Module-Specific Timing
+        'DS3231',
         // Audio
-        'Speaker', 'Microphone', 'DFPlayer'
+        'Speaker', 'Microphone', 'DFPlayer',
+        // New Module-Specific Audio
+        'MAX4466', 'DFPlayerMini'
       ];
       if (hardwareTypes.includes(node.varType)) {
         this.usedHardwareTypes.add(node.varType);
@@ -595,6 +613,23 @@ class CodeGenerator {
       'RotaryEncoder': 'RotaryEncoder',
       'IRRemote': 'IRRemote',
       'RFID': 'RFID',
+      // New Module-Specific Sensors
+      'LM35': 'LM35',
+      'DS18B20': 'DS18B20',
+      'DHT11': 'DHT11',
+      'DHT22': 'DHT22',
+      'HC_SR04': 'HC_SR04',
+      'GP2Y0A21': 'GP2Y0A21',
+      'LDR': 'LDR',
+      'BH1750': 'BH1750',
+      'PIR': 'PIR',
+      'Pot': 'Pot',
+      'BMP280': 'BMP280',
+      'TTP223': 'TTP223',
+      'MQ2': 'MQ2',
+      'TCS34725': 'TCS34725',
+      'MPU6050': 'MPU6050',
+      'NEO6M': 'NEO6M',
       // Displays
       'LCD': 'LCD',
       'OLED': 'OLED',
@@ -602,6 +637,11 @@ class CodeGenerator {
       'Matrix': 'Matrix',
       'TFT': 'TFT',
       'NeoPixel': 'NeoPixel',
+      // New Module-Specific Displays
+      'HD44780': 'HD44780',
+      'SSD1306': 'SSD1306',
+      'WS2812': 'WS2812',
+      'TM1637': 'TM1637',
       // Actuators
       'Relay': 'Relay',
       'Solenoid': 'Solenoid',
@@ -609,6 +649,11 @@ class CodeGenerator {
       'Heater': 'Heater',
       'Pump': 'Pump',
       'Valve': 'Valve',
+      // New Module-Specific Actuators
+      'Relay5V': 'Relay5V',
+      'FanPWM': 'FanPWM',
+      'DCPump': 'DCPump',
+      'SolenoidValve': 'SolenoidValve',
       // Communication
       'Bluetooth': 'Bluetooth',
       'WiFi': 'WiFi',
@@ -618,6 +663,11 @@ class CodeGenerator {
       'Ethernet': 'Ethernet',
       'NRF24': 'NRF24',
       'ZigBee': 'ZigBee',
+      // New Module-Specific Communication
+      'HC05': 'HC05',
+      'ESP8266': 'ESP8266',
+      'SX1278': 'SX1278',
+      'NRF24L01': 'NRF24L01',
       // Storage
       'SDCard': 'SDCard',
       'EEPROM': 'EEPROM',
@@ -625,17 +675,29 @@ class CodeGenerator {
       // Power
       'Battery': 'Battery',
       'Solar': 'Solar',
+      // New Module-Specific Power
+      'LiPo': 'LiPo',
+      'SolarPanel': 'SolarPanel',
       // Motor Drivers
       'HBridge': 'HBridge',
       'MotorDriver': 'MotorDriver',
       'ServoDriver': 'ServoDriver',
+      // New Module-Specific Motor Drivers
+      'L298N': 'L298N',
+      'TB6612FNG': 'TB6612FNG',
+      'PCA9685': 'PCA9685',
       // Timing
       'RTC': 'RTC',
       'Timer': 'Timer',
+      // New Module-Specific Timing
+      'DS3231': 'DS3231',
       // Audio
       'Speaker': 'Speaker',
       'Microphone': 'Microphone',
       'DFPlayer': 'DFPlayer',
+      // New Module-Specific Audio
+      'MAX4466': 'MAX4466',
+      'DFPlayerMini': 'DFPlayerMini',
       // Collections
       'List': 'List',
       'Map': 'Map'
@@ -3645,6 +3707,794 @@ private:
   
 public:
   DFPlayer(int rxPin, int txPin) : _rxPin(rxPin), _txPin(txPin), _volume(15) {}
+  
+  void begin() {}
+  void play(int track) {}
+  void pause() {}
+  void stop() {}
+  void next() {}
+  void previous() {}
+  void setVolume(int vol) { _volume = constrain(vol, 0, 30); }
+  int getVolume() { return _volume; }
+  void playFolder(int folder, int track) {}
+};
+
+`;
+    }
+    
+    // New Module-Specific Sensor Types
+    if (this.usedHardwareTypes.has('LM35')) {
+      code += `class LM35 {
+private:
+  int _pin;
+  float _offset;
+  
+public:
+  LM35(int pin) : _pin(pin), _offset(0) { pinMode(_pin, INPUT); }
+  
+  float readCelsius() {
+    int raw = analogRead(_pin);
+    float voltage = raw * (5.0 / 1023.0);
+    return (voltage * 100.0) + _offset;
+  }
+  
+  float readFahrenheit() { return readCelsius() * 9.0 / 5.0 + 32.0; }
+  float readKelvin() { return readCelsius() + 273.15; }
+  int readRaw() { return analogRead(_pin); }
+  void setOffset(float offset) { _offset = offset; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('DS18B20')) {
+      code += `class DS18B20 {
+private:
+  int _pin;
+  
+public:
+  DS18B20(int pin) : _pin(pin) { pinMode(_pin, INPUT); }
+  
+  void begin() {}
+  float readCelsius() { return 25.0; }
+  float readFahrenheit() { return readCelsius() * 9.0 / 5.0 + 32.0; }
+  float readKelvin() { return readCelsius() + 273.15; }
+  void setResolution(int bits) {}
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('DHT11')) {
+      code += `class DHT11 {
+private:
+  int _pin;
+  float _temperature;
+  float _humidity;
+  
+public:
+  DHT11(int pin) : _pin(pin), _temperature(0), _humidity(0) { pinMode(_pin, INPUT); }
+  
+  void begin() {}
+  bool read() { return true; }
+  float readTemperature() { return _temperature; }
+  float readHumidity() { return _humidity; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('DHT22')) {
+      code += `class DHT22 {
+private:
+  int _pin;
+  float _temperature;
+  float _humidity;
+  
+public:
+  DHT22(int pin) : _pin(pin), _temperature(0), _humidity(0) { pinMode(_pin, INPUT); }
+  
+  void begin() {}
+  bool read() { return true; }
+  float readTemperature() { return _temperature; }
+  float readHumidity() { return _humidity; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('HC_SR04')) {
+      code += `class HC_SR04 {
+private:
+  int _trigPin;
+  int _echoPin;
+  
+public:
+  HC_SR04(int trigPin, int echoPin) : _trigPin(trigPin), _echoPin(echoPin) {
+    pinMode(_trigPin, OUTPUT);
+    pinMode(_echoPin, INPUT);
+  }
+  
+  float readCm() {
+    digitalWrite(_trigPin, LOW);
+    delayMicroseconds(2);
+    digitalWrite(_trigPin, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(_trigPin, LOW);
+    long duration = pulseIn(_echoPin, HIGH, 30000);
+    return duration * 0.034 / 2.0;
+  }
+  
+  float readInches() { return readCm() / 2.54; }
+  float readMm() { return readCm() * 10.0; }
+  bool inRange(float minCm, float maxCm) { float d = readCm(); return d >= minCm && d <= maxCm; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('GP2Y0A21')) {
+      code += `class GP2Y0A21 {
+private:
+  int _pin;
+  
+public:
+  GP2Y0A21(int pin) : _pin(pin) { pinMode(_pin, INPUT); }
+  
+  float readCm() {
+    int raw = analogRead(_pin);
+    float voltage = raw * (5.0 / 1023.0);
+    return 27.86 * pow(voltage, -1.15);
+  }
+  
+  float readInches() { return readCm() / 2.54; }
+  int readRaw() { return analogRead(_pin); }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('LDR')) {
+      code += `class LDR {
+private:
+  int _pin;
+  
+public:
+  LDR(int pin) : _pin(pin) { pinMode(_pin, INPUT); }
+  
+  int read() { return analogRead(_pin); }
+  int readPercent() { return map(analogRead(_pin), 0, 1023, 0, 100); }
+  bool isDark(int threshold = 100) { return analogRead(_pin) < threshold; }
+  bool isBright(int threshold = 800) { return analogRead(_pin) > threshold; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('BH1750')) {
+      code += `class BH1750 {
+private:
+  int _bus;
+  int _address;
+  
+public:
+  BH1750(int bus) : _bus(bus), _address(0x23) {}
+  
+  void begin() {}
+  float readLux() { return 0; }
+  void setMode(int mode) {}
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('PIR')) {
+      code += `class PIR {
+private:
+  int _pin;
+  unsigned long _lastMotion;
+  
+public:
+  PIR(int pin) : _pin(pin), _lastMotion(0) { pinMode(_pin, INPUT); }
+  
+  bool detected() {
+    if (digitalRead(_pin) == HIGH) {
+      _lastMotion = millis();
+      return true;
+    }
+    return false;
+  }
+  
+  unsigned long timeSinceMotion() { return millis() - _lastMotion; }
+  bool isIdle(unsigned long timeoutMs) { return timeSinceMotion() > timeoutMs; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('Pot')) {
+      code += `class Pot {
+private:
+  int _pin;
+  int _minVal, _maxVal;
+  
+public:
+  Pot(int pin) : _pin(pin), _minVal(0), _maxVal(1023) { pinMode(_pin, INPUT); }
+  
+  int read() { return analogRead(_pin); }
+  int readPercent() { return map(analogRead(_pin), _minVal, _maxVal, 0, 100); }
+  int readMapped(int outMin, int outMax) { return map(analogRead(_pin), _minVal, _maxVal, outMin, outMax); }
+  void calibrate(int minVal, int maxVal) { _minVal = minVal; _maxVal = maxVal; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('BMP280')) {
+      code += `class BMP280 {
+private:
+  int _bus;
+  int _address;
+  
+public:
+  BMP280(int bus) : _bus(bus), _address(0x76) {}
+  
+  void begin() {}
+  float readPressure() { return 101325.0; }
+  float readTemperature() { return 25.0; }
+  float readAltitude(float seaLevelPressure = 101325.0) { return 0; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('TTP223')) {
+      code += `class TTP223 {
+private:
+  int _pin;
+  
+public:
+  TTP223(int pin) : _pin(pin) { pinMode(_pin, INPUT); }
+  
+  bool isTouched() { return digitalRead(_pin) == HIGH; }
+  int read() { return digitalRead(_pin); }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('MQ2')) {
+      code += `class MQ2 {
+private:
+  int _pin;
+  int _threshold;
+  
+public:
+  MQ2(int pin) : _pin(pin), _threshold(300) { pinMode(_pin, INPUT); }
+  
+  int read() { return analogRead(_pin); }
+  bool detected() { return analogRead(_pin) > _threshold; }
+  void setThreshold(int threshold) { _threshold = threshold; }
+  int readSmoke() { return analogRead(_pin); }
+  int readLPG() { return analogRead(_pin); }
+  int readCO() { return analogRead(_pin); }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('TCS34725')) {
+      code += `class TCS34725 {
+private:
+  int _bus;
+  int _address;
+  
+public:
+  TCS34725(int bus) : _bus(bus), _address(0x29) {}
+  
+  void begin() {}
+  int readRed() { return 0; }
+  int readGreen() { return 0; }
+  int readBlue() { return 0; }
+  int readClear() { return 0; }
+  void setIntegrationTime(int time) {}
+  void setGain(int gain) {}
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('MPU6050')) {
+      code += `class MPU6050 {
+private:
+  int _bus;
+  int _address;
+  
+public:
+  MPU6050(int bus) : _bus(bus), _address(0x68) {}
+  
+  void begin() {}
+  float readAccelX() { return 0; }
+  float readAccelY() { return 0; }
+  float readAccelZ() { return 0; }
+  float readGyroX() { return 0; }
+  float readGyroY() { return 0; }
+  float readGyroZ() { return 0; }
+  float readTemperature() { return 25.0; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('NEO6M')) {
+      code += `class NEO6M {
+private:
+  int _rxPin, _txPin;
+  float _lat, _lon, _alt;
+  
+public:
+  NEO6M(int rxPin, int txPin) : _rxPin(rxPin), _txPin(txPin), _lat(0), _lon(0), _alt(0) {}
+  
+  void begin(long baud = 9600) {}
+  bool update() { return false; }
+  float latitude() { return _lat; }
+  float longitude() { return _lon; }
+  float altitude() { return _alt; }
+  float speed() { return 0; }
+  int satellites() { return 0; }
+};
+
+`;
+    }
+    
+    // New Module-Specific Display Types
+    if (this.usedHardwareTypes.has('HD44780')) {
+      code += `class HD44780 {
+private:
+  int _cols, _rows;
+  int _rs, _en, _d4, _d5, _d6, _d7;
+  
+public:
+  HD44780(int rs, int en, int d4, int d5, int d6, int d7, int cols = 16, int rows = 2) 
+    : _rs(rs), _en(en), _d4(d4), _d5(d5), _d6(d6), _d7(d7), _cols(cols), _rows(rows) {}
+  
+  void begin() {}
+  void clear() {}
+  void home() {}
+  void setCursor(int col, int row) {}
+  void print(const char* text) {}
+  void print(int value) {}
+  void print(float value) {}
+  void backlight() {}
+  void noBacklight() {}
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('SSD1306')) {
+      code += `class SSD1306 {
+private:
+  int _bus;
+  int _width, _height;
+  int _address;
+  
+public:
+  SSD1306(int bus, int width = 128, int height = 64) : _bus(bus), _width(width), _height(height), _address(0x3C) {}
+  
+  void begin() {}
+  void clear() {}
+  void display() {}
+  void setCursor(int x, int y) {}
+  void print(const char* text) {}
+  void print(int value) {}
+  void drawPixel(int x, int y, bool color = true) {}
+  void drawLine(int x0, int y0, int x1, int y1) {}
+  void drawRect(int x, int y, int w, int h) {}
+  void fillRect(int x, int y, int w, int h) {}
+  void drawCircle(int x, int y, int r) {}
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('WS2812')) {
+      code += `class WS2812 {
+private:
+  int _pin;
+  int _numLeds;
+  uint8_t* _pixels;
+  
+public:
+  WS2812(int pin, int numLeds) : _pin(pin), _numLeds(numLeds) {
+    _pixels = new uint8_t[numLeds * 3];
+    memset(_pixels, 0, numLeds * 3);
+    pinMode(_pin, OUTPUT);
+  }
+  
+  ~WS2812() { delete[] _pixels; }
+  
+  void begin() {}
+  void show() {}
+  void clear() { memset(_pixels, 0, _numLeds * 3); }
+  void setPixel(int index, uint8_t r, uint8_t g, uint8_t b) {
+    if (index >= 0 && index < _numLeds) {
+      _pixels[index * 3] = r;
+      _pixels[index * 3 + 1] = g;
+      _pixels[index * 3 + 2] = b;
+    }
+  }
+  void setBrightness(uint8_t brightness) {}
+  void fill(uint8_t r, uint8_t g, uint8_t b) {
+    for (int i = 0; i < _numLeds; i++) setPixel(i, r, g, b);
+  }
+  int numPixels() { return _numLeds; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('TM1637')) {
+      code += `class TM1637 {
+private:
+  int _clkPin, _dataPin;
+  int _brightness;
+  
+public:
+  TM1637(int clkPin, int dataPin) : _clkPin(clkPin), _dataPin(dataPin), _brightness(7) {
+    pinMode(_clkPin, OUTPUT);
+    pinMode(_dataPin, OUTPUT);
+  }
+  
+  void begin() {}
+  void clear() {}
+  void displayNumber(int num) {}
+  void displayDigit(int pos, int digit) {}
+  void setBrightness(int level) { _brightness = constrain(level, 0, 7); }
+  void showColon(bool show) {}
+};
+
+`;
+    }
+    
+    // New Module-Specific Actuator Types
+    if (this.usedHardwareTypes.has('Relay5V')) {
+      code += `class Relay5V {
+private:
+  int _pin;
+  bool _activeLow;
+  bool _state;
+  
+public:
+  Relay5V(int pin) : _pin(pin), _activeLow(true), _state(false) {
+    pinMode(_pin, OUTPUT);
+    off();
+  }
+  
+  void on() { _state = true; digitalWrite(_pin, _activeLow ? LOW : HIGH); }
+  void off() { _state = false; digitalWrite(_pin, _activeLow ? HIGH : LOW); }
+  void toggle() { _state ? off() : on(); }
+  bool isOn() { return _state; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('FanPWM')) {
+      code += `class FanPWM {
+private:
+  int _pin;
+  int _speed;
+  
+public:
+  FanPWM(int pin) : _pin(pin), _speed(0) { pinMode(_pin, OUTPUT); }
+  
+  void on() { setSpeed(255); }
+  void off() { setSpeed(0); }
+  void setSpeed(int speed) { _speed = constrain(speed, 0, 255); analogWrite(_pin, _speed); }
+  int getSpeed() { return _speed; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('DCPump')) {
+      code += `class DCPump {
+private:
+  int _pin;
+  int _speed;
+  
+public:
+  DCPump(int pin) : _pin(pin), _speed(0) { pinMode(_pin, OUTPUT); }
+  
+  void on() { setSpeed(255); }
+  void off() { setSpeed(0); }
+  void setSpeed(int speed) { _speed = constrain(speed, 0, 255); analogWrite(_pin, _speed); }
+  int getSpeed() { return _speed; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('SolenoidValve')) {
+      code += `class SolenoidValve {
+private:
+  int _pin;
+  bool _state;
+  
+public:
+  SolenoidValve(int pin) : _pin(pin), _state(false) { pinMode(_pin, OUTPUT); close(); }
+  
+  void open() { _state = true; digitalWrite(_pin, HIGH); }
+  void close() { _state = false; digitalWrite(_pin, LOW); }
+  bool isOpen() { return _state; }
+};
+
+`;
+    }
+    
+    // New Module-Specific Communication Types
+    if (this.usedHardwareTypes.has('HC05')) {
+      code += `class HC05 {
+private:
+  int _rxPin, _txPin;
+  long _baud;
+  
+public:
+  HC05(int rxPin, int txPin, long baud = 9600) : _rxPin(rxPin), _txPin(txPin), _baud(baud) {}
+  
+  void begin() {}
+  bool available() { return false; }
+  char read() { return 0; }
+  void print(const char* text) {}
+  void println(const char* text) {}
+  bool isConnected() { return false; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('ESP8266')) {
+      code += `class ESP8266 {
+private:
+  String _ssid;
+  String _password;
+  bool _connected;
+  
+public:
+  ESP8266() : _connected(false) {}
+  
+  bool connect(const char* ssid, const char* password) { _ssid = ssid; _password = password; return false; }
+  void disconnect() { _connected = false; }
+  bool isConnected() { return _connected; }
+  String localIP() { return "0.0.0.0"; }
+  int rssi() { return 0; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('SX1278')) {
+      code += `class SX1278 {
+private:
+  int _ssPin, _rstPin, _dioPin;
+  long _frequency;
+  
+public:
+  SX1278(int ssPin, int rstPin, int dioPin) : _ssPin(ssPin), _rstPin(rstPin), _dioPin(dioPin), _frequency(915000000) {}
+  
+  bool begin(long frequency = 915000000) { _frequency = frequency; return false; }
+  void end() {}
+  int available() { return 0; }
+  int read() { return -1; }
+  void write(uint8_t byte) {}
+  void print(const char* text) {}
+  int packetRssi() { return 0; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('NRF24L01')) {
+      code += `class NRF24L01 {
+private:
+  int _cePin, _csPin;
+  
+public:
+  NRF24L01(int cePin, int csPin) : _cePin(cePin), _csPin(csPin) {}
+  
+  bool begin() { return false; }
+  void openWritingPipe(uint64_t address) {}
+  void openReadingPipe(uint8_t pipe, uint64_t address) {}
+  void startListening() {}
+  void stopListening() {}
+  bool available() { return false; }
+  bool write(void* data, uint8_t len) { return false; }
+  void read(void* data, uint8_t len) {}
+};
+
+`;
+    }
+    
+    // New Module-Specific Power Types
+    if (this.usedHardwareTypes.has('LiPo')) {
+      code += `class LiPo {
+private:
+  int _pin;
+  float _maxVoltage;
+  float _minVoltage;
+  
+public:
+  LiPo(int pin, float maxVoltage = 4.2, float minVoltage = 3.0) 
+    : _pin(pin), _maxVoltage(maxVoltage), _minVoltage(minVoltage) { pinMode(_pin, INPUT); }
+  
+  float readVoltage() { return analogRead(_pin) * _maxVoltage / 1023.0; }
+  int readPercent() {
+    float v = readVoltage();
+    int pct = (v - _minVoltage) / (_maxVoltage - _minVoltage) * 100;
+    return constrain(pct, 0, 100);
+  }
+  bool isLow(int threshold = 20) { return readPercent() < threshold; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('SolarPanel')) {
+      code += `class SolarPanel {
+private:
+  int _voltagePin;
+  int _currentPin;
+  float _maxVoltage;
+  
+public:
+  SolarPanel(int voltagePin, int currentPin) : _voltagePin(voltagePin), _currentPin(currentPin), _maxVoltage(5.0) {
+    pinMode(_voltagePin, INPUT);
+    pinMode(_currentPin, INPUT);
+  }
+  
+  float readVoltage() { return analogRead(_voltagePin) * _maxVoltage / 1023.0; }
+  float readCurrent() { return analogRead(_currentPin) * 5.0 / 1023.0; }
+  float readPower() { return readVoltage() * readCurrent(); }
+};
+
+`;
+    }
+    
+    // New Module-Specific Motor Driver Types
+    if (this.usedHardwareTypes.has('L298N')) {
+      code += `class L298N {
+private:
+  int _pwmPin, _dirPin;
+  int _speed;
+  
+public:
+  L298N(int pwmPin, int dirPin) : _pwmPin(pwmPin), _dirPin(dirPin), _speed(0) {
+    pinMode(_pwmPin, OUTPUT);
+    pinMode(_dirPin, OUTPUT);
+  }
+  
+  void forward(int speed = 255) {
+    _speed = constrain(speed, 0, 255);
+    digitalWrite(_dirPin, HIGH);
+    analogWrite(_pwmPin, _speed);
+  }
+  
+  void reverse(int speed = 255) {
+    _speed = constrain(speed, 0, 255);
+    digitalWrite(_dirPin, LOW);
+    analogWrite(_pwmPin, _speed);
+  }
+  
+  void stop() { analogWrite(_pwmPin, 0); _speed = 0; }
+  void setSpeed(int speed) { _speed = constrain(abs(speed), 0, 255); analogWrite(_pwmPin, _speed); }
+  int getSpeed() { return _speed; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('TB6612FNG')) {
+      code += `class TB6612FNG {
+private:
+  int _pwmA, _dirA, _pwmB, _dirB;
+  
+public:
+  TB6612FNG(int pwmA, int dirA, int pwmB, int dirB) : _pwmA(pwmA), _dirA(dirA), _pwmB(pwmB), _dirB(dirB) {
+    pinMode(_pwmA, OUTPUT);
+    pinMode(_dirA, OUTPUT);
+    pinMode(_pwmB, OUTPUT);
+    pinMode(_dirB, OUTPUT);
+  }
+  
+  void setMotorA(int speed) {
+    digitalWrite(_dirA, speed >= 0 ? HIGH : LOW);
+    analogWrite(_pwmA, abs(speed));
+  }
+  
+  void setMotorB(int speed) {
+    digitalWrite(_dirB, speed >= 0 ? HIGH : LOW);
+    analogWrite(_pwmB, abs(speed));
+  }
+  
+  void stopAll() { setMotorA(0); setMotorB(0); }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('PCA9685')) {
+      code += `class PCA9685 {
+private:
+  int _bus;
+  int _address;
+  float _freq;
+  
+public:
+  PCA9685(int bus, float freq = 50) : _bus(bus), _address(0x40), _freq(freq) {}
+  
+  void begin() {}
+  void setPWMFreq(float freq) { _freq = freq; }
+  void setAngle(int channel, int angle) {}
+  void setPulse(int channel, int pulse) {}
+  int numChannels() { return 16; }
+};
+
+`;
+    }
+    
+    // New Module-Specific Timing Types
+    if (this.usedHardwareTypes.has('DS3231')) {
+      code += `class DS3231 {
+private:
+  int _bus;
+  int _address;
+  
+public:
+  DS3231(int bus) : _bus(bus), _address(0x68) {}
+  
+  void begin() {}
+  int hour() { return 0; }
+  int minute() { return 0; }
+  int second() { return 0; }
+  int day() { return 1; }
+  int month() { return 1; }
+  int year() { return 2024; }
+  void setTime(int h, int m, int s) {}
+  void setDate(int d, int mo, int y) {}
+  float readTemperature() { return 25.0; }
+};
+
+`;
+    }
+    
+    // New Module-Specific Audio Types
+    if (this.usedHardwareTypes.has('MAX4466')) {
+      code += `class MAX4466 {
+private:
+  int _pin;
+  int _threshold;
+  
+public:
+  MAX4466(int pin) : _pin(pin), _threshold(512) { pinMode(_pin, INPUT); }
+  
+  int read() { return analogRead(_pin); }
+  int readAmplitude() { return abs(analogRead(_pin) - 512); }
+  bool isLoud() { return readAmplitude() > _threshold; }
+  void setThreshold(int threshold) { _threshold = threshold; }
+};
+
+`;
+    }
+    
+    if (this.usedHardwareTypes.has('DFPlayerMini')) {
+      code += `class DFPlayerMini {
+private:
+  int _rxPin, _txPin;
+  int _volume;
+  
+public:
+  DFPlayerMini(int rxPin, int txPin) : _rxPin(rxPin), _txPin(txPin), _volume(15) {}
   
   void begin() {}
   void play(int track) {}
