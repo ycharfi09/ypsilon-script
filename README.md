@@ -10,11 +10,20 @@ Ypsilon Script (YS) is designed to make microcontroller development accessible, 
 
 - **Strong Static Typing**: All variables and functions must be explicitly typed
 - **Modern Syntax**: Uses `fn`, `mut`, `self` keywords
-- **Hardware Types**: Built-in hardware abstraction types with automatic setup:
+- **Hardware Types**: Built-in hardware abstraction types with automatic setup (60+ types):
   - **Digital I/O**: `Digital`, `Led`, `RgbLed`, `Button`, `Buzzer`
   - **Analog & PWM**: `Analog`, `PWM`
   - **Motors**: `Servo`, `DCMotor`, `StepperMotor`, `Encoder`
-  - **Communication**: `I2C`, `SPI`, `UART`
+  - **Communication**: `I2C`, `SPI`, `UART`, `Bluetooth`, `WiFi`, `LoRa`, `NRF24`
+  - **Sensors**: `TempSensor`, `HumiditySensor`, `DistanceSensor`, `LightSensor`, `MotionSensor`, `Joystick`, `GPS`, and more
+  - **Displays**: `LCD`, `OLED`, `NeoPixel`, `SevenSegment`, `TFT`, `Matrix`
+  - **Actuators**: `Relay`, `Solenoid`, `Fan`, `Pump`, `Valve`, `Heater`
+  - **Motor Drivers**: `HBridge`, `MotorDriver`, `ServoDriver`
+  - **Multiplexers**: `Mux4`, `Mux8`, `Mux16`, `Mux32`
+  - **Storage**: `SDCard`, `EEPROM`, `Flash`
+  - **Power**: `Battery`, `Solar`
+  - **Timing**: `Timer`, `RTC`
+  - **Audio**: `Speaker`, `Microphone`, `DFPlayer`
 - **Unit System**: Time (`ms`, `s`, `us`), frequency (`Hz`), angle (`deg`), distance (`cm`, `m`), speed (`rpm`)
 - **Range Constraints**: `mut int value in 0...1023` for automatic bounds enforcement
 - **Type Conversion**: `.as<type>()` syntax for explicit type casting
@@ -813,6 +822,434 @@ mut u16 available = serial.available()
 serial.flush()
 ```
 
+### Multiplexer Types
+
+#### Mux4, Mux8, Mux16, Mux32
+```javascript
+mut Mux4 mux4 = new Mux4(sigPin, s0, s1)
+mut Mux8 mux8 = new Mux8(sigPin, s0, s1, s2)
+mut Mux16 mux16 = new Mux16(sigPin, s0, s1, s2, s3)
+mut Mux32 mux32 = new Mux32(sigPin, s0, s1, s2, s3, s4)
+
+mux16.selectChannel(5)
+mut int value = mux16.read(3)
+mux16.enable()
+mux16.disable()
+```
+
+### Sensor Types
+
+#### TempSensor
+```javascript
+mut TempSensor temp = new TempSensor(A0)
+
+mut float celsius = temp.readCelsius()
+mut float fahrenheit = temp.readFahrenheit()
+mut float kelvin = temp.readKelvin()
+mut int raw = temp.readRaw()
+```
+
+#### HumiditySensor
+```javascript
+mut HumiditySensor humidity = new HumiditySensor(A1)
+
+mut float percent = humidity.readPercent()
+mut int raw = humidity.readRaw()
+```
+
+#### DistanceSensor
+```javascript
+mut DistanceSensor sonar = new DistanceSensor(trigPin, echoPin)
+
+mut float cm = sonar.readCm()
+mut float inches = sonar.readInches()
+mut bool detected = sonar.inRange(5, 50)
+```
+
+#### LightSensor
+```javascript
+mut LightSensor ldr = new LightSensor(A0)
+
+mut int value = ldr.read()
+mut int percent = ldr.readPercent()
+if (ldr.isDark()) { }
+if (ldr.isBright()) { }
+```
+
+#### MotionSensor
+```javascript
+mut MotionSensor pir = new MotionSensor(2)
+
+if (pir.detected()) { }
+if (pir.isIdle(5000)) { }
+mut unsigned long time = pir.timeSinceMotion()
+```
+
+#### Potentiometer
+```javascript
+mut Potentiometer pot = new Potentiometer(A0)
+
+mut int value = pot.read()
+mut int percent = pot.readPercent()
+mut int mapped = pot.readMapped(0, 180)
+```
+
+#### Joystick
+```javascript
+mut Joystick joy = new Joystick(A0, A1, btnPin)
+
+mut int x = joy.readX()
+mut int y = joy.readY()
+if (joy.isPressed()) { }
+joy.calibrate()
+```
+
+#### RotaryEncoder
+```javascript
+mut RotaryEncoder enc = new RotaryEncoder(pinA, pinB, btnPin)
+
+enc.update()
+mut i32 pos = enc.position()
+enc.reset()
+if (enc.isPressed()) { }
+```
+
+### Display Types
+
+#### LCD
+```javascript
+mut LCD display = new LCD(rs, en, d4, d5, d6, d7, 16, 2)
+
+display.begin()
+display.clear()
+display.setCursor(0, 0)
+display.print("Hello World")
+display.backlight()
+```
+
+#### OLED
+```javascript
+mut OLED display = new OLED(128, 64)
+
+display.begin()
+display.clear()
+display.setCursor(0, 0)
+display.print("Hello")
+display.drawLine(0, 0, 128, 64)
+display.display()
+```
+
+#### NeoPixel
+```javascript
+mut NeoPixel strip = new NeoPixel(pin, numLeds)
+
+strip.begin()
+strip.setPixel(0, 255, 0, 0)  // Red
+strip.fill(0, 0, 255)          // All blue
+strip.setBrightness(128)
+strip.show()
+```
+
+#### SevenSegment
+```javascript
+mut SevenSegment seg = new SevenSegment(a, b, c, d, e, f, g)
+
+seg.display(5)
+seg.clear()
+```
+
+### Actuator Types
+
+#### Relay
+```javascript
+mut Relay relay = new Relay(7)
+
+relay.on()
+relay.off()
+relay.toggle()
+if (relay.isOn()) { }
+```
+
+#### Solenoid
+```javascript
+mut Solenoid sol = new Solenoid(6)
+
+sol.activate()
+sol.deactivate()
+sol.pulse(100)  // 100ms pulse
+```
+
+#### Fan
+```javascript
+mut Fan cooler = new Fan(9)
+
+cooler.on()
+cooler.off()
+cooler.setSpeed(200)  // 0-255
+```
+
+#### Pump
+```javascript
+mut Pump waterPump = new Pump(9)
+
+waterPump.on()
+waterPump.off()
+waterPump.setSpeed(150)
+```
+
+#### Valve
+```javascript
+mut Valve valve = new Valve(8)
+
+valve.open()
+valve.close()
+if (valve.isOpen()) { }
+```
+
+### Wireless Communication Types
+
+#### Bluetooth
+```javascript
+mut Bluetooth bt = new Bluetooth(rxPin, txPin, 9600)
+
+bt.begin()
+if (bt.available()) { }
+mut char data = bt.read()
+bt.print("Hello")
+```
+
+#### WiFi
+```javascript
+mut WiFi wifi = new WiFi()
+
+wifi.connect("SSID", "password")
+if (wifi.isConnected()) { }
+mut String ip = wifi.localIP()
+mut int rssi = wifi.rssi()
+```
+
+#### LoRa
+```javascript
+mut LoRa lora = new LoRa(ssPin, rstPin, dioPin)
+
+lora.begin(915000000)
+lora.print("Hello LoRa")
+if (lora.available()) { }
+mut int rssi = lora.packetRssi()
+```
+
+#### NRF24
+```javascript
+mut NRF24 radio = new NRF24(cePin, csPin)
+
+radio.begin()
+radio.openWritingPipe(address)
+radio.write(data, len)
+if (radio.available()) { }
+```
+
+### Storage Types
+
+#### SDCard
+```javascript
+mut SDCard sd = new SDCard(csPin)
+
+sd.begin()
+if (sd.exists("data.txt")) { }
+sd.remove("old.txt")
+sd.mkdir("/logs")
+```
+
+#### EEPROM
+```javascript
+mut EEPROM eeprom = new EEPROM(512)
+
+mut u8 value = eeprom.read(0)
+eeprom.write(0, 42)
+eeprom.update(0, 42)  // Only writes if different
+```
+
+### Power Types
+
+#### Battery
+```javascript
+mut Battery batt = new Battery(A0, 4.2, 3.0)
+
+mut float voltage = batt.readVoltage()
+mut int percent = batt.readPercent()
+if (batt.isLow(20)) { }
+```
+
+#### Solar
+```javascript
+mut Solar panel = new Solar(voltagePin, currentPin)
+
+mut float voltage = panel.readVoltage()
+mut float current = panel.readCurrent()
+mut float power = panel.readPower()
+```
+
+### Motor Driver Types
+
+#### HBridge
+```javascript
+mut HBridge motor = new HBridge(in1, in2, enablePin)
+
+motor.forward(200)
+motor.reverse(150)
+motor.stop()
+motor.brake()
+```
+
+#### MotorDriver
+```javascript
+mut MotorDriver driver = new MotorDriver(pwmA, dirA, pwmB, dirB)
+
+driver.setMotorA(255)
+driver.setMotorB(-128)
+driver.stopAll()
+```
+
+#### ServoDriver
+```javascript
+mut ServoDriver servos = new ServoDriver(0x40, 16)
+
+servos.begin()
+servos.setPWMFreq(50)
+servos.setAngle(0, 90)
+servos.setPulse(1, 1500)
+```
+
+### Timing Types
+
+#### Timer
+```javascript
+mut Timer timer = new Timer()
+
+timer.start(5000)  // 5 seconds
+if (timer.isExpired()) { }
+mut unsigned long remaining = timer.remaining()
+timer.reset()
+```
+
+#### RTC
+```javascript
+mut RTC clock = new RTC()
+
+clock.begin()
+mut int hour = clock.hour()
+mut int minute = clock.minute()
+clock.setTime(12, 30, 0)
+clock.setDate(25, 12, 2024)
+```
+
+### Audio Types
+
+#### Speaker
+```javascript
+mut Speaker spk = new Speaker(8)
+
+spk.tone(440)         // 440Hz
+spk.tone(440, 500)    // 440Hz for 500ms
+spk.beep(1000, 200)   // 1kHz for 200ms
+spk.noTone()
+```
+
+#### Microphone
+```javascript
+mut Microphone mic = new Microphone(A0)
+
+mut int level = mic.read()
+mut int amplitude = mic.readAmplitude()
+if (mic.isLoud()) { }
+```
+
+#### DFPlayer
+```javascript
+mut DFPlayer player = new DFPlayer(rxPin, txPin)
+
+player.begin()
+player.play(1)
+player.pause()
+player.setVolume(20)
+player.playFolder(2, 5)
+```
+
+### Additional Sensor Types
+
+#### PressureSensor
+```javascript
+mut PressureSensor pressure = new PressureSensor(A0)
+
+mut float value = pressure.read()
+mut int raw = pressure.readRaw()
+```
+
+#### TouchSensor
+```javascript
+mut TouchSensor touch = new TouchSensor(A0)
+
+if (touch.isTouched()) { }
+mut int value = touch.read()
+touch.setThreshold(600)
+```
+
+#### SoundSensor
+```javascript
+mut SoundSensor sound = new SoundSensor(A0)
+
+mut int level = sound.read()
+if (sound.isLoud()) { }
+```
+
+#### GasSensor
+```javascript
+mut GasSensor gas = new GasSensor(A0)
+
+mut int level = gas.read()
+if (gas.detected()) { }
+gas.setThreshold(400)
+```
+
+#### ColorSensor
+```javascript
+mut ColorSensor color = new ColorSensor(s0, s1, s2, s3, out)
+
+mut int red = color.readRed()
+mut int green = color.readGreen()
+mut int blue = color.readBlue()
+```
+
+#### Accelerometer
+```javascript
+mut Accelerometer accel = new Accelerometer(xPin, yPin, zPin)
+
+mut float x = accel.readX()
+mut float y = accel.readY()
+mut float z = accel.readZ()
+```
+
+#### Gyroscope
+```javascript
+mut Gyroscope gyro = new Gyroscope(xPin, yPin, zPin)
+
+mut float x = gyro.readX()
+mut float y = gyro.readY()
+mut float z = gyro.readZ()
+```
+
+#### GPS
+```javascript
+mut GPS gps = new GPS(rxPin, txPin)
+
+gps.begin(9600)
+if (gps.update()) {
+    mut float lat = gps.latitude()
+    mut float lon = gps.longitude()
+    mut int sats = gps.satellites()
+}
+```
+
 ### Hardware Type Features
 
 - **Automatic Setup**: Pin modes and hardware initialization handled automatically
@@ -821,6 +1258,7 @@ serial.flush()
 - **Clean API**: Intuitive method names matching hardware behavior
 - **Multiple Instances**: Create as many instances as needed for your hardware
 - **Auto-Include**: Required libraries (Servo.h, Wire.h, SPI.h) included automatically
+- **60+ Hardware Types**: Comprehensive coverage for sensors, displays, actuators, communication, and more
 
 ## Syntax Summary
 
@@ -836,7 +1274,20 @@ YS syntax:
 - **Structs**: C++-style data structures
 - **Classes**: OOP with constructors and methods
 - **`new` keyword**: Object instantiation
-- **Hardware types**: `Digital`, `Analog`, `PWM`, `Led`, `RgbLed`, `Button`, `Buzzer`, `Servo`, `DCMotor`, `StepperMotor`, `Encoder`, `I2C`, `SPI`, `UART` with automatic setup
+- **Hardware types**: 60+ built-in types with automatic setup including:
+  - Digital I/O: `Digital`, `Led`, `RgbLed`, `Button`, `Buzzer`
+  - Analog & PWM: `Analog`, `PWM`
+  - Motors: `Servo`, `DCMotor`, `StepperMotor`, `Encoder`
+  - Communication: `I2C`, `SPI`, `UART`, `Bluetooth`, `WiFi`, `LoRa`, `NRF24`
+  - Sensors: `TempSensor`, `HumiditySensor`, `DistanceSensor`, `LightSensor`, `MotionSensor`, `GPS`
+  - Displays: `LCD`, `OLED`, `NeoPixel`, `SevenSegment`, `TFT`
+  - Actuators: `Relay`, `Solenoid`, `Fan`, `Pump`, `Valve`
+  - Motor Drivers: `HBridge`, `MotorDriver`, `ServoDriver`
+  - Multiplexers: `Mux4`, `Mux8`, `Mux16`, `Mux32`
+  - Storage: `SDCard`, `EEPROM`, `Flash`
+  - Power: `Battery`, `Solar`
+  - Timing: `Timer`, `RTC`
+  - Audio: `Speaker`, `Microphone`, `DFPlayer`
 - **Unit literals**: Time, frequency, angle, distance, speed units
 - **Range constraints**: `in min...max` for automatic bounds
 - **Type conversion**: `.as<type>()` for explicit casting

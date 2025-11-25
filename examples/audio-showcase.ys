@@ -1,0 +1,101 @@
+@main
+
+# Audio Types Showcase
+# Demonstrates Speaker, Microphone, and DFPlayer types
+
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
+# Create audio instances
+mut Speaker speaker = new Speaker(8)
+mut Microphone mic = new Microphone(A0)
+
+# Button for triggering sounds
+mut Button playBtn = new Button(2)
+mut Led soundLed = new Led(13)
+
+# Sound state
+enum SoundMode { IDLE, PLAYING, MONITORING }
+mut SoundMode mode = IDLE
+
+mut int noteIndex = 0
+
+# Musical notes (frequencies in Hz)
+const int NOTE_C = 262
+const int NOTE_D = 294
+const int NOTE_E = 330
+const int NOTE_F = 349
+const int NOTE_G = 392
+const int NOTE_A = 440
+const int NOTE_B = 494
+
+on start {
+  print("=== Audio Showcase ===")
+  print("Press button to play sounds")
+  print("Microphone monitors ambient sound")
+  
+  # Play startup sound
+  speaker.beep(NOTE_C, 100)
+  wait 100ms
+  speaker.beep(NOTE_E, 100)
+  wait 100ms
+  speaker.beep(NOTE_G, 200)
+  
+  print("Ready!")
+}
+
+on loop {
+  # Check microphone level
+  mut int soundLevel = mic.read()
+  mut int amplitude = mic.readAmplitude()
+  
+  # Visual feedback for sound level
+  if (mic.isLoud()) {
+    soundLed.on()
+    print("Loud sound detected!")
+    print("Level:")
+    print(amplitude)
+    
+    # Respond to loud sounds with a beep
+    speaker.beep(NOTE_A, 50)
+  } else {
+    soundLed.off()
+  }
+  
+  # Button to play a melody
+  if (playBtn.justPressed()) {
+    print("Playing melody...")
+    
+    # Simple melody: C D E F G A B C
+    speaker.tone(NOTE_C, 200)
+    wait 250ms
+    speaker.tone(NOTE_D, 200)
+    wait 250ms
+    speaker.tone(NOTE_E, 200)
+    wait 250ms
+    speaker.tone(NOTE_F, 200)
+    wait 250ms
+    speaker.tone(NOTE_G, 200)
+    wait 250ms
+    speaker.tone(NOTE_A, 200)
+    wait 250ms
+    speaker.tone(NOTE_B, 200)
+    wait 250ms
+    speaker.tone(523, 400)  # High C
+    
+    print("Melody complete!")
+  }
+  
+  wait 50ms
+}
+
+# Periodic sound level report
+task soundReport every 5s {
+  mut int level = mic.read()
+  print("Ambient sound level:")
+  print(level)
+}

@@ -808,6 +808,357 @@ mut u16 available = serial.available()
 serial.flush()
 ```
 
+### Multiplexer Types
+
+YS provides multiplexer types for reading multiple analog signals through a single pin:
+
+#### Mux4, Mux8, Mux16, Mux32
+```javascript
+mut Mux4 mux4 = new Mux4(sigPin, s0, s1)
+mut Mux8 mux8 = new Mux8(sigPin, s0, s1, s2)
+mut Mux16 mux16 = new Mux16(sigPin, s0, s1, s2, s3)
+mut Mux32 mux32 = new Mux32(sigPin, s0, s1, s2, s3, s4)
+
+mux16.selectChannel(5)
+mut int value = mux16.read(3)
+mux16.enable()
+mux16.disable()
+```
+
+### Sensor Types
+
+YS provides built-in types for common sensors:
+
+#### TempSensor
+```javascript
+mut TempSensor temp = new TempSensor(A0)
+
+mut float celsius = temp.readCelsius()
+mut float fahrenheit = temp.readFahrenheit()
+mut float kelvin = temp.readKelvin()
+```
+
+#### HumiditySensor
+```javascript
+mut HumiditySensor humidity = new HumiditySensor(A1)
+
+mut float percent = humidity.readPercent()
+```
+
+#### DistanceSensor (Ultrasonic)
+```javascript
+mut DistanceSensor sonar = new DistanceSensor(trigPin, echoPin)
+
+mut float cm = sonar.readCm()
+mut float inches = sonar.readInches()
+mut bool detected = sonar.inRange(5, 50)
+```
+
+#### LightSensor
+```javascript
+mut LightSensor ldr = new LightSensor(A0)
+
+mut int value = ldr.read()
+if (ldr.isDark()) { }
+if (ldr.isBright()) { }
+```
+
+#### MotionSensor (PIR)
+```javascript
+mut MotionSensor pir = new MotionSensor(2)
+
+if (pir.detected()) { }
+if (pir.isIdle(5000)) { }
+```
+
+#### Potentiometer
+```javascript
+mut Potentiometer pot = new Potentiometer(A0)
+
+mut int value = pot.read()
+mut int percent = pot.readPercent()
+mut int mapped = pot.readMapped(0, 180)
+```
+
+#### Joystick
+```javascript
+mut Joystick joy = new Joystick(A0, A1, btnPin)
+
+mut int x = joy.readX()
+mut int y = joy.readY()
+if (joy.isPressed()) { }
+```
+
+#### RotaryEncoder
+```javascript
+mut RotaryEncoder enc = new RotaryEncoder(pinA, pinB, btnPin)
+
+enc.update()
+mut i32 pos = enc.position()
+enc.reset()
+```
+
+#### GPS
+```javascript
+mut GPS gps = new GPS(rxPin, txPin)
+
+gps.begin(9600)
+if (gps.update()) {
+    mut float lat = gps.latitude()
+    mut float lon = gps.longitude()
+}
+```
+
+### Display Types
+
+YS provides types for common displays:
+
+#### LCD
+```javascript
+mut LCD display = new LCD(rs, en, d4, d5, d6, d7, 16, 2)
+
+display.begin()
+display.clear()
+display.setCursor(0, 0)
+display.print("Hello World")
+```
+
+#### OLED
+```javascript
+mut OLED display = new OLED(128, 64)
+
+display.begin()
+display.clear()
+display.print("Hello")
+display.display()
+```
+
+#### NeoPixel
+```javascript
+mut NeoPixel strip = new NeoPixel(pin, numLeds)
+
+strip.begin()
+strip.setPixel(0, 255, 0, 0)  # Red
+strip.fill(0, 0, 255)          # All blue
+strip.show()
+```
+
+#### SevenSegment
+```javascript
+mut SevenSegment seg = new SevenSegment(a, b, c, d, e, f, g)
+
+seg.display(5)
+seg.clear()
+```
+
+### Actuator Types
+
+YS provides types for controlling actuators:
+
+#### Relay
+```javascript
+mut Relay relay = new Relay(7)
+
+relay.on()
+relay.off()
+relay.toggle()
+```
+
+#### Solenoid
+```javascript
+mut Solenoid sol = new Solenoid(6)
+
+sol.activate()
+sol.deactivate()
+sol.pulse(100)  # 100ms pulse
+```
+
+#### Fan
+```javascript
+mut Fan cooler = new Fan(9)
+
+cooler.on()
+cooler.setSpeed(200)  # 0-255
+```
+
+#### Pump
+```javascript
+mut Pump waterPump = new Pump(9)
+
+waterPump.on()
+waterPump.setSpeed(150)
+```
+
+#### Valve
+```javascript
+mut Valve valve = new Valve(8)
+
+valve.open()
+valve.close()
+```
+
+### Wireless Communication Types
+
+YS provides types for wireless communication:
+
+#### Bluetooth
+```javascript
+mut Bluetooth bt = new Bluetooth(rxPin, txPin, 9600)
+
+bt.begin()
+if (bt.available()) { }
+bt.print("Hello")
+```
+
+#### WiFi
+```javascript
+mut WiFi wifi = new WiFi()
+
+wifi.connect("SSID", "password")
+if (wifi.isConnected()) { }
+mut String ip = wifi.localIP()
+```
+
+#### LoRa
+```javascript
+mut LoRa lora = new LoRa(ssPin, rstPin, dioPin)
+
+lora.begin(915000000)
+lora.print("Hello LoRa")
+```
+
+#### NRF24
+```javascript
+mut NRF24 radio = new NRF24(cePin, csPin)
+
+radio.begin()
+radio.write(data, len)
+```
+
+### Storage Types
+
+YS provides types for data storage:
+
+#### SDCard
+```javascript
+mut SDCard sd = new SDCard(csPin)
+
+sd.begin()
+if (sd.exists("data.txt")) { }
+```
+
+#### EEPROM
+```javascript
+mut EEPROM eeprom = new EEPROM(512)
+
+mut u8 value = eeprom.read(0)
+eeprom.write(0, 42)
+```
+
+### Power Types
+
+YS provides types for power management:
+
+#### Battery
+```javascript
+mut Battery batt = new Battery(A0, 4.2, 3.0)
+
+mut float voltage = batt.readVoltage()
+mut int percent = batt.readPercent()
+if (batt.isLow(20)) { }
+```
+
+#### Solar
+```javascript
+mut Solar panel = new Solar(voltagePin, currentPin)
+
+mut float voltage = panel.readVoltage()
+mut float power = panel.readPower()
+```
+
+### Motor Driver Types
+
+YS provides types for motor control:
+
+#### HBridge
+```javascript
+mut HBridge motor = new HBridge(in1, in2, enablePin)
+
+motor.forward(200)
+motor.reverse(150)
+motor.stop()
+motor.brake()
+```
+
+#### MotorDriver
+```javascript
+mut MotorDriver driver = new MotorDriver(pwmA, dirA, pwmB, dirB)
+
+driver.setMotorA(255)
+driver.setMotorB(-128)
+driver.stopAll()
+```
+
+#### ServoDriver
+```javascript
+mut ServoDriver servos = new ServoDriver(0x40, 16)
+
+servos.begin()
+servos.setAngle(0, 90)
+```
+
+### Timing Types
+
+YS provides types for timing:
+
+#### Timer
+```javascript
+mut Timer timer = new Timer()
+
+timer.start(5000)  # 5 seconds
+if (timer.isExpired()) { }
+mut unsigned long remaining = timer.remaining()
+```
+
+#### RTC
+```javascript
+mut RTC clock = new RTC()
+
+clock.begin()
+mut int hour = clock.hour()
+mut int minute = clock.minute()
+```
+
+### Audio Types
+
+YS provides types for audio:
+
+#### Speaker
+```javascript
+mut Speaker spk = new Speaker(8)
+
+spk.tone(440)
+spk.tone(440, 500)  # 440Hz for 500ms
+spk.noTone()
+```
+
+#### Microphone
+```javascript
+mut Microphone mic = new Microphone(A0)
+
+mut int level = mic.read()
+if (mic.isLoud()) { }
+```
+
+#### DFPlayer
+```javascript
+mut DFPlayer player = new DFPlayer(rxPin, txPin)
+
+player.begin()
+player.play(1)
+player.setVolume(20)
+```
+
 ### Hardware Type Features
 
 - **Automatic Setup**: Pin modes and hardware initialization handled automatically
@@ -816,6 +1167,7 @@ serial.flush()
 - **Clean API**: Intuitive method names matching hardware behavior
 - **Multiple Instances**: Create as many instances as needed
 - **Auto-Include**: Required libraries (Servo.h, Wire.h, SPI.h) included automatically
+- **60+ Hardware Types**: Comprehensive coverage for sensors, displays, actuators, communication, and more
 
 ## Built-in Functions
 
@@ -1421,7 +1773,20 @@ on loop {
 8. **Structs**: C++-style data structures
 9. **Classes**: OOP with constructors and methods
 10. **`new` keyword**: Object instantiation
-11. **Hardware types**: `Digital`, `Analog`, `PWM`, `Led`, `RgbLed`, `Button`, `Buzzer`, `Servo`, `DCMotor`, `StepperMotor`, `Encoder`, `I2C`, `SPI`, `UART` with automatic setup
+11. **Hardware types**: 60+ built-in types with automatic setup including:
+    - Digital I/O: `Digital`, `Led`, `RgbLed`, `Button`, `Buzzer`
+    - Analog & PWM: `Analog`, `PWM`
+    - Motors: `Servo`, `DCMotor`, `StepperMotor`, `Encoder`
+    - Communication: `I2C`, `SPI`, `UART`, `Bluetooth`, `WiFi`, `LoRa`, `NRF24`, `CAN`, `RS485`, `ZigBee`
+    - Sensors: `TempSensor`, `HumiditySensor`, `DistanceSensor`, `LightSensor`, `MotionSensor`, `TouchSensor`, `SoundSensor`, `GasSensor`, `ColorSensor`, `Accelerometer`, `Gyroscope`, `Magnetometer`, `IMU`, `GPS`, `LoadCell`, `Potentiometer`, `Joystick`, `RotaryEncoder`, `IRRemote`, `RFID`
+    - Displays: `LCD`, `OLED`, `SevenSegment`, `Matrix`, `TFT`, `NeoPixel`
+    - Actuators: `Relay`, `Solenoid`, `Fan`, `Heater`, `Pump`, `Valve`
+    - Motor Drivers: `HBridge`, `MotorDriver`, `ServoDriver`
+    - Multiplexers: `Mux4`, `Mux8`, `Mux16`, `Mux32`
+    - Storage: `SDCard`, `EEPROM`, `Flash`
+    - Power: `Battery`, `Solar`
+    - Timing: `Timer`, `RTC`
+    - Audio: `Speaker`, `Microphone`, `DFPlayer`
 12. **Event blocks**: `on start {}`, `on loop {}`
 13. **Interrupt handlers**: `interrupt <name?> on PIN# (rising|falling|change|low|high) { }`
 14. **Match expressions**: Pattern matching with `=>`

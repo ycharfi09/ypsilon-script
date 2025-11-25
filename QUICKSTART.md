@@ -127,7 +127,15 @@ The compiler will automatically find the file with `@main` and compile it.
 - Variables declared as `type name` (e.g., `int x`)
 
 ### Powerful Features
-- Hardware types: Digital, Analog, PWM, Led, RgbLed, Button, Buzzer, Servo, DCMotor, etc.
+- **60+ Hardware types** including:
+  - Digital I/O: `Digital`, `Led`, `RgbLed`, `Button`, `Buzzer`
+  - Motors: `Servo`, `DCMotor`, `StepperMotor`, `Encoder`
+  - Sensors: `TempSensor`, `DistanceSensor`, `LightSensor`, `MotionSensor`, `GPS`, and more
+  - Displays: `LCD`, `OLED`, `NeoPixel`, `SevenSegment`
+  - Actuators: `Relay`, `Solenoid`, `Fan`, `Pump`, `Valve`
+  - Communication: `I2C`, `SPI`, `UART`, `Bluetooth`, `WiFi`, `LoRa`
+  - Timing: `Timer`, `RTC`
+  - Audio: `Speaker`, `Microphone`
 - Enums (Rust-style)
 - Structs (C++-style)
 - Classes with constructors and methods

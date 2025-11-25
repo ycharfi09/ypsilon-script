@@ -483,6 +483,94 @@ if (mic.isLoud()) { ... }
 mut Battery batt = new Battery(A0, 4.2, 3.0)
 mut int percent = batt.readPercent()
 if (batt.isLow(20)) { ... }
+
+# Solar panel monitor
+mut Solar panel = new Solar(voltagePin, currentPin)
+mut float voltage = panel.readVoltage()
+mut float power = panel.readPower()
+```
+
+#### Wireless Communication Types
+```javascript
+# Bluetooth
+mut Bluetooth bt = new Bluetooth(rxPin, txPin, 9600)
+bt.begin()
+if (bt.available()) { ... }
+bt.print("Hello")
+
+# WiFi
+mut WiFi wifi = new WiFi()
+wifi.connect("SSID", "password")
+if (wifi.isConnected()) { ... }
+mut String ip = wifi.localIP()
+
+# LoRa
+mut LoRa lora = new LoRa(ssPin, rstPin, dioPin)
+lora.begin(915000000)
+lora.print("Hello LoRa")
+
+# NRF24 Radio
+mut NRF24 radio = new NRF24(cePin, csPin)
+radio.begin()
+radio.write(data, len)
+```
+
+#### Storage Types
+```javascript
+# SD Card
+mut SDCard sd = new SDCard(csPin)
+sd.begin()
+if (sd.exists("data.txt")) { ... }
+
+# EEPROM
+mut EEPROM eeprom = new EEPROM(512)
+mut u8 value = eeprom.read(0)
+eeprom.write(0, 42)
+
+# Flash Memory
+mut Flash flash = new Flash(4096)
+flash.begin()
+flash.write(0, 42)
+```
+
+#### Additional Sensor Types
+```javascript
+# Pressure Sensor
+mut PressureSensor pressure = new PressureSensor(A0)
+mut float value = pressure.read()
+
+# Touch Sensor
+mut TouchSensor touch = new TouchSensor(A0)
+if (touch.isTouched()) { ... }
+
+# Sound Sensor
+mut SoundSensor sound = new SoundSensor(A0)
+if (sound.isLoud()) { ... }
+
+# Gas Sensor
+mut GasSensor gas = new GasSensor(A0)
+if (gas.detected()) { ... }
+
+# Color Sensor
+mut ColorSensor color = new ColorSensor(s0, s1, s2, s3, out)
+mut int red = color.readRed()
+mut int green = color.readGreen()
+
+# Accelerometer
+mut Accelerometer accel = new Accelerometer(xPin, yPin, zPin)
+mut float x = accel.readX()
+
+# Gyroscope
+mut Gyroscope gyro = new Gyroscope(xPin, yPin, zPin)
+mut float x = gyro.readX()
+
+# GPS
+mut GPS gps = new GPS(rxPin, txPin)
+gps.begin(9600)
+if (gps.update()) {
+    mut float lat = gps.latitude()
+    mut float lon = gps.longitude()
+}
 ```
 
 ### 14. Unit System
@@ -749,13 +837,17 @@ ysc --version
 - timeout statements
 
 ### Hardware Integration: ✅ Advanced
-- Hardware types (Digital, Analog, PWM, and 50+ more)
+- Hardware types (Digital, Analog, PWM, and 60+ more)
 - Multiplexer types (Mux4, Mux8, Mux16, Mux32)
-- Sensor types (TempSensor, DistanceSensor, LightSensor, MotionSensor, etc.)
-- Display types (LCD, OLED, NeoPixel, SevenSegment, etc.)
-- Actuator types (Relay, Solenoid, Fan, Pump, Valve, etc.)
+- Sensor types (TempSensor, HumiditySensor, PressureSensor, LightSensor, DistanceSensor, MotionSensor, TouchSensor, SoundSensor, GasSensor, ColorSensor, Accelerometer, Gyroscope, Magnetometer, IMU, GPS, LoadCell, Potentiometer, Joystick, RotaryEncoder, IRRemote, RFID)
+- Display types (LCD, OLED, NeoPixel, SevenSegment, Matrix, TFT)
+- Actuator types (Relay, Solenoid, Fan, Heater, Pump, Valve)
 - Motor driver types (HBridge, MotorDriver, ServoDriver)
-- Communication types (Bluetooth, WiFi, LoRa, etc.)
+- Communication types (I2C, SPI, UART, Bluetooth, WiFi, LoRa, CAN, RS485, Ethernet, NRF24, ZigBee)
+- Storage types (SDCard, EEPROM, Flash)
+- Power types (Battery, Solar)
+- Timing types (Timer, RTC)
+- Audio types (Speaker, Microphone, DFPlayer)
 - Natural variable-like syntax for hardware types
 - Auto pinMode detection
 - Board-specific PWM implementation
@@ -777,30 +869,49 @@ ysc --version
 
 ## Examples Available
 
-The repository includes 24 working examples demonstrating:
+The repository includes 48+ working examples demonstrating:
 1. `blink.ys` - Basic LED blinking
 2. `blink-modern.ys` - Modern syntax blink
 3. `button.ys` - Button input and LED control
-4. `complete-example.ys` - Complete feature showcase
-5. `complete-showcase.ys` - All modern features
-6. `constants.ys` - Arduino constants usage
-7. `enum-match.ys` - Enums with pattern matching
-8. `fade.ys` - PWM LED fading
-9. `led_class.ys` - Object-oriented LED control
-10. `modern-syntax.ys` - All modern syntax features
-11. `sensor.ys` - Analog sensor reading
-12. `serial.ys` - Serial communication
-13. `smart-led.ys` - RGB LED controller with tasks
-14. `syntax-demo.ys` - Syntax demonstration
-15. `test-new-features.ys` - New features testing
-16. `traffic-light.ys` - Traffic light controller
-17. `ultrasonic.ys` - Distance sensor example
-18. `digital-hardware.ys` - Digital hardware type demo
-19. `analog-sensor.ys` - Analog hardware type demo
-20. `pwm-motor.ys` - PWM hardware type demo
-21. `unit-system.ys` - Unit literals demonstration
-22. `type-conversion.ys` - Type conversion examples
-23. `range-constraints.ys` - Range constraints demo
-24. `complete-hardware-demo.ys` - All hardware features together
+4. `button-example.ys` - Button hardware type example
+5. `buzzer-example.ys` - Buzzer hardware type example
+6. `complete-example.ys` - Complete feature showcase
+7. `complete-showcase.ys` - All modern features
+8. `complete-hardware-demo.ys` - All hardware features together
+9. `constants.ys` - Arduino constants usage
+10. `dcmotor-example.ys` - DC motor control example
+11. `digital-hardware.ys` - Digital hardware type demo
+12. `encoder-example.ys` - Rotary encoder example
+13. `enum-match.ys` - Enums with pattern matching
+14. `fade.ys` - PWM LED fading
+15. `fade-esp32.ys` - PWM fading on ESP32
+16. `hardware-showcase.ys` - Complete hardware types showcase
+17. `i2c-example.ys` - I2C communication example
+18. `interrupt-example.ys` - Interrupt handling example
+19. `interrupt-advanced.ys` - Advanced interrupt features
+20. `led-example.ys` - LED hardware type example
+21. `led_class.ys` - Object-oriented LED control
+22. `modern-syntax.ys` - All modern syntax features
+23. `module-example.ys` - Module loading example
+24. `motor.ys` - Motor control example
+25. `pwm-motor.ys` - PWM hardware type demo
+26. `range-constraints.ys` - Range constraints demo
+27. `rgbled-example.ys` - RGB LED example
+28. `rgb-led-mega.ys` - RGB LED on Arduino Mega
+29. `sensor.ys` - Analog sensor reading
+30. `sensor-lib.ys` - Sensor library module
+31. `serial.ys` - Serial communication
+32. `servo-example.ys` - Servo motor example
+33. `smart-led.ys` - RGB LED controller with tasks
+34. `spi-example.ys` - SPI communication example
+35. `stepper-example.ys` - Stepper motor example
+36. `syntax-demo.ys` - Syntax demonstration
+37. `test-new-features.ys` - New features testing
+38. `traffic-light.ys` - Traffic light controller
+39. `type-conversion.ys` - Type conversion examples
+40. `uart-example.ys` - UART communication example
+41. `ultrasonic.ys` - Distance sensor example
+42. `unit-system.ys` - Unit literals demonstration
+43. `width-specific-types.ys` - Width-specific integer types
 
 All examples compile successfully and demonstrate real-world usage patterns.

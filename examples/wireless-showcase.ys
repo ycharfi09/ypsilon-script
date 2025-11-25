@@ -1,0 +1,91 @@
+@main
+
+# Wireless Communication Showcase
+# Demonstrates Bluetooth and WiFi hardware types
+
+config {
+  board: esp32,
+  clock: 240MHz,
+  uart: on,
+  port: auto
+}
+
+# Create wireless instances
+mut WiFi wifi = new WiFi()
+mut Bluetooth bt = new Bluetooth(16, 17, 9600)  # RX, TX, baud
+
+# Status LEDs
+mut Led wifiLed = new Led(2)
+mut Led btLed = new Led(4)
+
+on start {
+  print("=== Wireless Communication Showcase ===")
+  
+  # Initialize Bluetooth
+  bt.begin()
+  print("Bluetooth initialized")
+  
+  # Connect to WiFi
+  print("Connecting to WiFi...")
+  wifi.connect("YourSSID", "YourPassword")
+  
+  wait 3s
+  
+  if (wifi.isConnected()) {
+    print("WiFi Connected!")
+    print("IP Address:")
+    print(wifi.localIP())
+    wifiLed.on()
+  } else {
+    print("WiFi connection failed")
+    wifiLed.off()
+  }
+}
+
+on loop {
+  # Check WiFi status
+  if (wifi.isConnected()) {
+    wifiLed.on()
+    print("WiFi Signal Strength:")
+    print(wifi.rssi())
+  } else {
+    wifiLed.toggle()
+  }
+  
+  # Check for Bluetooth data
+  if (bt.available()) {
+    btLed.on()
+    mut char data = bt.read()
+    print("Bluetooth received:")
+    print(data)
+    
+    # Echo back
+    bt.print("Received: ")
+    bt.println(data)
+  } else {
+    btLed.off()
+  }
+  
+  wait 500ms
+}
+
+# Periodic status report
+task statusReport every 10s {
+  print("=== Status Report ===")
+  
+  if (wifi.isConnected()) {
+    print("WiFi: Connected")
+    print("IP:")
+    print(wifi.localIP())
+    print("RSSI:")
+    print(wifi.rssi())
+  } else {
+    print("WiFi: Disconnected")
+  }
+  
+  if (bt.isConnected()) {
+    print("Bluetooth: Connected")
+  } else {
+    print("Bluetooth: Waiting...")
+  }
+}

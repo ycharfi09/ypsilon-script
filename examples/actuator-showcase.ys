@@ -1,0 +1,93 @@
+@main
+
+# Actuator Types Showcase
+# Demonstrates Relay, Solenoid, Fan, Pump, and Valve types
+
+config {
+  board: arduino_uno,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
+# Create actuator instances
+mut Relay mainRelay = new Relay(7)
+mut Solenoid sol = new Solenoid(6)
+mut Fan cooler = new Fan(9)
+mut Valve waterValve = new Valve(8)
+
+# Button for control
+mut Button startBtn = new Button(2)
+mut Led statusLed = new Led(13)
+
+enum SystemState { IDLE, RUNNING, COOLING }
+mut SystemState state = IDLE
+
+on start {
+  print("=== Actuator Showcase ===")
+  print("Press button to cycle states")
+  
+  # Ensure all actuators are off at start
+  mainRelay.off()
+  sol.deactivate()
+  cooler.off()
+  waterValve.close()
+  
+  statusLed.on()
+}
+
+on loop {
+  # Check button for state change
+  if (startBtn.justPressed()) {
+    match state {
+      IDLE => {
+        state = RUNNING
+        print("State: RUNNING")
+      },
+      RUNNING => {
+        state = COOLING
+        print("State: COOLING")
+      },
+      COOLING => {
+        state = IDLE
+        print("State: IDLE")
+      }
+    }
+  }
+  
+  # Control actuators based on state
+  match state {
+    IDLE => {
+      mainRelay.off()
+      sol.deactivate()
+      cooler.off()
+      waterValve.close()
+      statusLed.toggle()
+    },
+    
+    RUNNING => {
+      mainRelay.on()
+      sol.activate()
+      waterValve.open()
+      cooler.setSpeed(128)
+      statusLed.on()
+      
+      print("Running - Relay ON, Valve OPEN")
+    },
+    
+    COOLING => {
+      mainRelay.off()
+      sol.deactivate()
+      waterValve.close()
+      cooler.setSpeed(255)  # Full speed cooling
+      
+      # Pulse solenoid for ventilation
+      sol.pulse(100)
+      
+      statusLed.on()
+      print("Cooling - Fan at max")
+    }
+  }
+  
+  wait 200ms
+}
