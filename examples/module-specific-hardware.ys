@@ -1,0 +1,139 @@
+@main
+
+# Module-Specific Hardware Types Example
+# Demonstrates using module-specific hardware types like TB6612FNG, L298N, PCA9685, etc.
+# These types map directly to specific IC modules commonly used in robotics and IoT projects.
+
+config {
+  board: arduino_mega,
+  clock: 16MHz,
+  uart: on,
+  port: auto
+}
+
+# Module-specific motor drivers
+mut TB6612FNG motorDriver = new TB6612FNG(3, 4, 5, 6)
+
+# Module-specific sensors
+mut DHT22 tempHumidity = new DHT22(7)
+mut HC_SR04 ultrasonic = new HC_SR04(8, 9)
+mut MPU6050 imu = new MPU6050(0)
+
+# Module-specific display
+mut SSD1306 oled = new SSD1306(0, 128, 64)
+
+# Module-specific timing
+mut DS3231 rtc = new DS3231(0)
+
+# State tracking
+enum SystemState { IDLE, RUNNING, STOPPED }
+mut SystemState state = IDLE
+
+on start {
+  print("Module-Specific Hardware Demo")
+  print("TB6612FNG, DHT22, HC_SR04, MPU6050, SSD1306, DS3231")
+  
+  # Initialize sensors
+  tempHumidity.begin()
+  imu.begin()
+  
+  # Initialize display
+  oled.begin()
+  oled.clear()
+  oled.setCursor(0, 0)
+  oled.print("YS Hardware Demo")
+  oled.display()
+  
+  # Initialize RTC
+  rtc.begin()
+  
+  print("System initialized")
+}
+
+on loop {
+  # Read temperature and humidity from DHT22
+  mut float temp = tempHumidity.readTemperature()
+  mut float humidity = tempHumidity.readHumidity()
+  
+  # Read distance from HC-SR04 ultrasonic sensor
+  mut float distance = ultrasonic.readCm()
+  mut bool objectDetected = ultrasonic.inRange(5, 30)
+  
+  # Read accelerometer data from MPU6050
+  mut float accelX = imu.readAccelX()
+  mut float gyroZ = imu.readGyroZ()
+  
+  # Read time from DS3231 RTC
+  mut int hour = rtc.hour()
+  mut int minute = rtc.minute()
+  
+  # Update display
+  oled.clear()
+  oled.setCursor(0, 0)
+  oled.print("Temp: ")
+  oled.print(temp)
+  oled.setCursor(0, 1)
+  oled.print("Dist: ")
+  oled.print(distance)
+  oled.display()
+  
+  # Control motors based on sensor readings
+  match state {
+    IDLE => {
+      if (objectDetected) {
+        state = RUNNING
+        print("Object detected, starting motors")
+      }
+    },
+    RUNNING => {
+      # Drive motors forward using TB6612FNG
+      motorDriver.setMotorA(200)
+      motorDriver.setMotorB(200)
+      
+      if (distance < 10) {
+        state = STOPPED
+        print("Too close, stopping")
+      }
+    },
+    STOPPED => {
+      motorDriver.stopAll()
+      
+      if (distance > 50) {
+        state = IDLE
+        print("Clear, returning to idle")
+      }
+    }
+  }
+  
+  # Print sensor data
+  print("Temp:")
+  print(temp)
+  print("Humidity:")
+  print(humidity)
+  print("Distance:")
+  print(distance)
+  print("AccelX:")
+  print(accelX)
+  print("Time:")
+  print(hour)
+  print(":")
+  print(minute)
+  
+  wait 500ms
+}
+
+# Status task
+task reportStatus every 5s {
+  print("=== Status Report ===")
+  
+  match state {
+    IDLE => print("State: IDLE"),
+    RUNNING => print("State: RUNNING"),
+    STOPPED => print("State: STOPPED")
+  }
+  
+  # Read RTC temperature (DS3231 has a built-in temperature sensor)
+  mut float rtcTemp = rtc.readTemperature()
+  print("RTC Temperature:")
+  print(rtcTemp)
+}
