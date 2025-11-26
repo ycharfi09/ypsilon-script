@@ -7,6 +7,8 @@
 
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
+const readline = require('readline');
 const { compile } = require('../src/compiler');
 const { compileSketch, uploadSketch, compileAndUpload, openSerialMonitor } = require('../src/arduino');
 
@@ -22,6 +24,7 @@ Commands:
   compile <file|folder>  - Compile YS file or project folder to Arduino C++ (.ino)
   upload <file|folder>   - Compile and upload to board
   run <file|folder>      - Compile, upload, and open serial monitor
+  update                 - Check for updates and install them
 
 Arguments:
   input.ys        - Input Ypsilon Script file (single file mode)
@@ -46,6 +49,7 @@ Examples:
   ysc run blink.ys              # Compile, upload, and monitor
   ysc blink.ys output.ino       # Compile to specific output
   ysc blink.ys --ast            # Show AST
+  ysc update                    # Check for updates
 
 Project Structure:
   Each project should be in its own folder with one file marked with @main.
@@ -404,6 +408,138 @@ function handleRun(args, options) {
   }
 }
 
+/**
+ * Prompt user for yes/no confirmation
+ */
+function askConfirmation(question) {
+  return new Promise((resolve) => {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+
+    rl.question(question, (answer) => {
+      rl.close();
+      const normalized = answer.toLowerCase().trim();
+      resolve(normalized === 'y' || normalized === 'yes');
+    });
+  });
+}
+
+/**
+ * Handle the update command - check for updates and install them
+ */
+async function handleUpdate() {
+  // Get the directory where ysc.js is located (the bin directory)
+  const binDir = __dirname;
+  const repoDir = path.resolve(binDir, '..');
+
+  console.log('🔍 Checking for updates...\n');
+
+  try {
+    // Fetch the latest changes from remote
+    try {
+      execSync('git fetch', { cwd: repoDir, stdio: 'pipe' });
+    } catch (error) {
+      console.error('❌ Error: Failed to fetch updates from remote.');
+      console.error('   Make sure you have an internet connection and git is installed.');
+      if (error.stderr) {
+        console.error(`   ${error.stderr.toString().trim()}`);
+      }
+      process.exit(1);
+    }
+
+    // Get the current branch
+    let currentBranch;
+    try {
+      currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: repoDir, stdio: 'pipe' })
+        .toString()
+        .trim();
+    } catch (error) {
+      console.error('❌ Error: Unable to determine the current branch.');
+      console.error('   Make sure you are in a valid git repository.');
+      process.exit(1);
+    }
+
+    // Check if there are new commits
+    let newCommits;
+    try {
+      newCommits = execSync(`git log HEAD..origin/${currentBranch} --oneline`, { cwd: repoDir, stdio: 'pipe' })
+        .toString()
+        .trim();
+    } catch (error) {
+      console.error('❌ Error: Failed to check for new commits.');
+      console.error(`   Make sure the remote branch 'origin/${currentBranch}' exists.`);
+      process.exit(1);
+    }
+
+    if (!newCommits) {
+      console.log('✓ Already up to date! No new updates available.');
+      process.exit(0);
+    }
+
+    // Display new commits
+    const commitLines = newCommits.split('\n');
+    const commitCount = commitLines.length;
+    
+    console.log(`📦 ${commitCount} new update${commitCount === 1 ? '' : 's'} available:\n`);
+    
+    // Show detailed commit information
+    let detailedLog;
+    try {
+      detailedLog = execSync(
+        `git log HEAD..origin/${currentBranch} --format="  %C(yellow)%h%C(reset) - %s %C(blue)(%cr)%C(reset) %C(dim)<%an>%C(reset)"`,
+        { cwd: repoDir, stdio: 'pipe' }
+      ).toString().trim();
+    } catch (error) {
+      // Fallback to simple format if color format fails
+      detailedLog = newCommits.split('\n').map(line => `  ${line}`).join('\n');
+    }
+    
+    console.log(detailedLog);
+    console.log('');
+
+    // Ask user for confirmation
+    const confirmed = await askConfirmation('Do you want to install these updates? (y/n): ');
+
+    if (confirmed) {
+      console.log('\n📥 Installing updates...');
+      
+      try {
+        // Check for local changes
+        const status = execSync('git status --porcelain', { cwd: repoDir, stdio: 'pipe' }).toString().trim();
+        
+        if (status) {
+          console.warn('\n⚠ Warning: You have local changes that may conflict with updates.');
+          console.warn('   Consider committing or stashing your changes first.\n');
+          
+          const proceedAnyway = await askConfirmation('Do you want to proceed anyway? (y/n): ');
+          if (!proceedAnyway) {
+            console.log('\n❌ Update cancelled.');
+            process.exit(0);
+          }
+        }
+
+        // Pull the updates
+        execSync(`git pull origin ${currentBranch}`, { cwd: repoDir, stdio: 'inherit' });
+        
+        console.log('\n✓ Updates installed successfully!');
+        console.log('  You may need to run "npm install" if dependencies have changed.');
+      } catch (error) {
+        console.error('\n❌ Error: Failed to install updates.');
+        console.error('   Try running "git pull" manually to resolve any conflicts.');
+        process.exit(1);
+      }
+    } else {
+      console.log('\n❌ Update cancelled.');
+    }
+  } catch (error) {
+    console.error('❌ Error: An unexpected error occurred.');
+    console.error(`   ${error.message}`);
+    process.exit(1);
+  }
+}
+
 function main() {
   const args = process.argv.slice(2);
 
@@ -436,6 +572,11 @@ function main() {
     handleUpload(fileArgs.slice(1), { showAST, showTokens, showConfig, skipMainCheck, enableRetrieval });
   } else if (command === 'run') {
     handleRun(fileArgs.slice(1), { showAST, showTokens, showConfig, skipMainCheck, enableRetrieval });
+  } else if (command === 'update') {
+    handleUpdate().catch((error) => {
+      console.error('❌ Error:', error.message);
+      process.exit(1);
+    });
   } else {
     // Legacy mode - first arg is the file
     const inputFile = fileArgs[0];
