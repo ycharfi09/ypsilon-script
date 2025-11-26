@@ -545,6 +545,60 @@ describe('Unit System - Temperature Units', () => {
     expect(result.success).toBe(true);
     expect(result.code).toContain('2685'); // 300K = 26.85°C = 2685 centidegrees
   });
+
+  test('should compile degC (Celsius alias) unit', () => {
+    const source = `
+      @main
+      config {
+        board: arduino_uno,
+        clock: 16MHz
+      }
+      
+      on start {
+        const int temperature = 25degC
+      }
+    `;
+    
+    const result = compile(source);
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('2500'); // 25°C = 2500 centidegrees
+  });
+
+  test('should compile degF (Fahrenheit) unit', () => {
+    const source = `
+      @main
+      config {
+        board: arduino_uno,
+        clock: 16MHz
+      }
+      
+      on start {
+        const int temperature = 77degF
+      }
+    `;
+    
+    const result = compile(source);
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('2500'); // 77°F = 25°C = 2500 centidegrees
+  });
+
+  test('should compile degF (Fahrenheit) with freezing point', () => {
+    const source = `
+      @main
+      config {
+        board: arduino_uno,
+        clock: 16MHz
+      }
+      
+      on start {
+        const int freezing = 32degF
+      }
+    `;
+    
+    const result = compile(source);
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('0'); // 32°F = 0°C = 0 centidegrees
+  });
 });
 
 describe('Unit System - Weight/Force Units', () => {
