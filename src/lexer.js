@@ -594,7 +594,7 @@ class Lexer {
         'ohm', 'kohm', 'Mohm',                    // resistance
         'F', 'uF', 'nF', 'pF',                    // capacitance
         'W', 'mW', 'kW',                          // power
-        'C', 'K',                                  // temperature (Celsius, Kelvin)
+        'C', 'K', 'degC', 'degF',                  // temperature (Celsius, Kelvin, Fahrenheit)
         'g', 'kg', 'mg', 'N',                     // weight/force
         'B', 'KB', 'MB', 'GB',                    // data storage
         'pct', 'percent',                          // percentage

@@ -1045,7 +1045,9 @@ class CodeGenerator {
       
       // Temperature (convert to centidegrees Celsius for precision)
       'C': value * 100,               // Celsius to centidegrees
+      'degC': value * 100,            // Celsius to centidegrees (alias)
       'K': Math.floor((value - 273.15) * 100), // Kelvin to centidegrees Celsius
+      'degF': Math.floor((value - 32) * 5 / 9 * 100), // Fahrenheit to centidegrees Celsius
       
       // Weight/Force (convert to milligrams)
       'mg': value,
