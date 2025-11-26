@@ -584,11 +584,23 @@ class Lexer {
       
       // Check if it's a valid unit
       const validUnits = [
-        'ms', 's', 'us', 'min', 'h',  // time
-        'Hz', 'kHz', 'MHz',             // frequency
-        'deg', 'rad',                    // angle
-        'cm', 'm', 'mm', 'km',          // distance
-        'rpm'                            // speed
+        'ms', 's', 'us', 'min', 'h',              // time
+        'Hz', 'kHz', 'MHz', 'GHz',                // frequency
+        'deg', 'rad',                              // angle
+        'cm', 'm', 'mm', 'km', 'in', 'ft',        // distance
+        'rpm', 'mps', 'kph', 'mph',               // speed
+        'V', 'mV', 'uV',                          // voltage
+        'A', 'mA', 'uA',                          // current
+        'ohm', 'kohm', 'Mohm',                    // resistance
+        'F', 'uF', 'nF', 'pF',                    // capacitance
+        'W', 'mW', 'kW',                          // power
+        'C', 'K',                                  // temperature (Celsius, Kelvin)
+        'g', 'kg', 'mg', 'N',                     // weight/force
+        'B', 'KB', 'MB', 'GB',                    // data storage
+        'pct', 'percent',                          // percentage
+        'Pa', 'kPa', 'hPa', 'bar', 'atm', 'psi', // pressure
+        'lux', 'lm',                               // light
+        'dB', 'dBm'                                // sound/signal
       ];
       if (validUnits.includes(suffix)) {
         unit = suffix;

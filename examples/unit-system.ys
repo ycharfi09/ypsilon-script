@@ -1,7 +1,7 @@
 @main
 
 # Unit System Example
-# Demonstrates various unit types: time, frequency, angle, distance, speed
+# Demonstrates various unit types supported by Ypsilon Script
 
 config {
   board: arduino_uno,
@@ -17,6 +17,7 @@ const int microDelay = 500us
 # Frequency units
 const int pwmFreq = 50Hz
 const int audioFreq = 440Hz
+const int cpuFreq = 1GHz
 
 # Angle units
 const int servoAngle = 90deg
@@ -25,13 +26,62 @@ const int fullRotation = 360deg
 # Distance units
 const int threshold = 10cm
 const int maxDistance = 2m
+const int inchDistance = 5in
+const int feetDistance = 2ft
 
 # Speed units
 const int motorSpeed = 1000rpm
+const int carSpeed = 50kph
+
+# Voltage units
+const int supplyVoltage = 5V
+const int sensorVoltage = 3300mV
+
+# Current units
+const int maxCurrent = 500mA
+const int lowPowerCurrent = 100uA
+
+# Resistance units
+const int pullupResistor = 10kohm
+const int ledResistor = 220ohm
+
+# Capacitance units
+const int filterCap = 100nF
+const int decouplingCap = 100uF
+
+# Power units
+const int ledPower = 250mW
+const int motorPower = 5W
+
+# Temperature units
+const int roomTemp = 25C
+const int boilingK = 373K
+
+# Weight units
+const int sampleWeight = 500g
+const int heavyLoad = 1kg
+
+# Data storage units
+const int bufferSize = 4KB
+const int flashSize = 1MB
+
+# Percentage units
+const int dutyCycle = 50pct
+const int efficiency = 85percent
+
+# Pressure units
+const int atmPressure = 1013hPa
+const int highPressure = 2bar
+
+# Light units
+const int lightLevel = 500lux
+
+# Sound units
+const int soundLevel = 60dB
 
 on start {
   print("Unit System Demo")
-  print("Time, frequency, angle, distance, speed")
+  print("Comprehensive unit support")
 }
 
 on loop {
@@ -50,6 +100,18 @@ on loop {
   
   print("Motor speed (rpm):")
   print(motorSpeed)
+  
+  print("Supply voltage (mV):")
+  print(supplyVoltage)
+  
+  print("Room temperature (centidegrees):")
+  print(roomTemp)
+  
+  print("Buffer size (bytes):")
+  print(bufferSize)
+  
+  print("Duty cycle (basis points):")
+  print(dutyCycle)
   
   wait 3s
 }
