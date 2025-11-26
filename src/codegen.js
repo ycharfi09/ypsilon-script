@@ -995,6 +995,7 @@ class CodeGenerator {
       'Hz': value,
       'kHz': value * 1000,
       'MHz': value * 1000000,
+      'GHz': value * 1000000000,
       
       // Angle (convert to degrees)
       'deg': value,
@@ -1005,9 +1006,76 @@ class CodeGenerator {
       'cm': value * 10,
       'm': value * 1000,
       'km': value * 1000000,
+      'in': Math.floor(value * 25.4),  // inches to millimeters
+      'ft': Math.floor(value * 304.8), // feet to millimeters
       
-      // Speed (to RPM)
-      'rpm': value
+      // Speed (various base units)
+      'rpm': value,                     // revolutions per minute
+      'mps': Math.floor(value * 1000),  // meters per second to mm/s
+      'kph': Math.floor(value * 277.78), // km/h to mm/s (1 km/h = 277.78 mm/s)
+      'mph': Math.floor(value * 447.04), // mph to mm/s (1 mph = 447.04 mm/s)
+      
+      // Voltage (convert to millivolts)
+      'V': value * 1000,
+      'mV': value,
+      'uV': Math.floor(value * 0.001),
+      
+      // Current (convert to microamps)
+      'A': value * 1000000,
+      'mA': value * 1000,
+      'uA': value,
+      
+      // Resistance (convert to ohms)
+      'ohm': value,
+      'kohm': value * 1000,
+      'Mohm': value * 1000000,
+      
+      // Capacitance (convert to picofarads)
+      'F': value * 1000000000000,
+      'uF': value * 1000000,
+      'nF': value * 1000,
+      'pF': value,
+      
+      // Power (convert to milliwatts)
+      'W': value * 1000,
+      'mW': value,
+      'kW': value * 1000000,
+      
+      // Temperature (convert to centidegrees Celsius for precision)
+      'C': value * 100,               // Celsius to centidegrees
+      'K': Math.floor((value - 273.15) * 100), // Kelvin to centidegrees Celsius
+      
+      // Weight/Force (convert to milligrams)
+      'mg': value,
+      'g': value * 1000,
+      'kg': value * 1000000,
+      'N': Math.floor(value * 101971.62), // Newtons to mg (assuming Earth gravity)
+      
+      // Data storage (convert to bytes)
+      'B': value,
+      'KB': value * 1024,
+      'MB': value * 1048576,
+      'GB': value * 1073741824,
+      
+      // Percentage (convert to basis points for precision)
+      'pct': value * 100,             // percent to basis points (1% = 100 bp)
+      'percent': value * 100,
+      
+      // Pressure (convert to Pascals)
+      'Pa': value,
+      'kPa': value * 1000,
+      'hPa': value * 100,             // hectopascals (same as millibar)
+      'bar': value * 100000,
+      'atm': Math.floor(value * 101325),  // atmospheres to Pascals
+      'psi': Math.floor(value * 6894.76), // PSI to Pascals
+      
+      // Light (lux and lumens)
+      'lux': value,
+      'lm': value,                    // lumens (kept as-is)
+      
+      // Sound/Signal (decibels)
+      'dB': value,                    // decibels (kept as-is)
+      'dBm': value                    // dBm (kept as-is)
     };
     
     return String(conversions[unit] || value);

@@ -814,6 +814,7 @@ const int delay5 = 1h        // hours → 3600000
 const int freq1 = 50Hz       // Hertz → 50
 const int freq2 = 5kHz       // kiloHertz → 5000
 const int freq3 = 1MHz       // MegaHertz → 1000000
+const int freq4 = 2GHz       // GigaHertz → 2000000000
 ```
 
 #### Angle Units
@@ -828,11 +829,101 @@ const int dist1 = 10mm       // millimeters → 10
 const int dist2 = 10cm       // centimeters → 100 (converted to mm)
 const int dist3 = 1m         // meters → 1000 (converted to mm)
 const int dist4 = 1km        // kilometers → 1000000 (converted to mm)
+const int dist5 = 10in       // inches → 254 (converted to mm)
+const int dist6 = 3ft        // feet → 914 (converted to mm)
 ```
 
 #### Speed Units
 ```javascript
-const int speed = 1000rpm    // revolutions per minute → 1000
+const int speed1 = 1000rpm   // revolutions per minute → 1000
+const int speed2 = 2mps      // meters per second → 2000 (converted to mm/s)
+const int speed3 = 36kph     // kilometers per hour → 10000 (converted to mm/s)
+const int speed4 = 10mph     // miles per hour → 4470 (converted to mm/s)
+```
+
+#### Voltage Units
+```javascript
+const int volt1 = 5V         // Volts → 5000 (converted to mV)
+const int volt2 = 3300mV     // milliVolts → 3300
+const int volt3 = 5000uV     // microVolts → 5 (converted to mV)
+```
+
+#### Current Units
+```javascript
+const int curr1 = 2A         // Amps → 2000000 (converted to uA)
+const int curr2 = 500mA      // milliAmps → 500000 (converted to uA)
+const int curr3 = 100uA      // microAmps → 100
+```
+
+#### Resistance Units
+```javascript
+const int res1 = 470ohm      // Ohms → 470
+const int res2 = 10kohm      // kiloOhms → 10000 (converted to ohms)
+const int res3 = 1Mohm       // MegaOhms → 1000000 (converted to ohms)
+```
+
+#### Capacitance Units
+```javascript
+const int cap1 = 10uF        // microFarads → 10000000 (converted to pF)
+const int cap2 = 100nF       // nanoFarads → 100000 (converted to pF)
+const int cap3 = 22pF        // picoFarads → 22
+```
+
+#### Power Units
+```javascript
+const int pwr1 = 5W          // Watts → 5000 (converted to mW)
+const int pwr2 = 250mW       // milliWatts → 250
+const int pwr3 = 1kW         // kiloWatts → 1000000 (converted to mW)
+```
+
+#### Temperature Units
+```javascript
+const int temp1 = 25C        // Celsius → 2500 (centidegrees for precision)
+const int temp2 = 300K       // Kelvin → 2685 (converted to centidegrees Celsius)
+```
+
+#### Weight/Force Units
+```javascript
+const int wt1 = 500mg        // milligrams → 500
+const int wt2 = 100g         // grams → 100000 (converted to mg)
+const int wt3 = 1kg          // kilograms → 1000000 (converted to mg)
+const int wt4 = 10N          // Newtons → 1019716 (converted to mg)
+```
+
+#### Data Storage Units
+```javascript
+const int size1 = 256B       // Bytes → 256
+const int size2 = 4KB        // KiloBytes → 4096 (converted to bytes)
+const int size3 = 1MB        // MegaBytes → 1048576 (converted to bytes)
+const int size4 = 1GB        // GigaBytes → 1073741824 (converted to bytes)
+```
+
+#### Percentage Units
+```javascript
+const int pct1 = 50pct       // percent → 5000 (basis points for precision)
+const int pct2 = 75percent   // percent → 7500 (basis points for precision)
+```
+
+#### Pressure Units
+```javascript
+const int pres1 = 101325Pa   // Pascals → 101325
+const int pres2 = 100kPa     // kiloPascals → 100000 (converted to Pa)
+const int pres3 = 1013hPa    // hectoPascals → 101300 (converted to Pa)
+const int pres4 = 1bar       // bar → 100000 (converted to Pa)
+const int pres5 = 1atm       // atmosphere → 101325 (converted to Pa)
+const int pres6 = 14psi      // PSI → 96526 (converted to Pa)
+```
+
+#### Light Units
+```javascript
+const int light1 = 500lux    // lux → 500
+const int light2 = 800lm     // lumens → 800
+```
+
+#### Sound/Signal Units
+```javascript
+const int sound1 = 60dB      // decibels → 60
+const int signal1 = 20dBm    // dBm → 20
 ```
 
 ### 15. Range Constraints
@@ -1052,10 +1143,22 @@ ysc --version
 
 ### Time Management: ✅ Complete
 - Time literals (ms, s, us, min, h)
-- Frequency units (Hz, kHz, MHz)
+- Frequency units (Hz, kHz, MHz, GHz)
 - Angle units (deg, rad)
-- Distance units (mm, cm, m, km)
-- Speed units (rpm)
+- Distance units (mm, cm, m, km, in, ft)
+- Speed units (rpm, mps, kph, mph)
+- Voltage units (V, mV, uV)
+- Current units (A, mA, uA)
+- Resistance units (ohm, kohm, Mohm)
+- Capacitance units (F, uF, nF, pF)
+- Power units (W, mW, kW)
+- Temperature units (C, K)
+- Weight/Force units (g, kg, mg, N)
+- Data storage units (B, KB, MB, GB)
+- Percentage units (pct, percent)
+- Pressure units (Pa, kPa, hPa, bar, atm, psi)
+- Light units (lux, lm)
+- Sound/Signal units (dB, dBm)
 - wait statements
 - timeout statements
 
