@@ -573,7 +573,10 @@ function main() {
   } else if (command === 'run') {
     handleRun(fileArgs.slice(1), { showAST, showTokens, showConfig, skipMainCheck, enableRetrieval });
   } else if (command === 'update') {
-    handleUpdate();
+    handleUpdate().catch((error) => {
+      console.error('❌ Error:', error.message);
+      process.exit(1);
+    });
   } else {
     // Legacy mode - first arg is the file
     const inputFile = fileArgs[0];
