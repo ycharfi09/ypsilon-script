@@ -980,8 +980,10 @@ class CodeGenerator {
   
   // Convert unit literals to integer values
   convertUnitToInteger(value, unit) {
-    // Conversion constant for radians to degrees: 180/π ≈ 57.2958
-    const RAD_TO_DEG = 180 / Math.PI;
+    // Conversion constants
+    const RAD_TO_DEG = 180 / Math.PI;  // radians to degrees
+    // Newton to milligrams: 1N = 1kg * 1m/s² = 1000g / 9.80665m/s² * 1000 = 101971.6 mg
+    const NEWTON_TO_MG = 1000000 / 9.80665;
     
     const conversions = {
       // Time units (convert to milliseconds)
@@ -1010,10 +1012,10 @@ class CodeGenerator {
       'ft': Math.floor(value * 304.8), // feet to millimeters
       
       // Speed (various base units)
-      'rpm': value,                     // revolutions per minute
-      'mps': Math.floor(value * 1000),  // meters per second to mm/s
-      'kph': Math.floor(value * 277.78), // km/h to mm/s (1 km/h = 277.78 mm/s)
-      'mph': Math.floor(value * 447.04), // mph to mm/s (1 mph = 447.04 mm/s)
+      'rpm': value,                            // revolutions per minute
+      'mps': Math.floor(value * 1000),         // meters per second to mm/s
+      'kph': Math.floor(value * 1000 / 3.6),   // km/h to mm/s (1 km/h = 1000/3.6 mm/s)
+      'mph': Math.floor(value * 1609.344 / 3.6), // mph to mm/s (1 mile = 1609.344m)
       
       // Voltage (convert to millivolts)
       'V': value * 1000,
@@ -1049,7 +1051,7 @@ class CodeGenerator {
       'mg': value,
       'g': value * 1000,
       'kg': value * 1000000,
-      'N': Math.floor(value * 101971.62), // Newtons to mg (assuming Earth gravity)
+      'N': Math.floor(value * NEWTON_TO_MG), // Newtons to mg (using standard gravity)
       
       // Data storage (convert to bytes)
       'B': value,
