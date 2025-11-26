@@ -1107,6 +1107,154 @@ servos.begin()
 servos.setAngle(0, 90)
 ```
 
+### Module-Specific Hardware Types
+
+YS also provides hardware types that map directly to specific IC modules commonly used in hobbyist and professional projects:
+
+#### Module-Specific Motor Drivers
+
+##### L298N
+```javascript
+mut L298N motor = new L298N(9, 8)
+
+motor.forward(200)
+motor.reverse(150)
+motor.stop()
+```
+
+##### TB6612FNG
+```javascript
+mut TB6612FNG driver = new TB6612FNG(3, 4, 5, 6)
+
+driver.setMotorA(255)
+driver.setMotorB(-128)
+driver.stopAll()
+```
+
+##### PCA9685
+```javascript
+mut PCA9685 servos = new PCA9685(0, 50)
+
+servos.begin()
+servos.setAngle(0, 90)
+```
+
+#### Module-Specific Sensors
+
+##### DHT11/DHT22
+```javascript
+mut DHT11 humidity = new DHT11(2)
+mut DHT22 humidity22 = new DHT22(3)
+
+humidity.begin()
+mut float temp = humidity.readTemperature()
+mut float hum = humidity.readHumidity()
+```
+
+##### DS18B20
+```javascript
+mut DS18B20 temp = new DS18B20(2)
+
+temp.begin()
+mut float celsius = temp.readCelsius()
+```
+
+##### HC_SR04
+```javascript
+mut HC_SR04 sonar = new HC_SR04(9, 10)
+
+mut float dist = sonar.readCm()
+mut bool inRange = sonar.inRange(5, 50)
+```
+
+##### MPU6050
+```javascript
+mut MPU6050 accel = new MPU6050(0)
+
+accel.begin()
+mut float ax = accel.readAccelX()
+mut float gx = accel.readGyroX()
+```
+
+##### BMP280
+```javascript
+mut BMP280 pressure = new BMP280(0)
+
+pressure.begin()
+mut float p = pressure.readPressure()
+mut float alt = pressure.readAltitude()
+```
+
+#### Module-Specific Displays
+
+##### SSD1306
+```javascript
+mut SSD1306 oled = new SSD1306(0, 128, 64)
+
+oled.begin()
+oled.clear()
+oled.print("Hello")
+oled.display()
+```
+
+##### WS2812
+```javascript
+mut WS2812 strip = new WS2812(6, 30)
+
+strip.begin()
+strip.setPixel(0, 255, 0, 0)
+strip.fill(0, 0, 255)
+strip.show()
+```
+
+##### TM1637
+```javascript
+mut TM1637 seg = new TM1637(2, 3)
+
+seg.begin()
+seg.setBrightness(5)
+seg.displayNumber(1234)
+```
+
+#### Module-Specific Wireless
+
+##### HC05
+```javascript
+mut HC05 bt = new HC05(10, 11, 9600)
+
+bt.begin()
+if (bt.available()) { }
+bt.println("Hello Bluetooth")
+```
+
+##### NRF24L01
+```javascript
+mut NRF24L01 radio = new NRF24L01(9, 10)
+
+radio.begin()
+radio.startListening()
+```
+
+##### SX1278
+```javascript
+mut SX1278 lora = new SX1278(10, 9, 2)
+
+lora.begin(915000000)
+lora.print("Hello LoRa")
+```
+
+#### Module-Specific Timing
+
+##### DS3231
+```javascript
+mut DS3231 rtc = new DS3231(0)
+
+rtc.begin()
+mut int h = rtc.hour()
+mut int m = rtc.minute()
+mut float temp = rtc.readTemperature()
+```
+
 ### Timing Types
 
 YS provides types for timing:
@@ -1167,7 +1315,8 @@ player.setVolume(20)
 - **Clean API**: Intuitive method names matching hardware behavior
 - **Multiple Instances**: Create as many instances as needed
 - **Auto-Include**: Required libraries (Servo.h, Wire.h, SPI.h) included automatically
-- **60+ Hardware Types**: Comprehensive coverage for sensors, displays, actuators, communication, and more
+- **100+ Hardware Types**: Comprehensive coverage for sensors, displays, actuators, communication, and more
+- **Module-Specific Types**: Direct support for popular ICs like TB6612FNG, L298N, PCA9685, DHT11, DS18B20, MPU6050, SSD1306, and more
 
 ## Built-in Functions
 
@@ -1773,7 +1922,7 @@ on loop {
 8. **Structs**: C++-style data structures
 9. **Classes**: OOP with constructors and methods
 10. **`new` keyword**: Object instantiation
-11. **Hardware types**: 60+ built-in types with automatic setup including:
+11. **Hardware types**: 100+ built-in types with automatic setup including:
     - Digital I/O: `Digital`, `Led`, `RgbLed`, `Button`, `Buzzer`
     - Analog & PWM: `Analog`, `PWM`
     - Motors: `Servo`, `DCMotor`, `StepperMotor`, `Encoder`
@@ -1781,12 +1930,13 @@ on loop {
     - Sensors: `TempSensor`, `HumiditySensor`, `DistanceSensor`, `LightSensor`, `MotionSensor`, `TouchSensor`, `SoundSensor`, `GasSensor`, `ColorSensor`, `Accelerometer`, `Gyroscope`, `Magnetometer`, `IMU`, `GPS`, `LoadCell`, `Potentiometer`, `Joystick`, `RotaryEncoder`, `IRRemote`, `RFID`
     - Displays: `LCD`, `OLED`, `SevenSegment`, `Matrix`, `TFT`, `NeoPixel`
     - Actuators: `Relay`, `Solenoid`, `Fan`, `Heater`, `Pump`, `Valve`
-    - Motor Drivers: `HBridge`, `MotorDriver`, `ServoDriver`
+    - Motor Drivers: `HBridge`, `MotorDriver`, `ServoDriver`, `L298N`, `TB6612FNG`, `PCA9685`
     - Multiplexers: `Mux4`, `Mux8`, `Mux16`, `Mux32`
     - Storage: `SDCard`, `EEPROM`, `Flash`
-    - Power: `Battery`, `Solar`
-    - Timing: `Timer`, `RTC`
-    - Audio: `Speaker`, `Microphone`, `DFPlayer`
+    - Power: `Battery`, `Solar`, `LiPo`, `SolarPanel`
+    - Timing: `Timer`, `RTC`, `DS3231`
+    - Audio: `Speaker`, `Microphone`, `DFPlayer`, `DFPlayerMini`, `MAX4466`
+    - Module-Specific: `DHT11`, `DHT22`, `DS18B20`, `HC_SR04`, `LM35`, `MPU6050`, `BMP280`, `SSD1306`, `WS2812`, `TM1637`, `HC05`, `NRF24L01`, `SX1278`, and more
 12. **Event blocks**: `on start {}`, `on loop {}`
 13. **Interrupt handlers**: `interrupt <name?> on PIN# (rising|falling|change|low|high) { }`
 14. **Match expressions**: Pattern matching with `=>`

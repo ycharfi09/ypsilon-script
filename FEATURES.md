@@ -1100,7 +1100,7 @@ ysc --version
 
 ## Examples Available
 
-The repository includes 48+ working examples demonstrating:
+The repository includes 54+ working examples demonstrating:
 1. `blink.ys` - Basic LED blinking
 2. `blink-modern.ys` - Modern syntax blink
 3. `button.ys` - Button input and LED control
@@ -1124,25 +1124,26 @@ The repository includes 48+ working examples demonstrating:
 21. `led_class.ys` - Object-oriented LED control
 22. `modern-syntax.ys` - All modern syntax features
 23. `module-example.ys` - Module loading example
-24. `motor.ys` - Motor control example
-25. `pwm-motor.ys` - PWM hardware type demo
-26. `range-constraints.ys` - Range constraints demo
-27. `rgbled-example.ys` - RGB LED example
-28. `rgb-led-mega.ys` - RGB LED on Arduino Mega
-29. `sensor.ys` - Analog sensor reading
-30. `sensor-lib.ys` - Sensor library module
-31. `serial.ys` - Serial communication
-32. `servo-example.ys` - Servo motor example
-33. `smart-led.ys` - RGB LED controller with tasks
-34. `spi-example.ys` - SPI communication example
-35. `stepper-example.ys` - Stepper motor example
-36. `syntax-demo.ys` - Syntax demonstration
-37. `test-new-features.ys` - New features testing
-38. `traffic-light.ys` - Traffic light controller
-39. `type-conversion.ys` - Type conversion examples
-40. `uart-example.ys` - UART communication example
-41. `ultrasonic.ys` - Distance sensor example
-42. `unit-system.ys` - Unit literals demonstration
-43. `width-specific-types.ys` - Width-specific integer types
+24. `module-specific-hardware.ys` - Module-specific types (TB6612FNG, DHT22, HC_SR04, etc.)
+25. `motor.ys` - Motor control example
+26. `pwm-motor.ys` - PWM hardware type demo
+27. `range-constraints.ys` - Range constraints demo
+28. `rgbled-example.ys` - RGB LED example
+29. `rgb-led-mega.ys` - RGB LED on Arduino Mega
+30. `sensor.ys` - Analog sensor reading
+31. `sensor-lib.ys` - Sensor library module
+32. `serial.ys` - Serial communication
+33. `servo-example.ys` - Servo motor example
+34. `smart-led.ys` - RGB LED controller with tasks
+35. `spi-example.ys` - SPI communication example
+36. `stepper-example.ys` - Stepper motor example
+37. `syntax-demo.ys` - Syntax demonstration
+38. `test-new-features.ys` - New features testing
+39. `traffic-light.ys` - Traffic light controller
+40. `type-conversion.ys` - Type conversion examples
+41. `uart-example.ys` - UART communication example
+42. `ultrasonic.ys` - Distance sensor example
+43. `unit-system.ys` - Unit literals demonstration
+44. `width-specific-types.ys` - Width-specific integer types
 
 All examples compile successfully and demonstrate real-world usage patterns.
