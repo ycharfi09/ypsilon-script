@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="yslogo.png" alt="Ypsilon Script Logo" width="150">
+</p>
+
 # Contributing to Ypsilon Script
 
 Thank you for your interest in contributing to Ypsilon Script! This document provides guidelines and instructions for contributing.

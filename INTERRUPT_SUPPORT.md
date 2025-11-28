@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="yslogo.png" alt="Ypsilon Script Logo" width="150">
+</p>
+
 # Interrupt Support in Ypsilon Script
 
 This document describes the interrupt support feature added to Ypsilon Script, enabling efficient hardware interrupt handling for microcontrollers.

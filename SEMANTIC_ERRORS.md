@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="yslogo.png" alt="Ypsilon Script Logo" width="150">
+</p>
+
 # Semantic Error Checking - Examples
 
 This document demonstrates the new semantic error checking capabilities added to Ypsilon Script.
