@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="yslogo.png" alt="Ypsilon Script Logo" width="150">
+</p>
+
 # Implementation Summary: YS Config System
 
 ## Overview

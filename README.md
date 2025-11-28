@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="yslogo.png" alt="Ypsilon Script Logo" width="150">
+</p>
+
 # Ypsilon Script (YS)
 
 A simple high-level language that compiles to C++ for microcontrollers.
