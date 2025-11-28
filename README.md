@@ -8,8 +8,6 @@ A simple high-level language that compiles to C++ for microcontrollers.
   <img src="yslogo.png" alt="Ypsilon Script Logo" width="150">
 </p>
 
-Ypsilon Script (YS) is a modern, type-safe programming language designed for microcontroller development. It combines clean syntax with powerful features to make embedded programming more accessible and maintainable.
-
 ## Overview
 
 Ypsilon Script (YS) is designed to make microcontroller development accessible, structured, and type-safe. It provides a modern syntax with strong static typing that compiles directly to C++. Write clean, type-safe code with classes, enums, structs, and pattern matching, then compile to efficient C++ for your microcontroller.
