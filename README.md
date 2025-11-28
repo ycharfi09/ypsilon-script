@@ -1,10 +1,14 @@
+# Ypsilon Script (YS)
+
+A simple high-level language that compiles to C++ for microcontrollers.
+
+## About
+
 <p align="center">
   <img src="yslogo.png" alt="Ypsilon Script Logo" width="150">
 </p>
 
-# Ypsilon Script (YS)
-
-A simple high-level language that compiles to C++ for microcontrollers.
+Ypsilon Script (YS) is a modern, type-safe programming language designed for microcontroller development. It combines clean syntax with powerful features to make embedded programming more accessible and maintainable.
 
 ## Overview
 
