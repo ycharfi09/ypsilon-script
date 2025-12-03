@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ypsilon Script - Documentation</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav>
+        <a href="index.html" class="logo">YPSILON SCRIPT</a>
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="docs.html" class="active">Docs</a></li>
+            <li><a href="download.html">Download</a></li>
+            <li><a href="about.html">About</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <h1>Documentation</h1>
+        
+        <section>
+            <p>
+                Welcome to the Ypsilon Script documentation. Here you'll find everything you need 
+                to start writing code for microcontrollers with Ypsilon Script.
+            </p>
+        </section>
+
+        <section>
+            <h2>Installation</h2>
+            <p>
+                To install Ypsilon Script, you'll need Node.js (version 14.0.0 or higher). 
+                Once you have Node.js installed, you can install Ypsilon Script using npm:
+            </p>
+            <pre><code>npm install -g ypsilon-script</code></pre>
+            <p>
+                Verify the installation by running:
+            </p>
+            <pre><code>ysc --version</code></pre>
+        </section>
+
+        <section>
+            <h2>Basic Syntax</h2>
+            <p>
+                Ypsilon Script uses a modern, clean syntax inspired by Rust and modern languages.
+                Here are some basic syntax rules:
+            </p>
+            <ul>
+                <li>Variables are declared with <code>mut</code> for mutable or <code>let</code> for immutable</li>
+                <li>Functions are declared with <code>fn</code></li>
+                <li>Types must be explicitly declared</li>
+                <li>Braces <code>{}</code> are required for blocks</li>
+                <li>Semicolons are optional</li>
+            </ul>
+            <pre><code>// Variable declarations
+mut int counter = 0
+let string message = "Hello"
+
+// Function declaration
+fn int add(int a, int b) {
+    return a + b
+}</code></pre>
+        </section>
+
+        <section>
+            <h2>Hardware Types</h2>
+            <p>
+                Ypsilon Script includes over 100 built-in hardware types for common microcontroller 
+                peripherals and sensors. Here are some examples:
+            </p>
+            <h3>Digital I/O</h3>
+            <pre><code>mut Digital pin13 on pin 13
+mut Led statusLed on pin 10
+mut Button btn on pin 2</code></pre>
+            
+            <h3>Sensors</h3>
+            <pre><code>mut TempSensor temp on pin A0
+mut DistanceSensor ultrasonic on pins(trig:7, echo:8)</code></pre>
+            
+            <h3>Communication</h3>
+            <pre><code>mut UART serial on port 0
+mut I2C wire on pins(sda:20, scl:21)</code></pre>
+        </section>
+
+        <section>
+            <h2>Event-Driven Programming</h2>
+            <p>
+                Ypsilon Script supports event-driven programming with special blocks:
+            </p>
+            <pre><code>on start {
+    // Initialization code runs once
+    serial.begin(9600 baud)
+}
+
+on loop {
+    // Main loop code runs repeatedly
+    statusLed.toggle()
+    wait 500ms
+}</code></pre>
+        </section>
+
+        <section>
+            <h2>Pattern Matching</h2>
+            <p>
+                Use Rust-style pattern matching for control flow:
+            </p>
+            <pre><code>match value {
+    0 => { print("Zero") }
+    1...10 => { print("Small") }
+    _ => { print("Large") }
+}</code></pre>
+        </section>
+
+        <section>
+            <h2>Further Reading</h2>
+            <p>
+                For complete language reference, advanced features, and more examples, 
+                please visit the project's GitHub repository documentation:
+            </p>
+            <ul>
+                <li><a href="https://github.com/ycharfi09/ypsilon-script/blob/main/README.md">README</a></li>
+                <li><a href="https://github.com/ycharfi09/ypsilon-script/blob/main/QUICKSTART.md">Quick Start Guide</a></li>
+                <li><a href="https://github.com/ycharfi09/ypsilon-script/blob/main/LANGUAGE_REFERENCE.md">Language Reference</a></li>
+                <li><a href="https://github.com/ycharfi09/ypsilon-script/blob/main/FEATURES.md">Features Overview</a></li>
+            </ul>
+        </section>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 Ypsilon Script Project | <a href="https://github.com/ycharfi09/ypsilon-script">GitHub</a> | Licensed under MIT</p>
+    </footer>
+</body>
+</html>
