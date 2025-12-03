@@ -8,7 +8,10 @@
 </head>
 <body>
     <nav>
-        <a href="index.html" class="logo">YPSILON SCRIPT</a>
+        <a href="index.html" class="logo">
+            <img src="yslogo.png" alt="Ypsilon Script Logo">
+            YPSILON SCRIPT
+        </a>
         <ul class="nav-links">
             <li><a href="index.html">Home</a></li>
             <li><a href="docs.html">Docs</a></li>
@@ -28,15 +31,34 @@
         </section>
 
         <section>
-            <h2>NPM Installation (Recommended)</h2>
+            <h2>Installation</h2>
             <p>
-                The easiest way to install Ypsilon Script is via npm. This method works on all platforms 
-                and ensures you always have the latest version.
+                To install Ypsilon Script, follow these steps to set up the compiler from source:
             </p>
+            
             <div class="info-box">
-                <p><strong>Prerequisites:</strong> Node.js 14.0.0 or higher</p>
-                <pre><code>npm install -g ypsilon-script</code></pre>
+                <p><strong>Prerequisites:</strong> Node.js 14.0.0 or higher and Git</p>
+                
+                <h3>Step 1: Clone the Repository</h3>
+                <pre><code>git clone https://github.com/ycharfi09/ypsilon-script.git
+cd ypsilon-script</code></pre>
+                
+                <h3>Step 2: Install Dependencies</h3>
+                <pre><code>npm install</code></pre>
+                
+                <h3>Step 3: Link the Compiler Globally</h3>
+                <pre><code>npm link</code></pre>
+                
+                <h3>Step 4: Add to PATH (if needed)</h3>
+                <p>
+                    The <code>npm link</code> command should automatically add the <code>ysc</code> command to your PATH. 
+                    If it doesn't work, you may need to manually add npm's global bin directory to your PATH environment variable.
+                </p>
+                <p>Find your npm global bin directory:</p>
+                <pre><code>npm bin -g</code></pre>
+                <p>Then add that directory to your PATH environment variable according to your operating system.</p>
             </div>
+            
             <p>
                 After installation, verify it's working:
             </p>
@@ -45,22 +67,20 @@ ysc --help</code></pre>
         </section>
 
         <section>
+            <h2>Alternative: Run Without Global Installation</h2>
+            <p>
+                If you prefer not to install globally, you can run the compiler directly from the repository:
+            </p>
+            <pre><code>node bin/ysc.js &lt;input-file.ys&gt;</code></pre>
+        </section>
+
+        <section>
             <h2>From Source</h2>
             <p>
-                You can also clone and build Ypsilon Script from source. This is useful if you want 
-                to contribute to the project or need the latest development features.
+                The above installation method is the recommended way to use Ypsilon Script. 
+                The project is under active development and will be published to npm in the future.
             </p>
             <div class="info-box">
-                <h3>Clone the Repository</h3>
-                <pre><code>git clone https://github.com/ycharfi09/ypsilon-script.git
-cd ypsilon-script</code></pre>
-                
-                <h3>Install Dependencies</h3>
-                <pre><code>npm install</code></pre>
-                
-                <h3>Run the Compiler</h3>
-                <pre><code>node bin/ysc.js &lt;input-file.ys&gt;</code></pre>
-                
                 <h3>Run Tests</h3>
                 <pre><code>npm test</code></pre>
             </div>

@@ -8,7 +8,10 @@
 </head>
 <body>
     <nav>
-        <a href="index.html" class="logo">YPSILON SCRIPT</a>
+        <a href="index.html" class="logo">
+            <img src="yslogo.png" alt="Ypsilon Script Logo">
+            YPSILON SCRIPT
+        </a>
         <ul class="nav-links">
             <li><a href="index.html">Home</a></li>
             <li><a href="docs.html" class="active">Docs</a></li>
@@ -30,10 +33,24 @@
         <section>
             <h2>Installation</h2>
             <p>
-                To install Ypsilon Script, you'll need Node.js (version 14.0.0 or higher). 
-                Once you have Node.js installed, you can install Ypsilon Script using npm:
+                To install Ypsilon Script, follow these steps to set up the compiler from source:
             </p>
-            <pre><code>npm install -g ypsilon-script</code></pre>
+            
+            <h3>Step 1: Clone the Repository</h3>
+            <pre><code>git clone https://github.com/ycharfi09/ypsilon-script.git
+cd ypsilon-script</code></pre>
+            
+            <h3>Step 2: Install Dependencies</h3>
+            <pre><code>npm install</code></pre>
+            
+            <h3>Step 3: Link the Compiler Globally</h3>
+            <pre><code>npm link</code></pre>
+            
+            <p>
+                The <code>npm link</code> command makes the <code>ysc</code> command available globally. 
+                If needed, you may have to add npm's global bin directory to your PATH environment variable.
+            </p>
+            
             <p>
                 Verify the installation by running:
             </p>
