@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ypsilon Script - Home</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav>
+        <a href="index.html" class="logo">YPSILON SCRIPT</a>
+        <ul class="nav-links">
+            <li><a href="index.html" class="active">Home</a></li>
+            <li><a href="docs.html">Docs</a></li>
+            <li><a href="download.html">Download</a></li>
+            <li><a href="about.html">About</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <h1>Welcome to Ypsilon Script</h1>
+        
+        <section>
+            <p>
+                Ypsilon Script (YS) is a simple high-level language that compiles to C++ for microcontrollers.
+                It's designed to make microcontroller development accessible, structured, and type-safe.
+            </p>
+            <p>
+                Write clean, type-safe code with classes, enums, structs, and pattern matching, 
+                then compile to efficient C++ for your microcontroller.
+            </p>
+        </section>
+
+        <section>
+            <h2>Key Features</h2>
+            <ul>
+                <li><strong>Strong Static Typing:</strong> All variables and functions must be explicitly typed</li>
+                <li><strong>Modern Syntax:</strong> Uses fn, mut, self keywords</li>
+                <li><strong>Hardware Types:</strong> Built-in hardware abstraction types with automatic setup (100+ types)</li>
+                <li><strong>Unit System:</strong> Time (ms, s, us), frequency (Hz), angle (deg), distance (cm, m), speed (rpm)</li>
+                <li><strong>Object-Oriented Programming:</strong> Classes with constructors and methods</li>
+                <li><strong>Pattern Matching:</strong> Match expressions like Rust for powerful control flow</li>
+                <li><strong>Event-Driven Programming:</strong> on start {}, on loop {} blocks</li>
+                <li><strong>No Performance Overhead:</strong> Generates efficient C++ code</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>Quick Example</h2>
+            <pre><code>load &lt;Servo&gt;
+
+// Hardware setup
+mut Servo myServo on pin 9
+
+// Main program
+on start {
+    myServo.attach()
+}
+
+on loop {
+    myServo.write(90 deg)
+    wait 1s
+    myServo.write(0 deg)
+    wait 1s
+}</code></pre>
+        </section>
+
+        <section>
+            <h2>Getting Started</h2>
+            <p>
+                Ready to start using Ypsilon Script? Check out our <a href="docs.html">documentation</a> 
+                for detailed guides and language reference, or head to the <a href="download.html">download</a> 
+                page to get the compiler.
+            </p>
+        </section>
+
+        <section>
+            <h2>Open Source</h2>
+            <p>
+                Ypsilon Script is open source software released under the MIT License. 
+                We welcome contributions from the community. Visit our GitHub repository to get involved.
+            </p>
+        </section>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 Ypsilon Script Project | <a href="https://github.com/ycharfi09/ypsilon-script">GitHub</a> | Licensed under MIT</p>
+    </footer>
+</body>
+</html>

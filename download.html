@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ypsilon Script - Download</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav>
+        <a href="index.html" class="logo">YPSILON SCRIPT</a>
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="docs.html">Docs</a></li>
+            <li><a href="download.html" class="active">Download</a></li>
+            <li><a href="about.html">About</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <h1>Download Ypsilon Script</h1>
+        
+        <section>
+            <p>
+                Get started with Ypsilon Script by downloading the compiler and tools. 
+                Choose the installation method that works best for you.
+            </p>
+        </section>
+
+        <section>
+            <h2>NPM Installation (Recommended)</h2>
+            <p>
+                The easiest way to install Ypsilon Script is via npm. This method works on all platforms 
+                and ensures you always have the latest version.
+            </p>
+            <div class="info-box">
+                <p><strong>Prerequisites:</strong> Node.js 14.0.0 or higher</p>
+                <pre><code>npm install -g ypsilon-script</code></pre>
+            </div>
+            <p>
+                After installation, verify it's working:
+            </p>
+            <pre><code>ysc --version
+ysc --help</code></pre>
+        </section>
+
+        <section>
+            <h2>From Source</h2>
+            <p>
+                You can also clone and build Ypsilon Script from source. This is useful if you want 
+                to contribute to the project or need the latest development features.
+            </p>
+            <div class="info-box">
+                <h3>Clone the Repository</h3>
+                <pre><code>git clone https://github.com/ycharfi09/ypsilon-script.git
+cd ypsilon-script</code></pre>
+                
+                <h3>Install Dependencies</h3>
+                <pre><code>npm install</code></pre>
+                
+                <h3>Run the Compiler</h3>
+                <pre><code>node bin/ysc.js &lt;input-file.ys&gt;</code></pre>
+                
+                <h3>Run Tests</h3>
+                <pre><code>npm test</code></pre>
+            </div>
+        </section>
+
+        <section>
+            <h2>Release Downloads</h2>
+            <p>
+                Download pre-built releases from GitHub:
+            </p>
+            <a href="https://github.com/ycharfi09/ypsilon-script/releases" class="download-btn">Download Latest Release</a>
+            <a href="https://github.com/ycharfi09/ypsilon-script/releases" class="download-btn">View All Releases</a>
+        </section>
+
+        <section>
+            <h2>System Requirements</h2>
+            <table>
+                <tr>
+                    <th>Component</th>
+                    <th>Requirement</th>
+                </tr>
+                <tr>
+                    <td>Operating System</td>
+                    <td>Windows, macOS, Linux</td>
+                </tr>
+                <tr>
+                    <td>Node.js</td>
+                    <td>Version 14.0.0 or higher</td>
+                </tr>
+                <tr>
+                    <td>Arduino IDE</td>
+                    <td>Optional (for compiling generated C++ code)</td>
+                </tr>
+                <tr>
+                    <td>Disk Space</td>
+                    <td>~10 MB</td>
+                </tr>
+            </table>
+        </section>
+
+        <section>
+            <h2>Example Programs</h2>
+            <p>
+                Once installed, try out some example programs included in the repository:
+            </p>
+            <ul>
+                <li><code>examples/blink.ys</code> - Simple LED blink program</li>
+                <li><code>examples/</code> - More example programs demonstrating various features</li>
+            </ul>
+            <p>
+                Compile an example:
+            </p>
+            <pre><code>ysc examples/blink.ys</code></pre>
+        </section>
+
+        <section>
+            <h2>Getting Help</h2>
+            <p>
+                Need help with installation? Check out our <a href="docs.html">documentation</a> or 
+                visit our <a href="https://github.com/ycharfi09/ypsilon-script/issues">issue tracker</a> 
+                on GitHub.
+            </p>
+        </section>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 Ypsilon Script Project | <a href="https://github.com/ycharfi09/ypsilon-script">GitHub</a> | Licensed under MIT</p>
+    </footer>
+</body>
+</html>
