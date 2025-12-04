@@ -578,7 +578,7 @@ class CodeGenerator {
       'I2C': 'I2C',
       'SPI': 'SPI',
       'UART': 'UART',
-      'Servo': 'Servo',
+      'Servo': 'YsServo',
       'Encoder': 'Encoder',
       'DCMotor': 'DCMotor',
       'StepperMotor': 'StepperMotor',
@@ -1164,7 +1164,8 @@ class CodeGenerator {
 
   generateNewExpression(expr) {
     const args = expr.arguments.map(arg => this.generateExpression(arg)).join(', ');
-    return `${expr.className}(${args})`;
+    const className = this.mapType(expr.className);
+    return `${className}(${args})`;
   }
 
   // Generate array literal
@@ -1906,16 +1907,16 @@ public:
     
     // Servo class
     if (this.usedHardwareTypes.has('Servo')) {
-      code += `class Servo {
+      code += `class YsServo {
 private:
-  ::Servo _servo;
+  Servo _servo;
   int _pin;
   int _minUs;
   int _maxUs;
   
 public:
-  Servo(int pin) : _pin(pin), _minUs(1000), _maxUs(2000) {}
-  Servo(int pin, int minUs, int maxUs) : _pin(pin), _minUs(minUs), _maxUs(maxUs) {}
+  YsServo(int pin) : _pin(pin), _minUs(1000), _maxUs(2000) {}
+  YsServo(int pin, int minUs, int maxUs) : _pin(pin), _minUs(minUs), _maxUs(maxUs) {}
   
   void attach(uint8_t pin) {
     _pin = pin;

@@ -181,7 +181,7 @@ describe('Hardware Types - Servo', () => {
     
     const result = compile(source);
     expect(result.success).toBe(true);
-    expect(result.code).toContain('class Servo');
+    expect(result.code).toContain('class YsServo');
     expect(result.code).toContain('#include <Servo.h>');
     expect(result.code).toContain('servo.writeAngle');
   });
@@ -597,7 +597,7 @@ describe('Hardware Types - Integration', () => {
     expect(result.code).toContain('class Led');
     expect(result.code).toContain('class Button');
     expect(result.code).toContain('class Buzzer');
-    expect(result.code).toContain('class Servo');
+    expect(result.code).toContain('class YsServo');
     expect(result.code).toContain('class DCMotor');
     expect(result.code).toContain('#include <Servo.h>');
   });
