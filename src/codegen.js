@@ -34,6 +34,7 @@ class CodeGenerator {
     this.needsServo = false;
     this.needsWire = false;
     this.needsSPI = false;
+    this.needsEEPROM = false;
     this.timeVarCounter = 0;
     // Track which hardware types are used
     this.usedHardwareTypes = new Set();
@@ -72,6 +73,8 @@ class CodeGenerator {
         this.needsWire = true;
       } else if (node.varType === 'SPI') {
         this.needsSPI = true;
+      } else if (node.varType === 'EEPROM') {
+        this.needsEEPROM = true;
       }
       
       // Track usage of hardware types
@@ -248,6 +251,9 @@ class CodeGenerator {
     }
     if (this.needsSPI) {
       code += '#include <SPI.h>\n';
+    }
+    if (this.needsEEPROM) {
+      code += '#include <EEPROM.h>\n';
     }
     
     // Add loaded C++ libraries (not .ys files)
@@ -2863,16 +2869,65 @@ private:
   int _address;
   bool _initialized;
   
+  void write8(uint8_t reg, uint8_t value) {
+    Wire.beginTransmission(_address);
+    Wire.write(reg);
+    Wire.write(value);
+    Wire.endTransmission();
+  }
+  
+  int16_t read16(uint8_t reg) {
+    Wire.beginTransmission(_address);
+    Wire.write(reg);
+    Wire.endTransmission(false);
+    Wire.requestFrom(_address, (uint8_t)2, (uint8_t)true);
+    int16_t value = Wire.read() << 8;
+    value |= Wire.read();
+    return value;
+  }
+  
 public:
   IMU(int address = 0x68) : _address(address), _initialized(false) {}
   
-  void begin() { _initialized = true; Wire.begin(); }
-  float readAccelX() { return 0; }
-  float readAccelY() { return 0; }
-  float readAccelZ() { return 0; }
-  float readGyroX() { return 0; }
-  float readGyroY() { return 0; }
-  float readGyroZ() { return 0; }
+  void begin() {
+    if (!_initialized) {
+      Wire.begin();
+      // Wake up device (assuming MPU6050-like device)
+      write8(0x6B, 0x00);
+      delay(10);
+      _initialized = true;
+    }
+  }
+  
+  float readAccelX() { 
+    begin();
+    return read16(0x3B) / 16384.0;
+  }
+  
+  float readAccelY() { 
+    begin();
+    return read16(0x3D) / 16384.0;
+  }
+  
+  float readAccelZ() { 
+    begin();
+    return read16(0x3F) / 16384.0;
+  }
+  
+  float readGyroX() { 
+    begin();
+    return read16(0x43) / 131.0;
+  }
+  
+  float readGyroY() { 
+    begin();
+    return read16(0x45) / 131.0;
+  }
+  
+  float readGyroZ() { 
+    begin();
+    return read16(0x47) / 131.0;
+  }
 };
 
 `;
@@ -2883,17 +2938,83 @@ public:
 private:
   int _rxPin, _txPin;
   float _lat, _lon, _alt;
+  float _speed;
+  int _sats;
+  bool _validFix;
+  
+  void parseNMEA(const char* sentence) {
+    if (strncmp(sentence, "$GPGGA", 6) == 0 || strncmp(sentence, "$GNGGA", 6) == 0) {
+      char* token = strtok((char*)sentence, ",");
+      int field = 0;
+      float lat_deg = 0, lon_deg = 0;
+      char ns = 'N', ew = 'E';
+      int fix = 0;
+      
+      while (token != NULL && field < 11) {
+        switch (field) {
+          case 2: lat_deg = atof(token); break;
+          case 3: ns = token[0]; break;
+          case 4: lon_deg = atof(token); break;
+          case 5: ew = token[0]; break;
+          case 6: fix = atoi(token); break;
+          case 7: _sats = atoi(token); break;
+          case 9: _alt = atof(token); break;
+        }
+        token = strtok(NULL, ",");
+        field++;
+      }
+      
+      if (fix > 0) {
+        int lat_d = (int)(lat_deg / 100);
+        float lat_m = lat_deg - (lat_d * 100);
+        _lat = lat_d + (lat_m / 60.0);
+        if (ns == 'S') _lat = -_lat;
+        
+        int lon_d = (int)(lon_deg / 100);
+        float lon_m = lon_deg - (lon_d * 100);
+        _lon = lon_d + (lon_m / 60.0);
+        if (ew == 'W') _lon = -_lon;
+        
+        _validFix = true;
+      }
+    } else if (strncmp(sentence, "$GPRMC", 6) == 0 || strncmp(sentence, "$GNRMC", 6) == 0) {
+      char* token = strtok((char*)sentence, ",");
+      int field = 0;
+      while (token != NULL && field < 8) {
+        if (field == 7) _speed = atof(token) * 0.514444;
+        token = strtok(NULL, ",");
+        field++;
+      }
+    }
+  }
   
 public:
-  GPS(int rxPin, int txPin) : _rxPin(rxPin), _txPin(txPin), _lat(0), _lon(0), _alt(0) {}
+  GPS(int rxPin, int txPin) : _rxPin(rxPin), _txPin(txPin), _lat(0), _lon(0), _alt(0), _speed(0), _sats(0), _validFix(false) {}
   
-  void begin(long baud = 9600) {}
-  bool update() { return false; }
+  void begin(long baud = 9600) { Serial.begin(baud); }
+  
+  bool update() {
+    static char buffer[128];
+    static int idx = 0;
+    
+    while (Serial.available()) {
+      char c = Serial.read();
+      if (c == '\n' || idx >= 127) {
+        buffer[idx] = '\0';
+        if (buffer[0] == '$') parseNMEA(buffer);
+        idx = 0;
+      } else if (c != '\r') {
+        buffer[idx++] = c;
+      }
+    }
+    return _validFix;
+  }
+  
   float latitude() { return _lat; }
   float longitude() { return _lon; }
   float altitude() { return _alt; }
-  float speed() { return 0; }
-  int satellites() { return 0; }
+  float speed() { return _speed; }
+  int satellites() { return _sats; }
 };
 
 `;
@@ -2906,16 +3027,61 @@ private:
   float _scale;
   long _offset;
   
+  long shiftIn() {
+    long value = 0;
+    for (uint8_t i = 0; i < 24; i++) {
+      digitalWrite(_sckPin, HIGH);
+      delayMicroseconds(1);
+      value = (value << 1) | digitalRead(_doutPin);
+      digitalWrite(_sckPin, LOW);
+      delayMicroseconds(1);
+    }
+    return value;
+  }
+  
 public:
   LoadCell(int doutPin, int sckPin) : _doutPin(doutPin), _sckPin(sckPin), _scale(1.0), _offset(0) {
     pinMode(_doutPin, INPUT);
     pinMode(_sckPin, OUTPUT);
+    digitalWrite(_sckPin, LOW);
   }
   
   void setScale(float scale) { _scale = scale; }
-  void tare() { _offset = readRaw(); }
-  long readRaw() { return 0; }
-  float read() { return (readRaw() - _offset) / _scale; }
+  
+  void tare() { 
+    long sum = 0;
+    for (int i = 0; i < 10; i++) {
+      sum += readRaw();
+      delay(10);
+    }
+    _offset = sum / 10;
+  }
+  
+  long readRaw() {
+    // Wait for HX711 to be ready
+    while (digitalRead(_doutPin)) {
+      delayMicroseconds(1);
+    }
+    
+    long value = shiftIn();
+    
+    // Set gain to 128 (1 extra clock pulse)
+    digitalWrite(_sckPin, HIGH);
+    delayMicroseconds(1);
+    digitalWrite(_sckPin, LOW);
+    delayMicroseconds(1);
+    
+    // Convert 24-bit two's complement to 32-bit
+    if (value & 0x800000) {
+      value |= 0xFF000000;
+    }
+    
+    return value;
+  }
+  
+  float read() { 
+    return (readRaw() - _offset) / _scale; 
+  }
 };
 
 `;
@@ -3049,20 +3215,118 @@ public:
 private:
   int _cols, _rows;
   int _rs, _en, _d4, _d5, _d6, _d7;
+  bool _initialized;
+  
+  void pulseEnable() {
+    digitalWrite(_en, LOW);
+    delayMicroseconds(1);
+    digitalWrite(_en, HIGH);
+    delayMicroseconds(1);
+    digitalWrite(_en, LOW);
+    delayMicroseconds(100);
+  }
+  
+  void write4bits(uint8_t value) {
+    digitalWrite(_d4, (value >> 0) & 0x01);
+    digitalWrite(_d5, (value >> 1) & 0x01);
+    digitalWrite(_d6, (value >> 2) & 0x01);
+    digitalWrite(_d7, (value >> 3) & 0x01);
+    pulseEnable();
+  }
+  
+  void send(uint8_t value, bool mode) {
+    digitalWrite(_rs, mode ? HIGH : LOW);
+    write4bits(value >> 4);
+    write4bits(value);
+  }
+  
+  void command(uint8_t value) {
+    send(value, false);
+  }
+  
+  void writeChar(uint8_t value) {
+    send(value, true);
+  }
   
 public:
   LCD(int rs, int en, int d4, int d5, int d6, int d7, int cols = 16, int rows = 2) 
-    : _rs(rs), _en(en), _d4(d4), _d5(d5), _d6(d6), _d7(d7), _cols(cols), _rows(rows) {}
+    : _rs(rs), _en(en), _d4(d4), _d5(d5), _d6(d6), _d7(d7), _cols(cols), _rows(rows), _initialized(false) {
+    pinMode(_rs, OUTPUT);
+    pinMode(_en, OUTPUT);
+    pinMode(_d4, OUTPUT);
+    pinMode(_d5, OUTPUT);
+    pinMode(_d6, OUTPUT);
+    pinMode(_d7, OUTPUT);
+  }
   
-  void begin() {}
-  void clear() {}
-  void home() {}
-  void setCursor(int col, int row) {}
-  void print(const char* text) {}
-  void print(int value) {}
-  void print(float value) {}
-  void backlight() {}
-  void noBacklight() {}
+  void begin() {
+    if (!_initialized) {
+      delay(50);
+      digitalWrite(_rs, LOW);
+      digitalWrite(_en, LOW);
+      
+      // Initialize to 4-bit mode
+      write4bits(0x03);
+      delayMicroseconds(4500);
+      write4bits(0x03);
+      delayMicroseconds(4500);
+      write4bits(0x03);
+      delayMicroseconds(150);
+      write4bits(0x02);
+      
+      // Function set: 4-bit, 2 line, 5x8 dots
+      command(0x28);
+      // Display on, cursor off, blink off
+      command(0x0C);
+      // Clear display
+      clear();
+      // Entry mode: increment, no shift
+      command(0x06);
+      
+      _initialized = true;
+    }
+  }
+  
+  void clear() {
+    begin();
+    command(0x01);
+    delayMicroseconds(2000);
+  }
+  
+  void home() {
+    begin();
+    command(0x02);
+    delayMicroseconds(2000);
+  }
+  
+  void setCursor(int col, int row) {
+    begin();
+    const uint8_t row_offsets[] = {0x00, 0x40, 0x14, 0x54};
+    if (row >= _rows) row = _rows - 1;
+    command(0x80 | (col + row_offsets[row]));
+  }
+  
+  void print(const char* text) {
+    begin();
+    while (*text) {
+      writeChar(*text++);
+    }
+  }
+  
+  void print(int value) {
+    char buf[12];
+    itoa(value, buf, 10);
+    print(buf);
+  }
+  
+  void print(float value) {
+    char buf[16];
+    dtostrf(value, 1, 2, buf);
+    print(buf);
+  }
+  
+  void backlight() {} // Not supported in 4-bit mode without I2C
+  void noBacklight() {} // Not supported in 4-bit mode without I2C
 };
 
 `;
@@ -3073,21 +3337,142 @@ public:
 private:
   int _width, _height;
   int _address;
+  bool _initialized;
+  uint8_t* _buffer;
+  int _cursorX, _cursorY;
+  
+  void sendCommand(uint8_t cmd) {
+    Wire.beginTransmission(_address);
+    Wire.write(0x00);
+    Wire.write(cmd);
+    Wire.endTransmission();
+  }
   
 public:
-  OLED(int width = 128, int height = 64, int address = 0x3C) : _width(width), _height(height), _address(address) {}
+  OLED(int width = 128, int height = 64, int address = 0x3C) : _width(width), _height(height), _address(address), _initialized(false), _buffer(nullptr), _cursorX(0), _cursorY(0) {
+    _buffer = new (std::nothrow) uint8_t[(_width * _height) / 8];
+    if (_buffer) memset(_buffer, 0, (_width * _height) / 8);
+  }
   
-  void begin() {}
-  void clear() {}
-  void display() {}
-  void setCursor(int x, int y) {}
-  void print(const char* text) {}
-  void print(int value) {}
-  void drawPixel(int x, int y, bool color = true) {}
-  void drawLine(int x0, int y0, int x1, int y1) {}
-  void drawRect(int x, int y, int w, int h) {}
-  void fillRect(int x, int y, int w, int h) {}
-  void drawCircle(int x, int y, int r) {}
+  ~OLED() { if (_buffer) delete[] _buffer; }
+  
+  void begin() {
+    if (!_initialized && _buffer) {
+      Wire.begin();
+      sendCommand(0xAE);
+      sendCommand(0xD5); sendCommand(0x80);
+      sendCommand(0xA8); sendCommand(_height - 1);
+      sendCommand(0xD3); sendCommand(0x00);
+      sendCommand(0x40);
+      sendCommand(0x8D); sendCommand(0x14);
+      sendCommand(0x20); sendCommand(0x00);
+      sendCommand(0xA1);
+      sendCommand(0xC8);
+      sendCommand(0xDA); sendCommand(_height == 64 ? 0x12 : 0x02);
+      sendCommand(0x81); sendCommand(0xCF);
+      sendCommand(0xD9); sendCommand(0xF1);
+      sendCommand(0xDB); sendCommand(0x40);
+      sendCommand(0xA4);
+      sendCommand(0xA6);
+      sendCommand(0xAF);
+      _initialized = true;
+    }
+  }
+  
+  void clear() {
+    if (_buffer) memset(_buffer, 0, (_width * _height) / 8);
+  }
+  
+  void display() {
+    if (!_initialized || !_buffer) return;
+    begin();
+    sendCommand(0x21); sendCommand(0); sendCommand(_width - 1);
+    sendCommand(0x22); sendCommand(0); sendCommand(_height / 8 - 1);
+    
+    for (int i = 0; i < (_width * _height) / 8; i += 16) {
+      Wire.beginTransmission(_address);
+      Wire.write(0x40);
+      int count = min(16, (_width * _height) / 8 - i);
+      for (int j = 0; j < count; j++) {
+        Wire.write(_buffer[i + j]);
+      }
+      Wire.endTransmission();
+    }
+  }
+  
+  void setCursor(int x, int y) { _cursorX = x; _cursorY = y; }
+  
+  void print(const char* text) {
+    _cursorX += strlen(text) * 6;
+  }
+  
+  void print(int value) {
+    char buf[12];
+    itoa(value, buf, 10);
+    print(buf);
+  }
+  
+  void drawPixel(int x, int y, bool color = true) {
+    if (!_buffer || x < 0 || x >= _width || y < 0 || y >= _height) return;
+    if (color) _buffer[x + (y / 8) * _width] |= (1 << (y & 7));
+    else _buffer[x + (y / 8) * _width] &= ~(1 << (y & 7));
+  }
+  
+  void drawLine(int x0, int y0, int x1, int y1) {
+    int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+    int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+    int err = dx + dy;
+    while (true) {
+      drawPixel(x0, y0);
+      if (x0 == x1 && y0 == y1) break;
+      int e2 = 2 * err;
+      if (e2 >= dy) { err += dy; x0 += sx; }
+      if (e2 <= dx) { err += dx; y0 += sy; }
+    }
+  }
+  
+  void drawRect(int x, int y, int w, int h) {
+    for (int i = x; i < x + w; i++) {
+      drawPixel(i, y);
+      drawPixel(i, y + h - 1);
+    }
+    for (int i = y; i < y + h; i++) {
+      drawPixel(x, i);
+      drawPixel(x + w - 1, i);
+    }
+  }
+  
+  void fillRect(int x, int y, int w, int h) {
+    for (int i = x; i < x + w; i++) {
+      for (int j = y; j < y + h; j++) {
+        drawPixel(i, j);
+      }
+    }
+  }
+  
+  void drawCircle(int x, int y, int r) {
+    int f = 1 - r;
+    int ddF_x = 1;
+    int ddF_y = -2 * r;
+    int cx = 0;
+    int cy = r;
+    drawPixel(x, y + r);
+    drawPixel(x, y - r);
+    drawPixel(x + r, y);
+    drawPixel(x - r, y);
+    while (cx < cy) {
+      if (f >= 0) { cy--; ddF_y += 2; f += ddF_y; }
+      cx++; ddF_x += 2; f += ddF_x;
+      drawPixel(x + cx, y + cy);
+      drawPixel(x - cx, y + cy);
+      drawPixel(x + cx, y - cy);
+      drawPixel(x - cx, y - cy);
+      drawPixel(x + cy, y + cx);
+      drawPixel(x - cy, y + cx);
+      drawPixel(x + cy, y - cx);
+      drawPixel(x - cy, y - cx);
+    }
+  }
 };
 
 `;
@@ -3511,16 +3896,32 @@ public:
     }
     
     if (this.usedHardwareTypes.has('EEPROM')) {
-      code += `class EEPROM {
+      code += `class YsEEPROM {
 private:
   int _size;
   
 public:
-  EEPROM(int size = 512) : _size(size) {}
+  YsEEPROM(int size = 512) : _size(size) {}
   
-  uint8_t read(int address) { return 0; }
-  void write(int address, uint8_t value) {}
-  void update(int address, uint8_t value) {}
+  uint8_t read(int address) {
+    if (address < 0 || address >= _size) return 0;
+    return EEPROM.read(address);
+  }
+  
+  void write(int address, uint8_t value) {
+    if (address >= 0 && address < _size) {
+      EEPROM.write(address, value);
+    }
+  }
+  
+  void update(int address, uint8_t value) {
+    if (address >= 0 && address < _size) {
+      if (EEPROM.read(address) != value) {
+        EEPROM.write(address, value);
+      }
+    }
+  }
+  
   int length() { return _size; }
 };
 
@@ -3671,14 +4072,78 @@ public:
 private:
   int _address;
   int _numChannels;
+  bool _initialized;
+  float _freq;
+  
+  void write8(uint8_t reg, uint8_t value) {
+    Wire.beginTransmission(_address);
+    Wire.write(reg);
+    Wire.write(value);
+    Wire.endTransmission();
+  }
+  
+  uint8_t read8(uint8_t reg) {
+    Wire.beginTransmission(_address);
+    Wire.write(reg);
+    Wire.endTransmission();
+    Wire.requestFrom(_address, (uint8_t)1);
+    return Wire.read();
+  }
+  
+  void setPWM(int channel, uint16_t on, uint16_t off) {
+    Wire.beginTransmission(_address);
+    Wire.write(0x06 + 4 * channel);
+    Wire.write(on & 0xFF);
+    Wire.write(on >> 8);
+    Wire.write(off & 0xFF);
+    Wire.write(off >> 8);
+    Wire.endTransmission();
+  }
   
 public:
-  ServoDriver(int address = 0x40, int numChannels = 16) : _address(address), _numChannels(numChannels) {}
+  ServoDriver(int address = 0x40, int numChannels = 16) : _address(address), _numChannels(numChannels), _initialized(false), _freq(50) {}
   
-  void begin() {}
-  void setPWMFreq(float freq) {}
-  void setAngle(int channel, int angle) {}
-  void setPulse(int channel, int pulse) {}
+  void begin() {
+    if (!_initialized) {
+      Wire.begin();
+      write8(0x00, 0x00);
+      delay(10);
+      write8(0x00, 0x10);
+      setPWMFreq(_freq);
+      write8(0x00, 0x00);
+      delay(5);
+      write8(0x00, 0x20);
+      _initialized = true;
+    }
+  }
+  
+  void setPWMFreq(float freq) {
+    _freq = freq;
+    if (_initialized) {
+      uint8_t prescale = (uint8_t)(25000000.0 / (4096.0 * freq) - 1.0);
+      uint8_t oldmode = read8(0x00);
+      write8(0x00, (oldmode & 0x7F) | 0x10);
+      write8(0xFE, prescale);
+      write8(0x00, oldmode);
+      delay(5);
+      write8(0x00, oldmode | 0x80);
+    }
+  }
+  
+  void setAngle(int channel, int angle) {
+    begin();
+    if (channel < 0 || channel >= _numChannels) return;
+    angle = constrain(angle, 0, 180);
+    int pulse = map(angle, 0, 180, 205, 410);
+    setPWM(channel, 0, pulse);
+  }
+  
+  void setPulse(int channel, int pulse) {
+    begin();
+    if (channel < 0 || channel >= _numChannels) return;
+    setPWM(channel, 0, pulse);
+  }
+  
   int numChannels() { return _numChannels; }
 };
 
@@ -3690,19 +4155,79 @@ public:
       code += `class RTC {
 private:
   int _address;
+  bool _initialized;
+  
+  uint8_t bcd2bin(uint8_t val) { return val - 6 * (val >> 4); }
+  uint8_t bin2bcd(uint8_t val) { return val + 6 * (val / 10); }
+  
+  uint8_t read8(uint8_t reg) {
+    Wire.beginTransmission(_address);
+    Wire.write(reg);
+    Wire.endTransmission();
+    Wire.requestFrom(_address, (uint8_t)1);
+    return Wire.read();
+  }
+  
+  void write8(uint8_t reg, uint8_t value) {
+    Wire.beginTransmission(_address);
+    Wire.write(reg);
+    Wire.write(value);
+    Wire.endTransmission();
+  }
   
 public:
-  RTC(int address = 0x68) : _address(address) {}
+  RTC(int address = 0x68) : _address(address), _initialized(false) {}
   
-  void begin() {}
-  int hour() { return 0; }
-  int minute() { return 0; }
-  int second() { return 0; }
-  int day() { return 1; }
-  int month() { return 1; }
-  int year() { return 2024; }
-  void setTime(int h, int m, int s) {}
-  void setDate(int d, int mo, int y) {}
+  void begin() {
+    if (!_initialized) {
+      Wire.begin();
+      _initialized = true;
+    }
+  }
+  
+  int hour() {
+    begin();
+    return bcd2bin(read8(0x02) & 0x3F);
+  }
+  
+  int minute() {
+    begin();
+    return bcd2bin(read8(0x01));
+  }
+  
+  int second() {
+    begin();
+    return bcd2bin(read8(0x00) & 0x7F);
+  }
+  
+  int day() {
+    begin();
+    return bcd2bin(read8(0x04));
+  }
+  
+  int month() {
+    begin();
+    return bcd2bin(read8(0x05) & 0x1F);
+  }
+  
+  int year() {
+    begin();
+    return bcd2bin(read8(0x06)) + 2000;
+  }
+  
+  void setTime(int h, int m, int s) {
+    begin();
+    write8(0x00, bin2bcd(s));
+    write8(0x01, bin2bcd(m));
+    write8(0x02, bin2bcd(h));
+  }
+  
+  void setDate(int d, int mo, int y) {
+    begin();
+    write8(0x04, bin2bcd(d));
+    write8(0x05, bin2bcd(mo));
+    write8(0x06, bin2bcd(y - 2000));
+  }
 };
 
 `;
@@ -3824,15 +4349,90 @@ public:
       code += `class DS18B20 {
 private:
   int _pin;
+  uint8_t _addr[8];
+  
+  // OneWire protocol implementation
+  void wireReset() {
+    pinMode(_pin, OUTPUT);
+    digitalWrite(_pin, LOW);
+    delayMicroseconds(480);
+    pinMode(_pin, INPUT);
+    delayMicroseconds(70);
+    pinMode(_pin, OUTPUT);
+    delayMicroseconds(410);
+  }
+  
+  void wireWriteBit(uint8_t bit) {
+    pinMode(_pin, OUTPUT);
+    digitalWrite(_pin, LOW);
+    if (bit) {
+      delayMicroseconds(10);
+      pinMode(_pin, INPUT);
+      delayMicroseconds(55);
+    } else {
+      delayMicroseconds(65);
+      pinMode(_pin, INPUT);
+      delayMicroseconds(5);
+    }
+  }
+  
+  uint8_t wireReadBit() {
+    pinMode(_pin, OUTPUT);
+    digitalWrite(_pin, LOW);
+    delayMicroseconds(3);
+    pinMode(_pin, INPUT);
+    delayMicroseconds(10);
+    uint8_t r = digitalRead(_pin);
+    delayMicroseconds(53);
+    return r;
+  }
+  
+  void wireWrite(uint8_t byte) {
+    for (uint8_t i = 0; i < 8; i++) {
+      wireWriteBit(byte & 1);
+      byte >>= 1;
+    }
+  }
+  
+  uint8_t wireRead() {
+    uint8_t byte = 0;
+    for (uint8_t i = 0; i < 8; i++) {
+      byte >>= 1;
+      if (wireReadBit()) byte |= 0x80;
+    }
+    return byte;
+  }
   
 public:
-  DS18B20(int pin) : _pin(pin) { pinMode(_pin, INPUT); }
+  DS18B20(int pin) : _pin(pin) { pinMode(_pin, INPUT); memset(_addr, 0, 8); }
   
-  void begin() {}
-  float readCelsius() { return 25.0; }
+  void begin() {
+    wireReset();
+    wireWrite(0xCC); // Skip ROM
+  }
+  
+  float readCelsius() {
+    wireReset();
+    wireWrite(0xCC); // Skip ROM
+    wireWrite(0x44); // Start conversion
+    delay(750); // Wait for conversion
+    
+    wireReset();
+    wireWrite(0xCC); // Skip ROM
+    wireWrite(0xBE); // Read scratchpad
+    
+    uint8_t data[9];
+    for (int i = 0; i < 9; i++) {
+      data[i] = wireRead();
+    }
+    
+    int16_t raw = (data[1] << 8) | data[0];
+    return (float)raw / 16.0;
+  }
+  
   float readFahrenheit() { return readCelsius() * 9.0 / 5.0 + 32.0; }
   float readKelvin() { return readCelsius() + 273.15; }
-  void setResolution(int bits) {}
+  void setResolution(int bits) {} // Resolution setting would require more complex implementation
 };
 
 `;
@@ -3844,12 +4444,72 @@ private:
   int _pin;
   float _temperature;
   float _humidity;
+  unsigned long _lastRead;
+  
+  bool readSensor() {
+    uint8_t data[5] = {0};
+    uint8_t cnt = 7;
+    uint8_t idx = 0;
+    
+    // Request sample
+    pinMode(_pin, OUTPUT);
+    digitalWrite(_pin, LOW);
+    delay(18);
+    digitalWrite(_pin, HIGH);
+    delayMicroseconds(40);
+    pinMode(_pin, INPUT);
+    
+    // Acknowledge
+    unsigned int timeout = 0;
+    while (digitalRead(_pin) == LOW) {
+      if (timeout++ > 85) return false;
+      delayMicroseconds(1);
+    }
+    timeout = 0;
+    while (digitalRead(_pin) == HIGH) {
+      if (timeout++ > 85) return false;
+      delayMicroseconds(1);
+    }
+    
+    // Read data (40 bits)
+    for (int i = 0; i < 40; i++) {
+      timeout = 0;
+      while (digitalRead(_pin) == LOW) {
+        if (timeout++ > 50) return false;
+        delayMicroseconds(1);
+      }
+      
+      unsigned long t = micros();
+      timeout = 0;
+      while (digitalRead(_pin) == HIGH) {
+        if (timeout++ > 70) return false;
+        delayMicroseconds(1);
+      }
+      
+      if ((micros() - t) > 40) data[idx] |= (1 << cnt);
+      if (cnt == 0) { cnt = 7; idx++; }
+      else cnt--;
+    }
+    
+    // Verify checksum
+    if (data[4] != ((data[0] + data[1] + data[2] + data[3]) & 0xFF)) return false;
+    
+    _humidity = data[0];
+    _temperature = data[2];
+    _lastRead = millis();
+    return true;
+  }
   
 public:
-  DHT11(int pin) : _pin(pin), _temperature(0), _humidity(0) { pinMode(_pin, INPUT); }
+  DHT11(int pin) : _pin(pin), _temperature(0), _humidity(0), _lastRead(0) { pinMode(_pin, INPUT_PULLUP); }
   
   void begin() {}
-  bool read() { return true; }
+  
+  bool read() {
+    if (millis() - _lastRead < 2000) return false; // Min 2s between reads
+    return readSensor();
+  }
+  
   float readTemperature() { return _temperature; }
   float readHumidity() { return _humidity; }
 };
@@ -3863,12 +4523,74 @@ private:
   int _pin;
   float _temperature;
   float _humidity;
+  unsigned long _lastRead;
+  
+  bool readSensor() {
+    uint8_t data[5] = {0};
+    uint8_t cnt = 7;
+    uint8_t idx = 0;
+    
+    // Request sample
+    pinMode(_pin, OUTPUT);
+    digitalWrite(_pin, LOW);
+    delay(2);
+    digitalWrite(_pin, HIGH);
+    delayMicroseconds(40);
+    pinMode(_pin, INPUT_PULLUP);
+    
+    // Acknowledge
+    unsigned int timeout = 0;
+    while (digitalRead(_pin) == LOW) {
+      if (timeout++ > 85) return false;
+      delayMicroseconds(1);
+    }
+    timeout = 0;
+    while (digitalRead(_pin) == HIGH) {
+      if (timeout++ > 85) return false;
+      delayMicroseconds(1);
+    }
+    
+    // Read data (40 bits)
+    for (int i = 0; i < 40; i++) {
+      timeout = 0;
+      while (digitalRead(_pin) == LOW) {
+        if (timeout++ > 50) return false;
+        delayMicroseconds(1);
+      }
+      
+      unsigned long t = micros();
+      timeout = 0;
+      while (digitalRead(_pin) == HIGH) {
+        if (timeout++ > 70) return false;
+        delayMicroseconds(1);
+      }
+      
+      if ((micros() - t) > 40) data[idx] |= (1 << cnt);
+      if (cnt == 0) { cnt = 7; idx++; }
+      else cnt--;
+    }
+    
+    // Verify checksum
+    if (data[4] != ((data[0] + data[1] + data[2] + data[3]) & 0xFF)) return false;
+    
+    // DHT22 has higher resolution than DHT11
+    _humidity = ((data[0] << 8) | data[1]) * 0.1;
+    _temperature = (((data[2] & 0x7F) << 8) | data[3]) * 0.1;
+    if (data[2] & 0x80) _temperature = -_temperature;
+    _lastRead = millis();
+    return true;
+  }
   
 public:
-  DHT22(int pin) : _pin(pin), _temperature(0), _humidity(0) { pinMode(_pin, INPUT); }
+  DHT22(int pin) : _pin(pin), _temperature(0), _humidity(0), _lastRead(0) { pinMode(_pin, INPUT_PULLUP); }
   
   void begin() {}
-  bool read() { return true; }
+  
+  bool read() {
+    if (millis() - _lastRead < 2000) return false; // Min 2s between reads
+    return readSensor();
+  }
+  
   float readTemperature() { return _temperature; }
   float readHumidity() { return _humidity; }
 };
@@ -3950,13 +4672,39 @@ public:
 private:
   int _bus;
   int _address;
+  bool _initialized;
+  uint8_t _mode;
   
 public:
-  BH1750(int bus) : _bus(bus), _address(0x23) {}
+  BH1750(int bus) : _bus(bus), _address(0x23), _initialized(false), _mode(0x10) {}
   
-  void begin() {}
-  float readLux() { return 0; }
-  void setMode(int mode) {}
+  void begin() {
+    if (!_initialized) {
+      Wire.begin();
+      _initialized = true;
+      // Power on and set mode
+      Wire.beginTransmission(_address);
+      Wire.write(0x01); // Power on
+      Wire.endTransmission();
+      delay(10);
+      Wire.beginTransmission(_address);
+      Wire.write(_mode); // Continuous H-res mode
+      Wire.endTransmission();
+    }
+  }
+  
+  float readLux() {
+    begin();
+    Wire.requestFrom(_address, (uint8_t)2);
+    if (Wire.available() >= 2) {
+      uint16_t level = Wire.read() << 8;
+      level |= Wire.read();
+      return level / 1.2; // Convert to lux (mode dependent)
+    }
+    return 0;
+  }
+  
+  void setMode(int mode) { _mode = mode; }
 };
 
 `;
@@ -4009,14 +4757,123 @@ public:
 private:
   int _bus;
   int _address;
+  bool _initialized;
+  int32_t _t_fine;
+  
+  // Calibration data
+  uint16_t _dig_T1;
+  int16_t _dig_T2, _dig_T3;
+  uint16_t _dig_P1;
+  int16_t _dig_P2, _dig_P3, _dig_P4, _dig_P5, _dig_P6, _dig_P7, _dig_P8, _dig_P9;
+  
+  uint8_t read8(uint8_t reg) {
+    Wire.beginTransmission(_address);
+    Wire.write(reg);
+    Wire.endTransmission();
+    Wire.requestFrom(_address, (uint8_t)1);
+    return Wire.read();
+  }
+  
+  uint16_t read16(uint8_t reg) {
+    Wire.beginTransmission(_address);
+    Wire.write(reg);
+    Wire.endTransmission();
+    Wire.requestFrom(_address, (uint8_t)2);
+    uint16_t value = Wire.read();
+    value |= (Wire.read() << 8);
+    return value;
+  }
+  
+  uint16_t read16_LE(uint8_t reg) {
+    uint16_t temp = read16(reg);
+    return (temp >> 8) | (temp << 8);
+  }
+  
+  int16_t readS16(uint8_t reg) {
+    return (int16_t)read16(reg);
+  }
+  
+  int16_t readS16_LE(uint8_t reg) {
+    return (int16_t)read16_LE(reg);
+  }
   
 public:
-  BMP280(int bus) : _bus(bus), _address(0x76) {}
+  BMP280(int bus) : _bus(bus), _address(0x76), _initialized(false), _t_fine(0) {}
   
-  void begin() {}
-  float readPressure() { return 101325.0; }
-  float readTemperature() { return 25.0; }
-  float readAltitude(float seaLevelPressure = 101325.0) { return 0; }
+  void begin() {
+    if (!_initialized) {
+      Wire.begin();
+      // Read chip ID
+      uint8_t chipId = read8(0xD0);
+      if (chipId != 0x58) return; // Not a BMP280
+      
+      // Read calibration data
+      _dig_T1 = read16_LE(0x88);
+      _dig_T2 = readS16_LE(0x8A);
+      _dig_T3 = readS16_LE(0x8C);
+      _dig_P1 = read16_LE(0x8E);
+      _dig_P2 = readS16_LE(0x90);
+      _dig_P3 = readS16_LE(0x92);
+      _dig_P4 = readS16_LE(0x94);
+      _dig_P5 = readS16_LE(0x96);
+      _dig_P6 = readS16_LE(0x98);
+      _dig_P7 = readS16_LE(0x9A);
+      _dig_P8 = readS16_LE(0x9C);
+      _dig_P9 = readS16_LE(0x9E);
+      
+      // Set mode: normal mode, temp and pressure oversampling x16
+      Wire.beginTransmission(_address);
+      Wire.write(0xF4);
+      Wire.write(0xB7); // osrs_t=101, osrs_p=101, mode=11
+      Wire.endTransmission();
+      
+      _initialized = true;
+    }
+  }
+  
+  float readTemperature() {
+    begin();
+    int32_t adc_T = read16(0xFA);
+    adc_T <<= 8;
+    adc_T |= read8(0xFC);
+    adc_T >>= 4;
+    
+    int32_t var1 = ((((adc_T >> 3) - ((int32_t)_dig_T1 << 1))) * ((int32_t)_dig_T2)) >> 11;
+    int32_t var2 = (((((adc_T >> 4) - ((int32_t)_dig_T1)) * ((adc_T >> 4) - ((int32_t)_dig_T1))) >> 12) * ((int32_t)_dig_T3)) >> 14;
+    _t_fine = var1 + var2;
+    return ((_t_fine * 5 + 128) >> 8) / 100.0;
+  }
+  
+  float readPressure() {
+    begin();
+    readTemperature(); // Must read temperature first to get _t_fine
+    
+    int32_t adc_P = read16(0xF7);
+    adc_P <<= 8;
+    adc_P |= read8(0xF9);
+    adc_P >>= 4;
+    
+    int64_t var1 = ((int64_t)_t_fine) - 128000;
+    int64_t var2 = var1 * var1 * (int64_t)_dig_P6;
+    var2 = var2 + ((var1 * (int64_t)_dig_P5) << 17);
+    var2 = var2 + (((int64_t)_dig_P4) << 35);
+    var1 = ((var1 * var1 * (int64_t)_dig_P3) >> 8) + ((var1 * (int64_t)_dig_P2) << 12);
+    var1 = (((((int64_t)1) << 47) + var1)) * ((int64_t)_dig_P1) >> 33;
+    
+    if (var1 == 0) return 0;
+    
+    int64_t p = 1048576 - adc_P;
+    p = (((p << 31) - var2) * 3125) / var1;
+    var1 = (((int64_t)_dig_P9) * (p >> 13) * (p >> 13)) >> 25;
+    var2 = (((int64_t)_dig_P8) * p) >> 19;
+    p = ((p + var1 + var2) >> 8) + (((int64_t)_dig_P7) << 4);
+    return (float)p / 256.0;
+  }
+  
+  float readAltitude(float seaLevelPressure = 101325.0) {
+    float pressure = readPressure();
+    return 44330.0 * (1.0 - pow(pressure / seaLevelPressure, 0.1903));
+  }
 };
 
 `;
@@ -4062,17 +4919,86 @@ public:
 private:
   int _bus;
   int _address;
+  bool _initialized;
+  uint8_t _integrationTime;
+  uint8_t _gain;
+  
+  void write8(uint8_t reg, uint8_t value) {
+    Wire.beginTransmission(_address);
+    Wire.write(0x80 | reg); // Command bit
+    Wire.write(value);
+    Wire.endTransmission();
+  }
+  
+  uint8_t read8(uint8_t reg) {
+    Wire.beginTransmission(_address);
+    Wire.write(0x80 | reg);
+    Wire.endTransmission();
+    Wire.requestFrom(_address, (uint8_t)1);
+    return Wire.read();
+  }
+  
+  uint16_t read16(uint8_t reg) {
+    Wire.beginTransmission(_address);
+    Wire.write(0x80 | reg);
+    Wire.endTransmission();
+    Wire.requestFrom(_address, (uint8_t)2);
+    uint16_t value = Wire.read();
+    value |= (Wire.read() << 8);
+    return value;
+  }
   
 public:
-  TCS34725(int bus) : _bus(bus), _address(0x29) {}
+  TCS34725(int bus) : _bus(bus), _address(0x29), _initialized(false), _integrationTime(0xEB), _gain(0x01) {}
   
-  void begin() {}
-  int readRed() { return 0; }
-  int readGreen() { return 0; }
-  int readBlue() { return 0; }
-  int readClear() { return 0; }
-  void setIntegrationTime(int time) {}
-  void setGain(int gain) {}
+  void begin() {
+    if (!_initialized) {
+      Wire.begin();
+      // Check ID
+      uint8_t id = read8(0x12);
+      if (id != 0x44 && id != 0x4D) return; // Not a TCS34725
+      
+      // Set integration time and gain
+      write8(0x01, _integrationTime);
+      write8(0x0F, _gain);
+      
+      // Enable device
+      write8(0x00, 0x03); // PON | AEN
+      delay(3);
+      
+      _initialized = true;
+    }
+  }
+  
+  int readRed() {
+    begin();
+    return read16(0x16);
+  }
+  
+  int readGreen() {
+    begin();
+    return read16(0x18);
+  }
+  
+  int readBlue() {
+    begin();
+    return read16(0x1A);
+  }
+  
+  int readClear() {
+    begin();
+    return read16(0x14);
+  }
+  
+  void setIntegrationTime(int time) {
+    _integrationTime = time;
+    if (_initialized) write8(0x01, _integrationTime);
+  }
+  
+  void setGain(int gain) {
+    _gain = gain;
+    if (_initialized) write8(0x0F, _gain);
+  }
 };
 
 `;
@@ -4083,18 +5009,84 @@ public:
 private:
   int _bus;
   int _address;
+  bool _initialized;
+  
+  void write8(uint8_t reg, uint8_t value) {
+    Wire.beginTransmission(_address);
+    Wire.write(reg);
+    Wire.write(value);
+    Wire.endTransmission();
+  }
+  
+  uint8_t read8(uint8_t reg) {
+    Wire.beginTransmission(_address);
+    Wire.write(reg);
+    Wire.endTransmission(false);
+    Wire.requestFrom(_address, (uint8_t)1, (uint8_t)true);
+    return Wire.read();
+  }
+  
+  int16_t read16(uint8_t reg) {
+    Wire.beginTransmission(_address);
+    Wire.write(reg);
+    Wire.endTransmission(false);
+    Wire.requestFrom(_address, (uint8_t)2, (uint8_t)true);
+    int16_t value = Wire.read() << 8;
+    value |= Wire.read();
+    return value;
+  }
   
 public:
-  MPU6050(int bus) : _bus(bus), _address(0x68) {}
+  MPU6050(int bus) : _bus(bus), _address(0x68), _initialized(false) {}
   
-  void begin() {}
-  float readAccelX() { return 0; }
-  float readAccelY() { return 0; }
-  float readAccelZ() { return 0; }
-  float readGyroX() { return 0; }
-  float readGyroY() { return 0; }
-  float readGyroZ() { return 0; }
-  float readTemperature() { return 25.0; }
+  void begin() {
+    if (!_initialized) {
+      Wire.begin();
+      // Wake up the MPU6050 (clear sleep bit)
+      write8(0x6B, 0x00);
+      delay(10);
+      // Set gyro and accel ranges (optional - using defaults)
+      write8(0x1B, 0x00); // Gyro: ±250°/s
+      write8(0x1C, 0x00); // Accel: ±2g
+      _initialized = true;
+    }
+  }
+  
+  float readAccelX() {
+    begin();
+    return read16(0x3B) / 16384.0; // Convert to g (for ±2g range)
+  }
+  
+  float readAccelY() {
+    begin();
+    return read16(0x3D) / 16384.0;
+  }
+  
+  float readAccelZ() {
+    begin();
+    return read16(0x3F) / 16384.0;
+  }
+  
+  float readGyroX() {
+    begin();
+    return read16(0x43) / 131.0; // Convert to °/s (for ±250°/s range)
+  }
+  
+  float readGyroY() {
+    begin();
+    return read16(0x45) / 131.0;
+  }
+  
+  float readGyroZ() {
+    begin();
+    return read16(0x47) / 131.0;
+  }
+  
+  float readTemperature() {
+    begin();
+    int16_t rawTemp = read16(0x41);
+    return rawTemp / 340.0 + 36.53;
+  }
 };
 
 `;
@@ -4105,17 +5097,90 @@ public:
 private:
   int _rxPin, _txPin;
   float _lat, _lon, _alt;
+  float _speed;
+  int _sats;
+  bool _validFix;
+  
+  // Simple NMEA parser for $GPGGA and $GPRMC sentences
+  void parseNMEA(const char* sentence) {
+    if (strncmp(sentence, "$GPGGA", 6) == 0 || strncmp(sentence, "$GNGGA", 6) == 0) {
+      // Parse GPGGA: time, lat, N/S, lon, E/W, fix quality, sats, hdop, alt
+      char* token = strtok((char*)sentence, ",");
+      int field = 0;
+      float lat_deg = 0, lon_deg = 0;
+      char ns = 'N', ew = 'E';
+      int fix = 0;
+      
+      while (token != NULL && field < 11) {
+        switch (field) {
+          case 2: lat_deg = atof(token); break; // Latitude DDMM.MMMM
+          case 3: ns = token[0]; break;
+          case 4: lon_deg = atof(token); break; // Longitude DDDMM.MMMM
+          case 5: ew = token[0]; break;
+          case 6: fix = atoi(token); break;
+          case 7: _sats = atoi(token); break;
+          case 9: _alt = atof(token); break;
+        }
+        token = strtok(NULL, ",");
+        field++;
+      }
+      
+      if (fix > 0) {
+        // Convert DDMM.MMMM to decimal degrees
+        int lat_d = (int)(lat_deg / 100);
+        float lat_m = lat_deg - (lat_d * 100);
+        _lat = lat_d + (lat_m / 60.0);
+        if (ns == 'S') _lat = -_lat;
+        
+        int lon_d = (int)(lon_deg / 100);
+        float lon_m = lon_deg - (lon_d * 100);
+        _lon = lon_d + (lon_m / 60.0);
+        if (ew == 'W') _lon = -_lon;
+        
+        _validFix = true;
+      }
+    } else if (strncmp(sentence, "$GPRMC", 6) == 0 || strncmp(sentence, "$GNRMC", 6) == 0) {
+      // Parse GPRMC for speed
+      char* token = strtok((char*)sentence, ",");
+      int field = 0;
+      
+      while (token != NULL && field < 8) {
+        if (field == 7) _speed = atof(token) * 0.514444; // Convert knots to m/s
+        token = strtok(NULL, ",");
+        field++;
+      }
+    }
+  }
   
 public:
-  NEO6M(int rxPin, int txPin) : _rxPin(rxPin), _txPin(txPin), _lat(0), _lon(0), _alt(0) {}
+  NEO6M(int rxPin, int txPin) : _rxPin(rxPin), _txPin(txPin), _lat(0), _lon(0), _alt(0), _speed(0), _sats(0), _validFix(false) {}
   
-  void begin(long baud = 9600) {}
-  bool update() { return false; }
+  void begin(long baud = 9600) {
+    Serial.begin(baud);
+  }
+  
+  bool update() {
+    static char buffer[128];
+    static int idx = 0;
+    
+    while (Serial.available()) {
+      char c = Serial.read();
+      if (c == '\n' || idx >= 127) {
+        buffer[idx] = '\0';
+        if (buffer[0] == '$') parseNMEA(buffer);
+        idx = 0;
+      } else if (c != '\r') {
+        buffer[idx++] = c;
+      }
+    }
+    return _validFix;
+  }
+  
   float latitude() { return _lat; }
   float longitude() { return _lon; }
   float altitude() { return _alt; }
-  float speed() { return 0; }
-  int satellites() { return 0; }
+  float speed() { return _speed; }
+  int satellites() { return _sats; }
 };
 
 `;
@@ -4127,18 +5192,111 @@ public:
 private:
   int _cols, _rows;
   int _rs, _en, _d4, _d5, _d6, _d7;
+  bool _initialized;
+  
+  void pulseEnable() {
+    digitalWrite(_en, LOW);
+    delayMicroseconds(1);
+    digitalWrite(_en, HIGH);
+    delayMicroseconds(1);
+    digitalWrite(_en, LOW);
+    delayMicroseconds(100);
+  }
+  
+  void write4bits(uint8_t value) {
+    digitalWrite(_d4, (value >> 0) & 0x01);
+    digitalWrite(_d5, (value >> 1) & 0x01);
+    digitalWrite(_d6, (value >> 2) & 0x01);
+    digitalWrite(_d7, (value >> 3) & 0x01);
+    pulseEnable();
+  }
+  
+  void send(uint8_t value, bool mode) {
+    digitalWrite(_rs, mode ? HIGH : LOW);
+    write4bits(value >> 4);
+    write4bits(value);
+  }
+  
+  void command(uint8_t value) {
+    send(value, false);
+  }
+  
+  void writeChar(uint8_t value) {
+    send(value, true);
+  }
   
 public:
   HD44780(int rs, int en, int d4, int d5, int d6, int d7, int cols = 16, int rows = 2) 
-    : _rs(rs), _en(en), _d4(d4), _d5(d5), _d6(d6), _d7(d7), _cols(cols), _rows(rows) {}
+    : _rs(rs), _en(en), _d4(d4), _d5(d5), _d6(d6), _d7(d7), _cols(cols), _rows(rows), _initialized(false) {
+    pinMode(_rs, OUTPUT);
+    pinMode(_en, OUTPUT);
+    pinMode(_d4, OUTPUT);
+    pinMode(_d5, OUTPUT);
+    pinMode(_d6, OUTPUT);
+    pinMode(_d7, OUTPUT);
+  }
   
-  void begin() {}
-  void clear() {}
-  void home() {}
-  void setCursor(int col, int row) {}
-  void print(const char* text) {}
-  void print(int value) {}
-  void print(float value) {}
+  void begin() {
+    if (!_initialized) {
+      delay(50);
+      digitalWrite(_rs, LOW);
+      digitalWrite(_en, LOW);
+      
+      write4bits(0x03);
+      delayMicroseconds(4500);
+      write4bits(0x03);
+      delayMicroseconds(4500);
+      write4bits(0x03);
+      delayMicroseconds(150);
+      write4bits(0x02);
+      
+      command(0x28);
+      command(0x0C);
+      clear();
+      command(0x06);
+      
+      _initialized = true;
+    }
+  }
+  
+  void clear() {
+    begin();
+    command(0x01);
+    delayMicroseconds(2000);
+  }
+  
+  void home() {
+    begin();
+    command(0x02);
+    delayMicroseconds(2000);
+  }
+  
+  void setCursor(int col, int row) {
+    begin();
+    const uint8_t row_offsets[] = {0x00, 0x40, 0x14, 0x54};
+    if (row >= _rows) row = _rows - 1;
+    command(0x80 | (col + row_offsets[row]));
+  }
+  
+  void print(const char* text) {
+    begin();
+    while (*text) {
+      writeChar(*text++);
+    }
+  }
+  
+  void print(int value) {
+    char buf[12];
+    itoa(value, buf, 10);
+    print(buf);
+  }
+  
+  void print(float value) {
+    char buf[16];
+    dtostrf(value, 1, 2, buf);
+    print(buf);
+  }
+  
   void backlight() {}
   void noBacklight() {}
 };
@@ -4152,21 +5310,144 @@ private:
   int _bus;
   int _width, _height;
   int _address;
+  bool _initialized;
+  uint8_t* _buffer;
+  int _cursorX, _cursorY;
+  
+  void sendCommand(uint8_t cmd) {
+    Wire.beginTransmission(_address);
+    Wire.write(0x00); // Command mode
+    Wire.write(cmd);
+    Wire.endTransmission();
+  }
   
 public:
-  SSD1306(int bus, int width = 128, int height = 64) : _bus(bus), _width(width), _height(height), _address(0x3C) {}
+  SSD1306(int bus, int width = 128, int height = 64) : _bus(bus), _width(width), _height(height), _address(0x3C), _initialized(false), _buffer(nullptr), _cursorX(0), _cursorY(0) {
+    _buffer = new (std::nothrow) uint8_t[(_width * _height) / 8];
+    if (_buffer) memset(_buffer, 0, (_width * _height) / 8);
+  }
   
-  void begin() {}
-  void clear() {}
-  void display() {}
-  void setCursor(int x, int y) {}
-  void print(const char* text) {}
-  void print(int value) {}
-  void drawPixel(int x, int y, bool color = true) {}
-  void drawLine(int x0, int y0, int x1, int y1) {}
-  void drawRect(int x, int y, int w, int h) {}
-  void fillRect(int x, int y, int w, int h) {}
-  void drawCircle(int x, int y, int r) {}
+  ~SSD1306() { if (_buffer) delete[] _buffer; }
+  
+  void begin() {
+    if (!_initialized && _buffer) {
+      Wire.begin();
+      // Initialization sequence for SSD1306
+      sendCommand(0xAE); // Display off
+      sendCommand(0xD5); sendCommand(0x80); // Set display clock
+      sendCommand(0xA8); sendCommand(_height - 1); // Set multiplex
+      sendCommand(0xD3); sendCommand(0x00); // Set display offset
+      sendCommand(0x40); // Set start line
+      sendCommand(0x8D); sendCommand(0x14); // Charge pump
+      sendCommand(0x20); sendCommand(0x00); // Memory mode
+      sendCommand(0xA1); // Segment remap
+      sendCommand(0xC8); // COM scan direction
+      sendCommand(0xDA); sendCommand(_height == 64 ? 0x12 : 0x02); // COM pins
+      sendCommand(0x81); sendCommand(0xCF); // Contrast
+      sendCommand(0xD9); sendCommand(0xF1); // Precharge
+      sendCommand(0xDB); sendCommand(0x40); // VCOMH
+      sendCommand(0xA4); // Display RAM
+      sendCommand(0xA6); // Normal display
+      sendCommand(0xAF); // Display on
+      _initialized = true;
+    }
+  }
+  
+  void clear() {
+    if (_buffer) memset(_buffer, 0, (_width * _height) / 8);
+  }
+  
+  void display() {
+    if (!_initialized || !_buffer) return;
+    begin();
+    sendCommand(0x21); sendCommand(0); sendCommand(_width - 1); // Column addr
+    sendCommand(0x22); sendCommand(0); sendCommand(_height / 8 - 1); // Page addr
+    
+    for (int i = 0; i < (_width * _height) / 8; i += 16) {
+      Wire.beginTransmission(_address);
+      Wire.write(0x40); // Data mode
+      int count = min(16, (_width * _height) / 8 - i);
+      for (int j = 0; j < count; j++) {
+        Wire.write(_buffer[i + j]);
+      }
+      Wire.endTransmission();
+    }
+  }
+  
+  void setCursor(int x, int y) { _cursorX = x; _cursorY = y; }
+  
+  void print(const char* text) {
+    // Simple character rendering - just move cursor
+    _cursorX += strlen(text) * 6;
+  }
+  
+  void print(int value) {
+    char buf[12];
+    itoa(value, buf, 10);
+    print(buf);
+  }
+  
+  void drawPixel(int x, int y, bool color = true) {
+    if (!_buffer || x < 0 || x >= _width || y < 0 || y >= _height) return;
+    if (color) _buffer[x + (y / 8) * _width] |= (1 << (y & 7));
+    else _buffer[x + (y / 8) * _width] &= ~(1 << (y & 7));
+  }
+  
+  void drawLine(int x0, int y0, int x1, int y1) {
+    int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+    int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+    int err = dx + dy;
+    while (true) {
+      drawPixel(x0, y0);
+      if (x0 == x1 && y0 == y1) break;
+      int e2 = 2 * err;
+      if (e2 >= dy) { err += dy; x0 += sx; }
+      if (e2 <= dx) { err += dx; y0 += sy; }
+    }
+  }
+  
+  void drawRect(int x, int y, int w, int h) {
+    for (int i = x; i < x + w; i++) {
+      drawPixel(i, y);
+      drawPixel(i, y + h - 1);
+    }
+    for (int i = y; i < y + h; i++) {
+      drawPixel(x, i);
+      drawPixel(x + w - 1, i);
+    }
+  }
+  
+  void fillRect(int x, int y, int w, int h) {
+    for (int i = x; i < x + w; i++) {
+      for (int j = y; j < y + h; j++) {
+        drawPixel(i, j);
+      }
+    }
+  }
+  
+  void drawCircle(int x, int y, int r) {
+    int f = 1 - r;
+    int ddF_x = 1;
+    int ddF_y = -2 * r;
+    int cx = 0;
+    int cy = r;
+    drawPixel(x, y + r);
+    drawPixel(x, y - r);
+    drawPixel(x + r, y);
+    drawPixel(x - r, y);
+    while (cx < cy) {
+      if (f >= 0) { cy--; ddF_y += 2; f += ddF_y; }
+      cx++; ddF_x += 2; f += ddF_x;
+      drawPixel(x + cx, y + cy);
+      drawPixel(x - cx, y + cy);
+      drawPixel(x + cx, y - cy);
+      drawPixel(x - cx, y - cy);
+      drawPixel(x + cy, y + cx);
+      drawPixel(x - cy, y + cx);
+      drawPixel(x + cy, y - cx);
+      drawPixel(x - cy, y - cx);
+    }
+  }
 };
 
 `;
@@ -4216,18 +5497,125 @@ private:
   int _clkPin, _dataPin;
   int _brightness;
   
+  void startCondition() {
+    digitalWrite(_dataPin, HIGH);
+    digitalWrite(_clkPin, HIGH);
+    delayMicroseconds(2);
+    digitalWrite(_dataPin, LOW);
+  }
+  
+  void stopCondition() {
+    digitalWrite(_clkPin, LOW);
+    delayMicroseconds(2);
+    digitalWrite(_dataPin, LOW);
+    delayMicroseconds(2);
+    digitalWrite(_clkPin, HIGH);
+    delayMicroseconds(2);
+    digitalWrite(_dataPin, HIGH);
+  }
+  
+  void writeByte(uint8_t data) {
+    for (uint8_t i = 0; i < 8; i++) {
+      digitalWrite(_clkPin, LOW);
+      digitalWrite(_dataPin, data & 1);
+      delayMicroseconds(3);
+      data >>= 1;
+      digitalWrite(_clkPin, HIGH);
+      delayMicroseconds(3);
+    }
+    // Wait for ACK
+    digitalWrite(_clkPin, LOW);
+    digitalWrite(_dataPin, HIGH);
+    digitalWrite(_clkPin, HIGH);
+    pinMode(_dataPin, INPUT);
+    delayMicroseconds(50);
+    pinMode(_dataPin, OUTPUT);
+  }
+  
 public:
   TM1637(int clkPin, int dataPin) : _clkPin(clkPin), _dataPin(dataPin), _brightness(7) {
     pinMode(_clkPin, OUTPUT);
     pinMode(_dataPin, OUTPUT);
+    digitalWrite(_clkPin, HIGH);
+    digitalWrite(_dataPin, HIGH);
   }
   
-  void begin() {}
-  void clear() {}
-  void displayNumber(int num) {}
-  void displayDigit(int pos, int digit) {}
-  void setBrightness(int level) { _brightness = constrain(level, 0, 7); }
-  void showColon(bool show) {}
+  void begin() {
+    setBrightness(_brightness);
+  }
+  
+  void clear() {
+    uint8_t data[] = {0, 0, 0, 0};
+    startCondition();
+    writeByte(0x40); // Data command - auto address increment
+    stopCondition();
+    
+    startCondition();
+    writeByte(0xC0); // Address command - start at 0
+    for (int i = 0; i < 4; i++) {
+      writeByte(data[i]);
+    }
+    stopCondition();
+  }
+  
+  void displayNumber(int num) {
+    const uint8_t digitToSegment[] = {
+      0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F
+    };
+    uint8_t data[4] = {0};
+    bool negative = num < 0;
+    if (negative) num = -num;
+    
+    for (int i = 3; i >= 0; i--) {
+      data[i] = digitToSegment[num % 10];
+      num /= 10;
+      if (num == 0) break;
+    }
+    
+    startCondition();
+    writeByte(0x40);
+    stopCondition();
+    
+    startCondition();
+    writeByte(0xC0);
+    for (int i = 0; i < 4; i++) {
+      writeByte(data[i]);
+    }
+    stopCondition();
+  }
+  
+  void displayDigit(int pos, int digit) {
+    if (pos < 0 || pos > 3 || digit < 0 || digit > 9) return;
+    const uint8_t digitToSegment[] = {
+      0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F
+    };
+    startCondition();
+    writeByte(0x44); // Fixed address
+    stopCondition();
+    
+    startCondition();
+    writeByte(0xC0 + pos);
+    writeByte(digitToSegment[digit]);
+    stopCondition();
+  }
+  
+  void setBrightness(int level) {
+    _brightness = constrain(level, 0, 7);
+    startCondition();
+    writeByte(0x88 | _brightness); // Display control command
+    stopCondition();
+  }
+  
+  void showColon(bool show) {
+    // Colon is typically on position 1
+    startCondition();
+    writeByte(0x44);
+    stopCondition();
+    startCondition();
+    writeByte(0xC1);
+    writeByte(show ? 0x80 : 0x00);
+    stopCondition();
+  }
 };
 
 `;
@@ -4507,14 +5895,82 @@ private:
   int _bus;
   int _address;
   float _freq;
+  bool _initialized;
+  
+  void write8(uint8_t reg, uint8_t value) {
+    Wire.beginTransmission(_address);
+    Wire.write(reg);
+    Wire.write(value);
+    Wire.endTransmission();
+  }
+  
+  uint8_t read8(uint8_t reg) {
+    Wire.beginTransmission(_address);
+    Wire.write(reg);
+    Wire.endTransmission();
+    Wire.requestFrom(_address, (uint8_t)1);
+    return Wire.read();
+  }
+  
+  void setPWM(int channel, uint16_t on, uint16_t off) {
+    Wire.beginTransmission(_address);
+    Wire.write(0x06 + 4 * channel);
+    Wire.write(on & 0xFF);
+    Wire.write(on >> 8);
+    Wire.write(off & 0xFF);
+    Wire.write(off >> 8);
+    Wire.endTransmission();
+  }
   
 public:
-  PCA9685(int bus, float freq = 50) : _bus(bus), _address(0x40), _freq(freq) {}
+  PCA9685(int bus, float freq = 50) : _bus(bus), _address(0x40), _freq(freq), _initialized(false) {}
   
-  void begin() {}
-  void setPWMFreq(float freq) { _freq = freq; }
-  void setAngle(int channel, int angle) {}
-  void setPulse(int channel, int pulse) {}
+  void begin() {
+    if (!_initialized) {
+      Wire.begin();
+      // Reset
+      write8(0x00, 0x00);
+      delay(10);
+      // Set to sleep
+      write8(0x00, 0x10);
+      setPWMFreq(_freq);
+      // Wake up
+      write8(0x00, 0x00);
+      delay(5);
+      // Enable auto-increment
+      write8(0x00, 0x20);
+      _initialized = true;
+    }
+  }
+  
+  void setPWMFreq(float freq) {
+    _freq = freq;
+    if (_initialized) {
+      uint8_t prescale = (uint8_t)(25000000.0 / (4096.0 * freq) - 1.0);
+      uint8_t oldmode = read8(0x00);
+      write8(0x00, (oldmode & 0x7F) | 0x10); // Sleep
+      write8(0xFE, prescale);
+      write8(0x00, oldmode);
+      delay(5);
+      write8(0x00, oldmode | 0x80);
+    }
+  }
+  
+  void setAngle(int channel, int angle) {
+    begin();
+    if (channel < 0 || channel >= 16) return;
+    angle = constrain(angle, 0, 180);
+    // Convert angle to pulse width (1ms = 4096/20ms*1ms = 205, 2ms = 410)
+    int pulse = map(angle, 0, 180, 205, 410);
+    setPWM(channel, 0, pulse);
+  }
+  
+  void setPulse(int channel, int pulse) {
+    begin();
+    if (channel < 0 || channel >= 16) return;
+    setPWM(channel, 0, pulse);
+  }
+  
   int numChannels() { return 16; }
 };
 
@@ -4527,20 +5983,86 @@ public:
 private:
   int _bus;
   int _address;
+  bool _initialized;
+  
+  uint8_t bcd2bin(uint8_t val) { return val - 6 * (val >> 4); }
+  uint8_t bin2bcd(uint8_t val) { return val + 6 * (val / 10); }
+  
+  uint8_t read8(uint8_t reg) {
+    Wire.beginTransmission(_address);
+    Wire.write(reg);
+    Wire.endTransmission();
+    Wire.requestFrom(_address, (uint8_t)1);
+    return Wire.read();
+  }
+  
+  void write8(uint8_t reg, uint8_t value) {
+    Wire.beginTransmission(_address);
+    Wire.write(reg);
+    Wire.write(value);
+    Wire.endTransmission();
+  }
   
 public:
-  DS3231(int bus) : _bus(bus), _address(0x68) {}
+  DS3231(int bus) : _bus(bus), _address(0x68), _initialized(false) {}
   
-  void begin() {}
-  int hour() { return 0; }
-  int minute() { return 0; }
-  int second() { return 0; }
-  int day() { return 1; }
-  int month() { return 1; }
-  int year() { return 2024; }
-  void setTime(int h, int m, int s) {}
-  void setDate(int d, int mo, int y) {}
-  float readTemperature() { return 25.0; }
+  void begin() {
+    if (!_initialized) {
+      Wire.begin();
+      _initialized = true;
+    }
+  }
+  
+  int hour() {
+    begin();
+    return bcd2bin(read8(0x02) & 0x3F);
+  }
+  
+  int minute() {
+    begin();
+    return bcd2bin(read8(0x01));
+  }
+  
+  int second() {
+    begin();
+    return bcd2bin(read8(0x00) & 0x7F);
+  }
+  
+  int day() {
+    begin();
+    return bcd2bin(read8(0x04));
+  }
+  
+  int month() {
+    begin();
+    return bcd2bin(read8(0x05) & 0x1F);
+  }
+  
+  int year() {
+    begin();
+    return bcd2bin(read8(0x06)) + 2000;
+  }
+  
+  void setTime(int h, int m, int s) {
+    begin();
+    write8(0x00, bin2bcd(s));
+    write8(0x01, bin2bcd(m));
+    write8(0x02, bin2bcd(h));
+  }
+  
+  void setDate(int d, int mo, int y) {
+    begin();
+    write8(0x04, bin2bcd(d));
+    write8(0x05, bin2bcd(mo));
+    write8(0x06, bin2bcd(y - 2000));
+  }
+  
+  float readTemperature() {
+    begin();
+    uint8_t msb = read8(0x11);
+    uint8_t lsb = read8(0x12);
+    return (float)msb + (lsb >> 6) * 0.25;
+  }
 };
 
 `;
