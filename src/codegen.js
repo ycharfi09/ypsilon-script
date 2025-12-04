@@ -34,6 +34,7 @@ class CodeGenerator {
     this.needsServo = false;
     this.needsWire = false;
     this.needsSPI = false;
+    this.needsEEPROM = false;
     this.timeVarCounter = 0;
     // Track which hardware types are used
     this.usedHardwareTypes = new Set();
@@ -72,6 +73,8 @@ class CodeGenerator {
         this.needsWire = true;
       } else if (node.varType === 'SPI') {
         this.needsSPI = true;
+      } else if (node.varType === 'EEPROM') {
+        this.needsEEPROM = true;
       }
       
       // Track usage of hardware types
@@ -248,6 +251,9 @@ class CodeGenerator {
     }
     if (this.needsSPI) {
       code += '#include <SPI.h>\n';
+    }
+    if (this.needsEEPROM) {
+      code += '#include <EEPROM.h>\n';
     }
     
     // Add loaded C++ libraries (not .ys files)
@@ -3890,16 +3896,32 @@ public:
     }
     
     if (this.usedHardwareTypes.has('EEPROM')) {
-      code += `class EEPROM {
+      code += `class YsEEPROM {
 private:
   int _size;
   
 public:
-  EEPROM(int size = 512) : _size(size) {}
+  YsEEPROM(int size = 512) : _size(size) {}
   
-  uint8_t read(int address) { return 0; }
-  void write(int address, uint8_t value) {}
-  void update(int address, uint8_t value) {}
+  uint8_t read(int address) {
+    if (address < 0 || address >= _size) return 0;
+    return EEPROM.read(address);
+  }
+  
+  void write(int address, uint8_t value) {
+    if (address >= 0 && address < _size) {
+      EEPROM.write(address, value);
+    }
+  }
+  
+  void update(int address, uint8_t value) {
+    if (address >= 0 && address < _size) {
+      if (EEPROM.read(address) != value) {
+        EEPROM.write(address, value);
+      }
+    }
+  }
+  
   int length() { return _size; }
 };
 
