@@ -2863,16 +2863,65 @@ private:
   int _address;
   bool _initialized;
   
+  void write8(uint8_t reg, uint8_t value) {
+    Wire.beginTransmission(_address);
+    Wire.write(reg);
+    Wire.write(value);
+    Wire.endTransmission();
+  }
+  
+  int16_t read16(uint8_t reg) {
+    Wire.beginTransmission(_address);
+    Wire.write(reg);
+    Wire.endTransmission(false);
+    Wire.requestFrom(_address, (uint8_t)2, (uint8_t)true);
+    int16_t value = Wire.read() << 8;
+    value |= Wire.read();
+    return value;
+  }
+  
 public:
   IMU(int address = 0x68) : _address(address), _initialized(false) {}
   
-  void begin() { _initialized = true; Wire.begin(); }
-  float readAccelX() { return 0; }
-  float readAccelY() { return 0; }
-  float readAccelZ() { return 0; }
-  float readGyroX() { return 0; }
-  float readGyroY() { return 0; }
-  float readGyroZ() { return 0; }
+  void begin() {
+    if (!_initialized) {
+      Wire.begin();
+      // Wake up device (assuming MPU6050-like device)
+      write8(0x6B, 0x00);
+      delay(10);
+      _initialized = true;
+    }
+  }
+  
+  float readAccelX() { 
+    begin();
+    return read16(0x3B) / 16384.0;
+  }
+  
+  float readAccelY() { 
+    begin();
+    return read16(0x3D) / 16384.0;
+  }
+  
+  float readAccelZ() { 
+    begin();
+    return read16(0x3F) / 16384.0;
+  }
+  
+  float readGyroX() { 
+    begin();
+    return read16(0x43) / 131.0;
+  }
+  
+  float readGyroY() { 
+    begin();
+    return read16(0x45) / 131.0;
+  }
+  
+  float readGyroZ() { 
+    begin();
+    return read16(0x47) / 131.0;
+  }
 };
 
 `;
@@ -3671,14 +3720,78 @@ public:
 private:
   int _address;
   int _numChannels;
+  bool _initialized;
+  float _freq;
+  
+  void write8(uint8_t reg, uint8_t value) {
+    Wire.beginTransmission(_address);
+    Wire.write(reg);
+    Wire.write(value);
+    Wire.endTransmission();
+  }
+  
+  uint8_t read8(uint8_t reg) {
+    Wire.beginTransmission(_address);
+    Wire.write(reg);
+    Wire.endTransmission();
+    Wire.requestFrom(_address, (uint8_t)1);
+    return Wire.read();
+  }
+  
+  void setPWM(int channel, uint16_t on, uint16_t off) {
+    Wire.beginTransmission(_address);
+    Wire.write(0x06 + 4 * channel);
+    Wire.write(on & 0xFF);
+    Wire.write(on >> 8);
+    Wire.write(off & 0xFF);
+    Wire.write(off >> 8);
+    Wire.endTransmission();
+  }
   
 public:
-  ServoDriver(int address = 0x40, int numChannels = 16) : _address(address), _numChannels(numChannels) {}
+  ServoDriver(int address = 0x40, int numChannels = 16) : _address(address), _numChannels(numChannels), _initialized(false), _freq(50) {}
   
-  void begin() {}
-  void setPWMFreq(float freq) {}
-  void setAngle(int channel, int angle) {}
-  void setPulse(int channel, int pulse) {}
+  void begin() {
+    if (!_initialized) {
+      Wire.begin();
+      write8(0x00, 0x00);
+      delay(10);
+      write8(0x00, 0x10);
+      setPWMFreq(_freq);
+      write8(0x00, 0x00);
+      delay(5);
+      write8(0x00, 0x20);
+      _initialized = true;
+    }
+  }
+  
+  void setPWMFreq(float freq) {
+    _freq = freq;
+    if (_initialized) {
+      uint8_t prescale = (uint8_t)(25000000.0 / (4096.0 * freq) - 1.0);
+      uint8_t oldmode = read8(0x00);
+      write8(0x00, (oldmode & 0x7F) | 0x10);
+      write8(0xFE, prescale);
+      write8(0x00, oldmode);
+      delay(5);
+      write8(0x00, oldmode | 0x80);
+    }
+  }
+  
+  void setAngle(int channel, int angle) {
+    begin();
+    if (channel < 0 || channel >= _numChannels) return;
+    angle = constrain(angle, 0, 180);
+    int pulse = map(angle, 0, 180, 205, 410);
+    setPWM(channel, 0, pulse);
+  }
+  
+  void setPulse(int channel, int pulse) {
+    begin();
+    if (channel < 0 || channel >= _numChannels) return;
+    setPWM(channel, 0, pulse);
+  }
+  
   int numChannels() { return _numChannels; }
 };
 
@@ -3690,19 +3803,79 @@ public:
       code += `class RTC {
 private:
   int _address;
+  bool _initialized;
+  
+  uint8_t bcd2bin(uint8_t val) { return val - 6 * (val >> 4); }
+  uint8_t bin2bcd(uint8_t val) { return val + 6 * (val / 10); }
+  
+  uint8_t read8(uint8_t reg) {
+    Wire.beginTransmission(_address);
+    Wire.write(reg);
+    Wire.endTransmission();
+    Wire.requestFrom(_address, (uint8_t)1);
+    return Wire.read();
+  }
+  
+  void write8(uint8_t reg, uint8_t value) {
+    Wire.beginTransmission(_address);
+    Wire.write(reg);
+    Wire.write(value);
+    Wire.endTransmission();
+  }
   
 public:
-  RTC(int address = 0x68) : _address(address) {}
+  RTC(int address = 0x68) : _address(address), _initialized(false) {}
   
-  void begin() {}
-  int hour() { return 0; }
-  int minute() { return 0; }
-  int second() { return 0; }
-  int day() { return 1; }
-  int month() { return 1; }
-  int year() { return 2024; }
-  void setTime(int h, int m, int s) {}
-  void setDate(int d, int mo, int y) {}
+  void begin() {
+    if (!_initialized) {
+      Wire.begin();
+      _initialized = true;
+    }
+  }
+  
+  int hour() {
+    begin();
+    return bcd2bin(read8(0x02) & 0x3F);
+  }
+  
+  int minute() {
+    begin();
+    return bcd2bin(read8(0x01));
+  }
+  
+  int second() {
+    begin();
+    return bcd2bin(read8(0x00) & 0x7F);
+  }
+  
+  int day() {
+    begin();
+    return bcd2bin(read8(0x04));
+  }
+  
+  int month() {
+    begin();
+    return bcd2bin(read8(0x05) & 0x1F);
+  }
+  
+  int year() {
+    begin();
+    return bcd2bin(read8(0x06)) + 2000;
+  }
+  
+  void setTime(int h, int m, int s) {
+    begin();
+    write8(0x00, bin2bcd(s));
+    write8(0x01, bin2bcd(m));
+    write8(0x02, bin2bcd(h));
+  }
+  
+  void setDate(int d, int mo, int y) {
+    begin();
+    write8(0x04, bin2bcd(d));
+    write8(0x05, bin2bcd(mo));
+    write8(0x06, bin2bcd(y - 2000));
+  }
 };
 
 `;
@@ -3950,13 +4123,39 @@ public:
 private:
   int _bus;
   int _address;
+  bool _initialized;
+  uint8_t _mode;
   
 public:
-  BH1750(int bus) : _bus(bus), _address(0x23) {}
+  BH1750(int bus) : _bus(bus), _address(0x23), _initialized(false), _mode(0x10) {}
   
-  void begin() {}
-  float readLux() { return 0; }
-  void setMode(int mode) {}
+  void begin() {
+    if (!_initialized) {
+      Wire.begin();
+      _initialized = true;
+      // Power on and set mode
+      Wire.beginTransmission(_address);
+      Wire.write(0x01); // Power on
+      Wire.endTransmission();
+      delay(10);
+      Wire.beginTransmission(_address);
+      Wire.write(_mode); // Continuous H-res mode
+      Wire.endTransmission();
+    }
+  }
+  
+  float readLux() {
+    begin();
+    Wire.requestFrom(_address, (uint8_t)2);
+    if (Wire.available() >= 2) {
+      uint16_t level = Wire.read() << 8;
+      level |= Wire.read();
+      return level / 1.2; // Convert to lux (mode dependent)
+    }
+    return 0;
+  }
+  
+  void setMode(int mode) { _mode = mode; }
 };
 
 `;
@@ -4009,14 +4208,123 @@ public:
 private:
   int _bus;
   int _address;
+  bool _initialized;
+  int32_t _t_fine;
+  
+  // Calibration data
+  uint16_t _dig_T1;
+  int16_t _dig_T2, _dig_T3;
+  uint16_t _dig_P1;
+  int16_t _dig_P2, _dig_P3, _dig_P4, _dig_P5, _dig_P6, _dig_P7, _dig_P8, _dig_P9;
+  
+  uint8_t read8(uint8_t reg) {
+    Wire.beginTransmission(_address);
+    Wire.write(reg);
+    Wire.endTransmission();
+    Wire.requestFrom(_address, (uint8_t)1);
+    return Wire.read();
+  }
+  
+  uint16_t read16(uint8_t reg) {
+    Wire.beginTransmission(_address);
+    Wire.write(reg);
+    Wire.endTransmission();
+    Wire.requestFrom(_address, (uint8_t)2);
+    uint16_t value = Wire.read();
+    value |= (Wire.read() << 8);
+    return value;
+  }
+  
+  uint16_t read16_LE(uint8_t reg) {
+    uint16_t temp = read16(reg);
+    return (temp >> 8) | (temp << 8);
+  }
+  
+  int16_t readS16(uint8_t reg) {
+    return (int16_t)read16(reg);
+  }
+  
+  int16_t readS16_LE(uint8_t reg) {
+    return (int16_t)read16_LE(reg);
+  }
   
 public:
-  BMP280(int bus) : _bus(bus), _address(0x76) {}
+  BMP280(int bus) : _bus(bus), _address(0x76), _initialized(false), _t_fine(0) {}
   
-  void begin() {}
-  float readPressure() { return 101325.0; }
-  float readTemperature() { return 25.0; }
-  float readAltitude(float seaLevelPressure = 101325.0) { return 0; }
+  void begin() {
+    if (!_initialized) {
+      Wire.begin();
+      // Read chip ID
+      uint8_t chipId = read8(0xD0);
+      if (chipId != 0x58) return; // Not a BMP280
+      
+      // Read calibration data
+      _dig_T1 = read16_LE(0x88);
+      _dig_T2 = readS16_LE(0x8A);
+      _dig_T3 = readS16_LE(0x8C);
+      _dig_P1 = read16_LE(0x8E);
+      _dig_P2 = readS16_LE(0x90);
+      _dig_P3 = readS16_LE(0x92);
+      _dig_P4 = readS16_LE(0x94);
+      _dig_P5 = readS16_LE(0x96);
+      _dig_P6 = readS16_LE(0x98);
+      _dig_P7 = readS16_LE(0x9A);
+      _dig_P8 = readS16_LE(0x9C);
+      _dig_P9 = readS16_LE(0x9E);
+      
+      // Set mode: normal mode, temp and pressure oversampling x16
+      Wire.beginTransmission(_address);
+      Wire.write(0xF4);
+      Wire.write(0xB7); // osrs_t=101, osrs_p=101, mode=11
+      Wire.endTransmission();
+      
+      _initialized = true;
+    }
+  }
+  
+  float readTemperature() {
+    begin();
+    int32_t adc_T = read16(0xFA);
+    adc_T <<= 8;
+    adc_T |= read8(0xFC);
+    adc_T >>= 4;
+    
+    int32_t var1 = ((((adc_T >> 3) - ((int32_t)_dig_T1 << 1))) * ((int32_t)_dig_T2)) >> 11;
+    int32_t var2 = (((((adc_T >> 4) - ((int32_t)_dig_T1)) * ((adc_T >> 4) - ((int32_t)_dig_T1))) >> 12) * ((int32_t)_dig_T3)) >> 14;
+    _t_fine = var1 + var2;
+    return ((_t_fine * 5 + 128) >> 8) / 100.0;
+  }
+  
+  float readPressure() {
+    begin();
+    readTemperature(); // Must read temperature first to get _t_fine
+    
+    int32_t adc_P = read16(0xF7);
+    adc_P <<= 8;
+    adc_P |= read8(0xF9);
+    adc_P >>= 4;
+    
+    int64_t var1 = ((int64_t)_t_fine) - 128000;
+    int64_t var2 = var1 * var1 * (int64_t)_dig_P6;
+    var2 = var2 + ((var1 * (int64_t)_dig_P5) << 17);
+    var2 = var2 + (((int64_t)_dig_P4) << 35);
+    var1 = ((var1 * var1 * (int64_t)_dig_P3) >> 8) + ((var1 * (int64_t)_dig_P2) << 12);
+    var1 = (((((int64_t)1) << 47) + var1)) * ((int64_t)_dig_P1) >> 33;
+    
+    if (var1 == 0) return 0;
+    
+    int64_t p = 1048576 - adc_P;
+    p = (((p << 31) - var2) * 3125) / var1;
+    var1 = (((int64_t)_dig_P9) * (p >> 13) * (p >> 13)) >> 25;
+    var2 = (((int64_t)_dig_P8) * p) >> 19;
+    p = ((p + var1 + var2) >> 8) + (((int64_t)_dig_P7) << 4);
+    return (float)p / 256.0;
+  }
+  
+  float readAltitude(float seaLevelPressure = 101325.0) {
+    float pressure = readPressure();
+    return 44330.0 * (1.0 - pow(pressure / seaLevelPressure, 0.1903));
+  }
 };
 
 `;
@@ -4062,17 +4370,86 @@ public:
 private:
   int _bus;
   int _address;
+  bool _initialized;
+  uint8_t _integrationTime;
+  uint8_t _gain;
+  
+  void write8(uint8_t reg, uint8_t value) {
+    Wire.beginTransmission(_address);
+    Wire.write(0x80 | reg); // Command bit
+    Wire.write(value);
+    Wire.endTransmission();
+  }
+  
+  uint8_t read8(uint8_t reg) {
+    Wire.beginTransmission(_address);
+    Wire.write(0x80 | reg);
+    Wire.endTransmission();
+    Wire.requestFrom(_address, (uint8_t)1);
+    return Wire.read();
+  }
+  
+  uint16_t read16(uint8_t reg) {
+    Wire.beginTransmission(_address);
+    Wire.write(0x80 | reg);
+    Wire.endTransmission();
+    Wire.requestFrom(_address, (uint8_t)2);
+    uint16_t value = Wire.read();
+    value |= (Wire.read() << 8);
+    return value;
+  }
   
 public:
-  TCS34725(int bus) : _bus(bus), _address(0x29) {}
+  TCS34725(int bus) : _bus(bus), _address(0x29), _initialized(false), _integrationTime(0xEB), _gain(0x01) {}
   
-  void begin() {}
-  int readRed() { return 0; }
-  int readGreen() { return 0; }
-  int readBlue() { return 0; }
-  int readClear() { return 0; }
-  void setIntegrationTime(int time) {}
-  void setGain(int gain) {}
+  void begin() {
+    if (!_initialized) {
+      Wire.begin();
+      // Check ID
+      uint8_t id = read8(0x12);
+      if (id != 0x44 && id != 0x4D) return; // Not a TCS34725
+      
+      // Set integration time and gain
+      write8(0x01, _integrationTime);
+      write8(0x0F, _gain);
+      
+      // Enable device
+      write8(0x00, 0x03); // PON | AEN
+      delay(3);
+      
+      _initialized = true;
+    }
+  }
+  
+  int readRed() {
+    begin();
+    return read16(0x16);
+  }
+  
+  int readGreen() {
+    begin();
+    return read16(0x18);
+  }
+  
+  int readBlue() {
+    begin();
+    return read16(0x1A);
+  }
+  
+  int readClear() {
+    begin();
+    return read16(0x14);
+  }
+  
+  void setIntegrationTime(int time) {
+    _integrationTime = time;
+    if (_initialized) write8(0x01, _integrationTime);
+  }
+  
+  void setGain(int gain) {
+    _gain = gain;
+    if (_initialized) write8(0x0F, _gain);
+  }
 };
 
 `;
@@ -4083,18 +4460,84 @@ public:
 private:
   int _bus;
   int _address;
+  bool _initialized;
+  
+  void write8(uint8_t reg, uint8_t value) {
+    Wire.beginTransmission(_address);
+    Wire.write(reg);
+    Wire.write(value);
+    Wire.endTransmission();
+  }
+  
+  uint8_t read8(uint8_t reg) {
+    Wire.beginTransmission(_address);
+    Wire.write(reg);
+    Wire.endTransmission(false);
+    Wire.requestFrom(_address, (uint8_t)1, (uint8_t)true);
+    return Wire.read();
+  }
+  
+  int16_t read16(uint8_t reg) {
+    Wire.beginTransmission(_address);
+    Wire.write(reg);
+    Wire.endTransmission(false);
+    Wire.requestFrom(_address, (uint8_t)2, (uint8_t)true);
+    int16_t value = Wire.read() << 8;
+    value |= Wire.read();
+    return value;
+  }
   
 public:
-  MPU6050(int bus) : _bus(bus), _address(0x68) {}
+  MPU6050(int bus) : _bus(bus), _address(0x68), _initialized(false) {}
   
-  void begin() {}
-  float readAccelX() { return 0; }
-  float readAccelY() { return 0; }
-  float readAccelZ() { return 0; }
-  float readGyroX() { return 0; }
-  float readGyroY() { return 0; }
-  float readGyroZ() { return 0; }
-  float readTemperature() { return 25.0; }
+  void begin() {
+    if (!_initialized) {
+      Wire.begin();
+      // Wake up the MPU6050 (clear sleep bit)
+      write8(0x6B, 0x00);
+      delay(10);
+      // Set gyro and accel ranges (optional - using defaults)
+      write8(0x1B, 0x00); // Gyro: ±250°/s
+      write8(0x1C, 0x00); // Accel: ±2g
+      _initialized = true;
+    }
+  }
+  
+  float readAccelX() {
+    begin();
+    return read16(0x3B) / 16384.0; // Convert to g (for ±2g range)
+  }
+  
+  float readAccelY() {
+    begin();
+    return read16(0x3D) / 16384.0;
+  }
+  
+  float readAccelZ() {
+    begin();
+    return read16(0x3F) / 16384.0;
+  }
+  
+  float readGyroX() {
+    begin();
+    return read16(0x43) / 131.0; // Convert to °/s (for ±250°/s range)
+  }
+  
+  float readGyroY() {
+    begin();
+    return read16(0x45) / 131.0;
+  }
+  
+  float readGyroZ() {
+    begin();
+    return read16(0x47) / 131.0;
+  }
+  
+  float readTemperature() {
+    begin();
+    int16_t rawTemp = read16(0x41);
+    return rawTemp / 340.0 + 36.53;
+  }
 };
 
 `;
@@ -4152,21 +4595,144 @@ private:
   int _bus;
   int _width, _height;
   int _address;
+  bool _initialized;
+  uint8_t* _buffer;
+  int _cursorX, _cursorY;
+  
+  void sendCommand(uint8_t cmd) {
+    Wire.beginTransmission(_address);
+    Wire.write(0x00); // Command mode
+    Wire.write(cmd);
+    Wire.endTransmission();
+  }
   
 public:
-  SSD1306(int bus, int width = 128, int height = 64) : _bus(bus), _width(width), _height(height), _address(0x3C) {}
+  SSD1306(int bus, int width = 128, int height = 64) : _bus(bus), _width(width), _height(height), _address(0x3C), _initialized(false), _buffer(nullptr), _cursorX(0), _cursorY(0) {
+    _buffer = new (std::nothrow) uint8_t[(_width * _height) / 8];
+    if (_buffer) memset(_buffer, 0, (_width * _height) / 8);
+  }
   
-  void begin() {}
-  void clear() {}
-  void display() {}
-  void setCursor(int x, int y) {}
-  void print(const char* text) {}
-  void print(int value) {}
-  void drawPixel(int x, int y, bool color = true) {}
-  void drawLine(int x0, int y0, int x1, int y1) {}
-  void drawRect(int x, int y, int w, int h) {}
-  void fillRect(int x, int y, int w, int h) {}
-  void drawCircle(int x, int y, int r) {}
+  ~SSD1306() { if (_buffer) delete[] _buffer; }
+  
+  void begin() {
+    if (!_initialized && _buffer) {
+      Wire.begin();
+      // Initialization sequence for SSD1306
+      sendCommand(0xAE); // Display off
+      sendCommand(0xD5); sendCommand(0x80); // Set display clock
+      sendCommand(0xA8); sendCommand(_height - 1); // Set multiplex
+      sendCommand(0xD3); sendCommand(0x00); // Set display offset
+      sendCommand(0x40); // Set start line
+      sendCommand(0x8D); sendCommand(0x14); // Charge pump
+      sendCommand(0x20); sendCommand(0x00); // Memory mode
+      sendCommand(0xA1); // Segment remap
+      sendCommand(0xC8); // COM scan direction
+      sendCommand(0xDA); sendCommand(_height == 64 ? 0x12 : 0x02); // COM pins
+      sendCommand(0x81); sendCommand(0xCF); // Contrast
+      sendCommand(0xD9); sendCommand(0xF1); // Precharge
+      sendCommand(0xDB); sendCommand(0x40); // VCOMH
+      sendCommand(0xA4); // Display RAM
+      sendCommand(0xA6); // Normal display
+      sendCommand(0xAF); // Display on
+      _initialized = true;
+    }
+  }
+  
+  void clear() {
+    if (_buffer) memset(_buffer, 0, (_width * _height) / 8);
+  }
+  
+  void display() {
+    if (!_initialized || !_buffer) return;
+    begin();
+    sendCommand(0x21); sendCommand(0); sendCommand(_width - 1); // Column addr
+    sendCommand(0x22); sendCommand(0); sendCommand(_height / 8 - 1); // Page addr
+    
+    for (int i = 0; i < (_width * _height) / 8; i += 16) {
+      Wire.beginTransmission(_address);
+      Wire.write(0x40); // Data mode
+      int count = min(16, (_width * _height) / 8 - i);
+      for (int j = 0; j < count; j++) {
+        Wire.write(_buffer[i + j]);
+      }
+      Wire.endTransmission();
+    }
+  }
+  
+  void setCursor(int x, int y) { _cursorX = x; _cursorY = y; }
+  
+  void print(const char* text) {
+    // Simple character rendering - just move cursor
+    _cursorX += strlen(text) * 6;
+  }
+  
+  void print(int value) {
+    char buf[12];
+    itoa(value, buf, 10);
+    print(buf);
+  }
+  
+  void drawPixel(int x, int y, bool color = true) {
+    if (!_buffer || x < 0 || x >= _width || y < 0 || y >= _height) return;
+    if (color) _buffer[x + (y / 8) * _width] |= (1 << (y & 7));
+    else _buffer[x + (y / 8) * _width] &= ~(1 << (y & 7));
+  }
+  
+  void drawLine(int x0, int y0, int x1, int y1) {
+    int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+    int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+    int err = dx + dy;
+    while (true) {
+      drawPixel(x0, y0);
+      if (x0 == x1 && y0 == y1) break;
+      int e2 = 2 * err;
+      if (e2 >= dy) { err += dy; x0 += sx; }
+      if (e2 <= dx) { err += dx; y0 += sy; }
+    }
+  }
+  
+  void drawRect(int x, int y, int w, int h) {
+    for (int i = x; i < x + w; i++) {
+      drawPixel(i, y);
+      drawPixel(i, y + h - 1);
+    }
+    for (int i = y; i < y + h; i++) {
+      drawPixel(x, i);
+      drawPixel(x + w - 1, i);
+    }
+  }
+  
+  void fillRect(int x, int y, int w, int h) {
+    for (int i = x; i < x + w; i++) {
+      for (int j = y; j < y + h; j++) {
+        drawPixel(i, j);
+      }
+    }
+  }
+  
+  void drawCircle(int x, int y, int r) {
+    int f = 1 - r;
+    int ddF_x = 1;
+    int ddF_y = -2 * r;
+    int cx = 0;
+    int cy = r;
+    drawPixel(x, y + r);
+    drawPixel(x, y - r);
+    drawPixel(x + r, y);
+    drawPixel(x - r, y);
+    while (cx < cy) {
+      if (f >= 0) { cy--; ddF_y += 2; f += ddF_y; }
+      cx++; ddF_x += 2; f += ddF_x;
+      drawPixel(x + cx, y + cy);
+      drawPixel(x - cx, y + cy);
+      drawPixel(x + cx, y - cy);
+      drawPixel(x - cx, y - cy);
+      drawPixel(x + cy, y + cx);
+      drawPixel(x - cy, y + cx);
+      drawPixel(x + cy, y - cx);
+      drawPixel(x - cy, y - cx);
+    }
+  }
 };
 
 `;
@@ -4507,14 +5073,82 @@ private:
   int _bus;
   int _address;
   float _freq;
+  bool _initialized;
+  
+  void write8(uint8_t reg, uint8_t value) {
+    Wire.beginTransmission(_address);
+    Wire.write(reg);
+    Wire.write(value);
+    Wire.endTransmission();
+  }
+  
+  uint8_t read8(uint8_t reg) {
+    Wire.beginTransmission(_address);
+    Wire.write(reg);
+    Wire.endTransmission();
+    Wire.requestFrom(_address, (uint8_t)1);
+    return Wire.read();
+  }
+  
+  void setPWM(int channel, uint16_t on, uint16_t off) {
+    Wire.beginTransmission(_address);
+    Wire.write(0x06 + 4 * channel);
+    Wire.write(on & 0xFF);
+    Wire.write(on >> 8);
+    Wire.write(off & 0xFF);
+    Wire.write(off >> 8);
+    Wire.endTransmission();
+  }
   
 public:
-  PCA9685(int bus, float freq = 50) : _bus(bus), _address(0x40), _freq(freq) {}
+  PCA9685(int bus, float freq = 50) : _bus(bus), _address(0x40), _freq(freq), _initialized(false) {}
   
-  void begin() {}
-  void setPWMFreq(float freq) { _freq = freq; }
-  void setAngle(int channel, int angle) {}
-  void setPulse(int channel, int pulse) {}
+  void begin() {
+    if (!_initialized) {
+      Wire.begin();
+      // Reset
+      write8(0x00, 0x00);
+      delay(10);
+      // Set to sleep
+      write8(0x00, 0x10);
+      setPWMFreq(_freq);
+      // Wake up
+      write8(0x00, 0x00);
+      delay(5);
+      // Enable auto-increment
+      write8(0x00, 0x20);
+      _initialized = true;
+    }
+  }
+  
+  void setPWMFreq(float freq) {
+    _freq = freq;
+    if (_initialized) {
+      uint8_t prescale = (uint8_t)(25000000.0 / (4096.0 * freq) - 1.0);
+      uint8_t oldmode = read8(0x00);
+      write8(0x00, (oldmode & 0x7F) | 0x10); // Sleep
+      write8(0xFE, prescale);
+      write8(0x00, oldmode);
+      delay(5);
+      write8(0x00, oldmode | 0x80);
+    }
+  }
+  
+  void setAngle(int channel, int angle) {
+    begin();
+    if (channel < 0 || channel >= 16) return;
+    angle = constrain(angle, 0, 180);
+    // Convert angle to pulse width (1ms = 4096/20ms*1ms = 205, 2ms = 410)
+    int pulse = map(angle, 0, 180, 205, 410);
+    setPWM(channel, 0, pulse);
+  }
+  
+  void setPulse(int channel, int pulse) {
+    begin();
+    if (channel < 0 || channel >= 16) return;
+    setPWM(channel, 0, pulse);
+  }
+  
   int numChannels() { return 16; }
 };
 
@@ -4527,20 +5161,86 @@ public:
 private:
   int _bus;
   int _address;
+  bool _initialized;
+  
+  uint8_t bcd2bin(uint8_t val) { return val - 6 * (val >> 4); }
+  uint8_t bin2bcd(uint8_t val) { return val + 6 * (val / 10); }
+  
+  uint8_t read8(uint8_t reg) {
+    Wire.beginTransmission(_address);
+    Wire.write(reg);
+    Wire.endTransmission();
+    Wire.requestFrom(_address, (uint8_t)1);
+    return Wire.read();
+  }
+  
+  void write8(uint8_t reg, uint8_t value) {
+    Wire.beginTransmission(_address);
+    Wire.write(reg);
+    Wire.write(value);
+    Wire.endTransmission();
+  }
   
 public:
-  DS3231(int bus) : _bus(bus), _address(0x68) {}
+  DS3231(int bus) : _bus(bus), _address(0x68), _initialized(false) {}
   
-  void begin() {}
-  int hour() { return 0; }
-  int minute() { return 0; }
-  int second() { return 0; }
-  int day() { return 1; }
-  int month() { return 1; }
-  int year() { return 2024; }
-  void setTime(int h, int m, int s) {}
-  void setDate(int d, int mo, int y) {}
-  float readTemperature() { return 25.0; }
+  void begin() {
+    if (!_initialized) {
+      Wire.begin();
+      _initialized = true;
+    }
+  }
+  
+  int hour() {
+    begin();
+    return bcd2bin(read8(0x02) & 0x3F);
+  }
+  
+  int minute() {
+    begin();
+    return bcd2bin(read8(0x01));
+  }
+  
+  int second() {
+    begin();
+    return bcd2bin(read8(0x00) & 0x7F);
+  }
+  
+  int day() {
+    begin();
+    return bcd2bin(read8(0x04));
+  }
+  
+  int month() {
+    begin();
+    return bcd2bin(read8(0x05) & 0x1F);
+  }
+  
+  int year() {
+    begin();
+    return bcd2bin(read8(0x06)) + 2000;
+  }
+  
+  void setTime(int h, int m, int s) {
+    begin();
+    write8(0x00, bin2bcd(s));
+    write8(0x01, bin2bcd(m));
+    write8(0x02, bin2bcd(h));
+  }
+  
+  void setDate(int d, int mo, int y) {
+    begin();
+    write8(0x04, bin2bcd(d));
+    write8(0x05, bin2bcd(mo));
+    write8(0x06, bin2bcd(y - 2000));
+  }
+  
+  float readTemperature() {
+    begin();
+    uint8_t msb = read8(0x11);
+    uint8_t lsb = read8(0x12);
+    return (float)msb + (lsb >> 6) * 0.25;
+  }
 };
 
 `;
