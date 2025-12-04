@@ -2932,17 +2932,83 @@ public:
 private:
   int _rxPin, _txPin;
   float _lat, _lon, _alt;
+  float _speed;
+  int _sats;
+  bool _validFix;
+  
+  void parseNMEA(const char* sentence) {
+    if (strncmp(sentence, "$GPGGA", 6) == 0 || strncmp(sentence, "$GNGGA", 6) == 0) {
+      char* token = strtok((char*)sentence, ",");
+      int field = 0;
+      float lat_deg = 0, lon_deg = 0;
+      char ns = 'N', ew = 'E';
+      int fix = 0;
+      
+      while (token != NULL && field < 11) {
+        switch (field) {
+          case 2: lat_deg = atof(token); break;
+          case 3: ns = token[0]; break;
+          case 4: lon_deg = atof(token); break;
+          case 5: ew = token[0]; break;
+          case 6: fix = atoi(token); break;
+          case 7: _sats = atoi(token); break;
+          case 9: _alt = atof(token); break;
+        }
+        token = strtok(NULL, ",");
+        field++;
+      }
+      
+      if (fix > 0) {
+        int lat_d = (int)(lat_deg / 100);
+        float lat_m = lat_deg - (lat_d * 100);
+        _lat = lat_d + (lat_m / 60.0);
+        if (ns == 'S') _lat = -_lat;
+        
+        int lon_d = (int)(lon_deg / 100);
+        float lon_m = lon_deg - (lon_d * 100);
+        _lon = lon_d + (lon_m / 60.0);
+        if (ew == 'W') _lon = -_lon;
+        
+        _validFix = true;
+      }
+    } else if (strncmp(sentence, "$GPRMC", 6) == 0 || strncmp(sentence, "$GNRMC", 6) == 0) {
+      char* token = strtok((char*)sentence, ",");
+      int field = 0;
+      while (token != NULL && field < 8) {
+        if (field == 7) _speed = atof(token) * 0.514444;
+        token = strtok(NULL, ",");
+        field++;
+      }
+    }
+  }
   
 public:
-  GPS(int rxPin, int txPin) : _rxPin(rxPin), _txPin(txPin), _lat(0), _lon(0), _alt(0) {}
+  GPS(int rxPin, int txPin) : _rxPin(rxPin), _txPin(txPin), _lat(0), _lon(0), _alt(0), _speed(0), _sats(0), _validFix(false) {}
   
-  void begin(long baud = 9600) {}
-  bool update() { return false; }
+  void begin(long baud = 9600) { Serial.begin(baud); }
+  
+  bool update() {
+    static char buffer[128];
+    static int idx = 0;
+    
+    while (Serial.available()) {
+      char c = Serial.read();
+      if (c == '\\n' || idx >= 127) {
+        buffer[idx] = '\\0';
+        if (buffer[0] == '$') parseNMEA(buffer);
+        idx = 0;
+      } else if (c != '\\r') {
+        buffer[idx++] = c;
+      }
+    }
+    return _validFix;
+  }
+  
   float latitude() { return _lat; }
   float longitude() { return _lon; }
   float altitude() { return _alt; }
-  float speed() { return 0; }
-  int satellites() { return 0; }
+  float speed() { return _speed; }
+  int satellites() { return _sats; }
 };
 
 `;
@@ -3997,15 +4063,90 @@ public:
       code += `class DS18B20 {
 private:
   int _pin;
+  uint8_t _addr[8];
+  
+  // OneWire protocol implementation
+  void wireReset() {
+    pinMode(_pin, OUTPUT);
+    digitalWrite(_pin, LOW);
+    delayMicroseconds(480);
+    pinMode(_pin, INPUT);
+    delayMicroseconds(70);
+    pinMode(_pin, OUTPUT);
+    delayMicroseconds(410);
+  }
+  
+  void wireWriteBit(uint8_t bit) {
+    pinMode(_pin, OUTPUT);
+    digitalWrite(_pin, LOW);
+    if (bit) {
+      delayMicroseconds(10);
+      pinMode(_pin, INPUT);
+      delayMicroseconds(55);
+    } else {
+      delayMicroseconds(65);
+      pinMode(_pin, INPUT);
+      delayMicroseconds(5);
+    }
+  }
+  
+  uint8_t wireReadBit() {
+    pinMode(_pin, OUTPUT);
+    digitalWrite(_pin, LOW);
+    delayMicroseconds(3);
+    pinMode(_pin, INPUT);
+    delayMicroseconds(10);
+    uint8_t r = digitalRead(_pin);
+    delayMicroseconds(53);
+    return r;
+  }
+  
+  void wireWrite(uint8_t byte) {
+    for (uint8_t i = 0; i < 8; i++) {
+      wireWriteBit(byte & 1);
+      byte >>= 1;
+    }
+  }
+  
+  uint8_t wireRead() {
+    uint8_t byte = 0;
+    for (uint8_t i = 0; i < 8; i++) {
+      byte >>= 1;
+      if (wireReadBit()) byte |= 0x80;
+    }
+    return byte;
+  }
   
 public:
-  DS18B20(int pin) : _pin(pin) { pinMode(_pin, INPUT); }
+  DS18B20(int pin) : _pin(pin) { pinMode(_pin, INPUT); memset(_addr, 0, 8); }
   
-  void begin() {}
-  float readCelsius() { return 25.0; }
+  void begin() {
+    wireReset();
+    wireWrite(0xCC); // Skip ROM
+  }
+  
+  float readCelsius() {
+    wireReset();
+    wireWrite(0xCC); // Skip ROM
+    wireWrite(0x44); // Start conversion
+    delay(750); // Wait for conversion
+    
+    wireReset();
+    wireWrite(0xCC); // Skip ROM
+    wireWrite(0xBE); // Read scratchpad
+    
+    uint8_t data[9];
+    for (int i = 0; i < 9; i++) {
+      data[i] = wireRead();
+    }
+    
+    int16_t raw = (data[1] << 8) | data[0];
+    return (float)raw / 16.0;
+  }
+  
   float readFahrenheit() { return readCelsius() * 9.0 / 5.0 + 32.0; }
   float readKelvin() { return readCelsius() + 273.15; }
-  void setResolution(int bits) {}
+  void setResolution(int bits) {} // Resolution setting would require more complex implementation
 };
 
 `;
@@ -4017,12 +4158,72 @@ private:
   int _pin;
   float _temperature;
   float _humidity;
+  unsigned long _lastRead;
+  
+  bool readSensor() {
+    uint8_t data[5] = {0};
+    uint8_t cnt = 7;
+    uint8_t idx = 0;
+    
+    // Request sample
+    pinMode(_pin, OUTPUT);
+    digitalWrite(_pin, LOW);
+    delay(18);
+    digitalWrite(_pin, HIGH);
+    delayMicroseconds(40);
+    pinMode(_pin, INPUT);
+    
+    // Acknowledge
+    unsigned int timeout = 0;
+    while (digitalRead(_pin) == LOW) {
+      if (timeout++ > 85) return false;
+      delayMicroseconds(1);
+    }
+    timeout = 0;
+    while (digitalRead(_pin) == HIGH) {
+      if (timeout++ > 85) return false;
+      delayMicroseconds(1);
+    }
+    
+    // Read data (40 bits)
+    for (int i = 0; i < 40; i++) {
+      timeout = 0;
+      while (digitalRead(_pin) == LOW) {
+        if (timeout++ > 50) return false;
+        delayMicroseconds(1);
+      }
+      
+      unsigned long t = micros();
+      timeout = 0;
+      while (digitalRead(_pin) == HIGH) {
+        if (timeout++ > 70) return false;
+        delayMicroseconds(1);
+      }
+      
+      if ((micros() - t) > 40) data[idx] |= (1 << cnt);
+      if (cnt == 0) { cnt = 7; idx++; }
+      else cnt--;
+    }
+    
+    // Verify checksum
+    if (data[4] != ((data[0] + data[1] + data[2] + data[3]) & 0xFF)) return false;
+    
+    _humidity = data[0];
+    _temperature = data[2];
+    _lastRead = millis();
+    return true;
+  }
   
 public:
-  DHT11(int pin) : _pin(pin), _temperature(0), _humidity(0) { pinMode(_pin, INPUT); }
+  DHT11(int pin) : _pin(pin), _temperature(0), _humidity(0), _lastRead(0) { pinMode(_pin, INPUT_PULLUP); }
   
   void begin() {}
-  bool read() { return true; }
+  
+  bool read() {
+    if (millis() - _lastRead < 2000) return false; // Min 2s between reads
+    return readSensor();
+  }
+  
   float readTemperature() { return _temperature; }
   float readHumidity() { return _humidity; }
 };
@@ -4036,12 +4237,74 @@ private:
   int _pin;
   float _temperature;
   float _humidity;
+  unsigned long _lastRead;
+  
+  bool readSensor() {
+    uint8_t data[5] = {0};
+    uint8_t cnt = 7;
+    uint8_t idx = 0;
+    
+    // Request sample
+    pinMode(_pin, OUTPUT);
+    digitalWrite(_pin, LOW);
+    delay(2);
+    digitalWrite(_pin, HIGH);
+    delayMicroseconds(40);
+    pinMode(_pin, INPUT_PULLUP);
+    
+    // Acknowledge
+    unsigned int timeout = 0;
+    while (digitalRead(_pin) == LOW) {
+      if (timeout++ > 85) return false;
+      delayMicroseconds(1);
+    }
+    timeout = 0;
+    while (digitalRead(_pin) == HIGH) {
+      if (timeout++ > 85) return false;
+      delayMicroseconds(1);
+    }
+    
+    // Read data (40 bits)
+    for (int i = 0; i < 40; i++) {
+      timeout = 0;
+      while (digitalRead(_pin) == LOW) {
+        if (timeout++ > 50) return false;
+        delayMicroseconds(1);
+      }
+      
+      unsigned long t = micros();
+      timeout = 0;
+      while (digitalRead(_pin) == HIGH) {
+        if (timeout++ > 70) return false;
+        delayMicroseconds(1);
+      }
+      
+      if ((micros() - t) > 40) data[idx] |= (1 << cnt);
+      if (cnt == 0) { cnt = 7; idx++; }
+      else cnt--;
+    }
+    
+    // Verify checksum
+    if (data[4] != ((data[0] + data[1] + data[2] + data[3]) & 0xFF)) return false;
+    
+    // DHT22 has higher resolution than DHT11
+    _humidity = ((data[0] << 8) | data[1]) * 0.1;
+    _temperature = (((data[2] & 0x7F) << 8) | data[3]) * 0.1;
+    if (data[2] & 0x80) _temperature = -_temperature;
+    _lastRead = millis();
+    return true;
+  }
   
 public:
-  DHT22(int pin) : _pin(pin), _temperature(0), _humidity(0) { pinMode(_pin, INPUT); }
+  DHT22(int pin) : _pin(pin), _temperature(0), _humidity(0), _lastRead(0) { pinMode(_pin, INPUT_PULLUP); }
   
   void begin() {}
-  bool read() { return true; }
+  
+  bool read() {
+    if (millis() - _lastRead < 2000) return false; // Min 2s between reads
+    return readSensor();
+  }
+  
   float readTemperature() { return _temperature; }
   float readHumidity() { return _humidity; }
 };
@@ -4548,17 +4811,90 @@ public:
 private:
   int _rxPin, _txPin;
   float _lat, _lon, _alt;
+  float _speed;
+  int _sats;
+  bool _validFix;
+  
+  // Simple NMEA parser for $GPGGA and $GPRMC sentences
+  void parseNMEA(const char* sentence) {
+    if (strncmp(sentence, "$GPGGA", 6) == 0 || strncmp(sentence, "$GNGGA", 6) == 0) {
+      // Parse GPGGA: time, lat, N/S, lon, E/W, fix quality, sats, hdop, alt
+      char* token = strtok((char*)sentence, ",");
+      int field = 0;
+      float lat_deg = 0, lon_deg = 0;
+      char ns = 'N', ew = 'E';
+      int fix = 0;
+      
+      while (token != NULL && field < 11) {
+        switch (field) {
+          case 2: lat_deg = atof(token); break; // Latitude DDMM.MMMM
+          case 3: ns = token[0]; break;
+          case 4: lon_deg = atof(token); break; // Longitude DDDMM.MMMM
+          case 5: ew = token[0]; break;
+          case 6: fix = atoi(token); break;
+          case 7: _sats = atoi(token); break;
+          case 9: _alt = atof(token); break;
+        }
+        token = strtok(NULL, ",");
+        field++;
+      }
+      
+      if (fix > 0) {
+        // Convert DDMM.MMMM to decimal degrees
+        int lat_d = (int)(lat_deg / 100);
+        float lat_m = lat_deg - (lat_d * 100);
+        _lat = lat_d + (lat_m / 60.0);
+        if (ns == 'S') _lat = -_lat;
+        
+        int lon_d = (int)(lon_deg / 100);
+        float lon_m = lon_deg - (lon_d * 100);
+        _lon = lon_d + (lon_m / 60.0);
+        if (ew == 'W') _lon = -_lon;
+        
+        _validFix = true;
+      }
+    } else if (strncmp(sentence, "$GPRMC", 6) == 0 || strncmp(sentence, "$GNRMC", 6) == 0) {
+      // Parse GPRMC for speed
+      char* token = strtok((char*)sentence, ",");
+      int field = 0;
+      
+      while (token != NULL && field < 8) {
+        if (field == 7) _speed = atof(token) * 0.514444; // Convert knots to m/s
+        token = strtok(NULL, ",");
+        field++;
+      }
+    }
+  }
   
 public:
-  NEO6M(int rxPin, int txPin) : _rxPin(rxPin), _txPin(txPin), _lat(0), _lon(0), _alt(0) {}
+  NEO6M(int rxPin, int txPin) : _rxPin(rxPin), _txPin(txPin), _lat(0), _lon(0), _alt(0), _speed(0), _sats(0), _validFix(false) {}
   
-  void begin(long baud = 9600) {}
-  bool update() { return false; }
+  void begin(long baud = 9600) {
+    Serial.begin(baud);
+  }
+  
+  bool update() {
+    static char buffer[128];
+    static int idx = 0;
+    
+    while (Serial.available()) {
+      char c = Serial.read();
+      if (c == '\\n' || idx >= 127) {
+        buffer[idx] = '\\0';
+        if (buffer[0] == '$') parseNMEA(buffer);
+        idx = 0;
+      } else if (c != '\\r') {
+        buffer[idx++] = c;
+      }
+    }
+    return _validFix;
+  }
+  
   float latitude() { return _lat; }
   float longitude() { return _lon; }
   float altitude() { return _alt; }
-  float speed() { return 0; }
-  int satellites() { return 0; }
+  float speed() { return _speed; }
+  int satellites() { return _sats; }
 };
 
 `;
@@ -4782,18 +5118,125 @@ private:
   int _clkPin, _dataPin;
   int _brightness;
   
+  void startCondition() {
+    digitalWrite(_dataPin, HIGH);
+    digitalWrite(_clkPin, HIGH);
+    delayMicroseconds(2);
+    digitalWrite(_dataPin, LOW);
+  }
+  
+  void stopCondition() {
+    digitalWrite(_clkPin, LOW);
+    delayMicroseconds(2);
+    digitalWrite(_dataPin, LOW);
+    delayMicroseconds(2);
+    digitalWrite(_clkPin, HIGH);
+    delayMicroseconds(2);
+    digitalWrite(_dataPin, HIGH);
+  }
+  
+  void writeByte(uint8_t data) {
+    for (uint8_t i = 0; i < 8; i++) {
+      digitalWrite(_clkPin, LOW);
+      digitalWrite(_dataPin, data & 1);
+      delayMicroseconds(3);
+      data >>= 1;
+      digitalWrite(_clkPin, HIGH);
+      delayMicroseconds(3);
+    }
+    // Wait for ACK
+    digitalWrite(_clkPin, LOW);
+    digitalWrite(_dataPin, HIGH);
+    digitalWrite(_clkPin, HIGH);
+    pinMode(_dataPin, INPUT);
+    delayMicroseconds(50);
+    pinMode(_dataPin, OUTPUT);
+  }
+  
 public:
   TM1637(int clkPin, int dataPin) : _clkPin(clkPin), _dataPin(dataPin), _brightness(7) {
     pinMode(_clkPin, OUTPUT);
     pinMode(_dataPin, OUTPUT);
+    digitalWrite(_clkPin, HIGH);
+    digitalWrite(_dataPin, HIGH);
   }
   
-  void begin() {}
-  void clear() {}
-  void displayNumber(int num) {}
-  void displayDigit(int pos, int digit) {}
-  void setBrightness(int level) { _brightness = constrain(level, 0, 7); }
-  void showColon(bool show) {}
+  void begin() {
+    setBrightness(_brightness);
+  }
+  
+  void clear() {
+    uint8_t data[] = {0, 0, 0, 0};
+    startCondition();
+    writeByte(0x40); // Data command - auto address increment
+    stopCondition();
+    
+    startCondition();
+    writeByte(0xC0); // Address command - start at 0
+    for (int i = 0; i < 4; i++) {
+      writeByte(data[i]);
+    }
+    stopCondition();
+  }
+  
+  void displayNumber(int num) {
+    const uint8_t digitToSegment[] = {
+      0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F
+    };
+    uint8_t data[4] = {0};
+    bool negative = num < 0;
+    if (negative) num = -num;
+    
+    for (int i = 3; i >= 0; i--) {
+      data[i] = digitToSegment[num % 10];
+      num /= 10;
+      if (num == 0) break;
+    }
+    
+    startCondition();
+    writeByte(0x40);
+    stopCondition();
+    
+    startCondition();
+    writeByte(0xC0);
+    for (int i = 0; i < 4; i++) {
+      writeByte(data[i]);
+    }
+    stopCondition();
+  }
+  
+  void displayDigit(int pos, int digit) {
+    if (pos < 0 || pos > 3 || digit < 0 || digit > 9) return;
+    const uint8_t digitToSegment[] = {
+      0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F
+    };
+    startCondition();
+    writeByte(0x44); // Fixed address
+    stopCondition();
+    
+    startCondition();
+    writeByte(0xC0 + pos);
+    writeByte(digitToSegment[digit]);
+    stopCondition();
+  }
+  
+  void setBrightness(int level) {
+    _brightness = constrain(level, 0, 7);
+    startCondition();
+    writeByte(0x88 | _brightness); // Display control command
+    stopCondition();
+  }
+  
+  void showColon(bool show) {
+    // Colon is typically on position 1
+    startCondition();
+    writeByte(0x44);
+    stopCondition();
+    startCondition();
+    writeByte(0xC1);
+    writeByte(show ? 0x80 : 0x00);
+    stopCondition();
+  }
 };
 
 `;
