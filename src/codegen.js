@@ -3021,16 +3021,61 @@ private:
   float _scale;
   long _offset;
   
+  long shiftIn() {
+    long value = 0;
+    for (uint8_t i = 0; i < 24; i++) {
+      digitalWrite(_sckPin, HIGH);
+      delayMicroseconds(1);
+      value = (value << 1) | digitalRead(_doutPin);
+      digitalWrite(_sckPin, LOW);
+      delayMicroseconds(1);
+    }
+    return value;
+  }
+  
 public:
   LoadCell(int doutPin, int sckPin) : _doutPin(doutPin), _sckPin(sckPin), _scale(1.0), _offset(0) {
     pinMode(_doutPin, INPUT);
     pinMode(_sckPin, OUTPUT);
+    digitalWrite(_sckPin, LOW);
   }
   
   void setScale(float scale) { _scale = scale; }
-  void tare() { _offset = readRaw(); }
-  long readRaw() { return 0; }
-  float read() { return (readRaw() - _offset) / _scale; }
+  
+  void tare() { 
+    long sum = 0;
+    for (int i = 0; i < 10; i++) {
+      sum += readRaw();
+      delay(10);
+    }
+    _offset = sum / 10;
+  }
+  
+  long readRaw() {
+    // Wait for HX711 to be ready
+    while (digitalRead(_doutPin)) {
+      delayMicroseconds(1);
+    }
+    
+    long value = shiftIn();
+    
+    // Set gain to 128 (1 extra clock pulse)
+    digitalWrite(_sckPin, HIGH);
+    delayMicroseconds(1);
+    digitalWrite(_sckPin, LOW);
+    delayMicroseconds(1);
+    
+    // Convert 24-bit two's complement to 32-bit
+    if (value & 0x800000) {
+      value |= 0xFF000000;
+    }
+    
+    return value;
+  }
+  
+  float read() { 
+    return (readRaw() - _offset) / _scale; 
+  }
 };
 
 `;
@@ -3164,20 +3209,118 @@ public:
 private:
   int _cols, _rows;
   int _rs, _en, _d4, _d5, _d6, _d7;
+  bool _initialized;
+  
+  void pulseEnable() {
+    digitalWrite(_en, LOW);
+    delayMicroseconds(1);
+    digitalWrite(_en, HIGH);
+    delayMicroseconds(1);
+    digitalWrite(_en, LOW);
+    delayMicroseconds(100);
+  }
+  
+  void write4bits(uint8_t value) {
+    digitalWrite(_d4, (value >> 0) & 0x01);
+    digitalWrite(_d5, (value >> 1) & 0x01);
+    digitalWrite(_d6, (value >> 2) & 0x01);
+    digitalWrite(_d7, (value >> 3) & 0x01);
+    pulseEnable();
+  }
+  
+  void send(uint8_t value, bool mode) {
+    digitalWrite(_rs, mode ? HIGH : LOW);
+    write4bits(value >> 4);
+    write4bits(value);
+  }
+  
+  void command(uint8_t value) {
+    send(value, false);
+  }
+  
+  void writeChar(uint8_t value) {
+    send(value, true);
+  }
   
 public:
   LCD(int rs, int en, int d4, int d5, int d6, int d7, int cols = 16, int rows = 2) 
-    : _rs(rs), _en(en), _d4(d4), _d5(d5), _d6(d6), _d7(d7), _cols(cols), _rows(rows) {}
+    : _rs(rs), _en(en), _d4(d4), _d5(d5), _d6(d6), _d7(d7), _cols(cols), _rows(rows), _initialized(false) {
+    pinMode(_rs, OUTPUT);
+    pinMode(_en, OUTPUT);
+    pinMode(_d4, OUTPUT);
+    pinMode(_d5, OUTPUT);
+    pinMode(_d6, OUTPUT);
+    pinMode(_d7, OUTPUT);
+  }
   
-  void begin() {}
-  void clear() {}
-  void home() {}
-  void setCursor(int col, int row) {}
-  void print(const char* text) {}
-  void print(int value) {}
-  void print(float value) {}
-  void backlight() {}
-  void noBacklight() {}
+  void begin() {
+    if (!_initialized) {
+      delay(50);
+      digitalWrite(_rs, LOW);
+      digitalWrite(_en, LOW);
+      
+      // Initialize to 4-bit mode
+      write4bits(0x03);
+      delayMicroseconds(4500);
+      write4bits(0x03);
+      delayMicroseconds(4500);
+      write4bits(0x03);
+      delayMicroseconds(150);
+      write4bits(0x02);
+      
+      // Function set: 4-bit, 2 line, 5x8 dots
+      command(0x28);
+      // Display on, cursor off, blink off
+      command(0x0C);
+      // Clear display
+      clear();
+      // Entry mode: increment, no shift
+      command(0x06);
+      
+      _initialized = true;
+    }
+  }
+  
+  void clear() {
+    begin();
+    command(0x01);
+    delayMicroseconds(2000);
+  }
+  
+  void home() {
+    begin();
+    command(0x02);
+    delayMicroseconds(2000);
+  }
+  
+  void setCursor(int col, int row) {
+    begin();
+    const uint8_t row_offsets[] = {0x00, 0x40, 0x14, 0x54};
+    if (row >= _rows) row = _rows - 1;
+    command(0x80 | (col + row_offsets[row]));
+  }
+  
+  void print(const char* text) {
+    begin();
+    while (*text) {
+      writeChar(*text++);
+    }
+  }
+  
+  void print(int value) {
+    char buf[12];
+    itoa(value, buf, 10);
+    print(buf);
+  }
+  
+  void print(float value) {
+    char buf[16];
+    dtostrf(value, 1, 2, buf);
+    print(buf);
+  }
+  
+  void backlight() {} // Not supported in 4-bit mode without I2C
+  void noBacklight() {} // Not supported in 4-bit mode without I2C
 };
 
 `;
@@ -3188,21 +3331,142 @@ public:
 private:
   int _width, _height;
   int _address;
+  bool _initialized;
+  uint8_t* _buffer;
+  int _cursorX, _cursorY;
+  
+  void sendCommand(uint8_t cmd) {
+    Wire.beginTransmission(_address);
+    Wire.write(0x00);
+    Wire.write(cmd);
+    Wire.endTransmission();
+  }
   
 public:
-  OLED(int width = 128, int height = 64, int address = 0x3C) : _width(width), _height(height), _address(address) {}
+  OLED(int width = 128, int height = 64, int address = 0x3C) : _width(width), _height(height), _address(address), _initialized(false), _buffer(nullptr), _cursorX(0), _cursorY(0) {
+    _buffer = new (std::nothrow) uint8_t[(_width * _height) / 8];
+    if (_buffer) memset(_buffer, 0, (_width * _height) / 8);
+  }
   
-  void begin() {}
-  void clear() {}
-  void display() {}
-  void setCursor(int x, int y) {}
-  void print(const char* text) {}
-  void print(int value) {}
-  void drawPixel(int x, int y, bool color = true) {}
-  void drawLine(int x0, int y0, int x1, int y1) {}
-  void drawRect(int x, int y, int w, int h) {}
-  void fillRect(int x, int y, int w, int h) {}
-  void drawCircle(int x, int y, int r) {}
+  ~OLED() { if (_buffer) delete[] _buffer; }
+  
+  void begin() {
+    if (!_initialized && _buffer) {
+      Wire.begin();
+      sendCommand(0xAE);
+      sendCommand(0xD5); sendCommand(0x80);
+      sendCommand(0xA8); sendCommand(_height - 1);
+      sendCommand(0xD3); sendCommand(0x00);
+      sendCommand(0x40);
+      sendCommand(0x8D); sendCommand(0x14);
+      sendCommand(0x20); sendCommand(0x00);
+      sendCommand(0xA1);
+      sendCommand(0xC8);
+      sendCommand(0xDA); sendCommand(_height == 64 ? 0x12 : 0x02);
+      sendCommand(0x81); sendCommand(0xCF);
+      sendCommand(0xD9); sendCommand(0xF1);
+      sendCommand(0xDB); sendCommand(0x40);
+      sendCommand(0xA4);
+      sendCommand(0xA6);
+      sendCommand(0xAF);
+      _initialized = true;
+    }
+  }
+  
+  void clear() {
+    if (_buffer) memset(_buffer, 0, (_width * _height) / 8);
+  }
+  
+  void display() {
+    if (!_initialized || !_buffer) return;
+    begin();
+    sendCommand(0x21); sendCommand(0); sendCommand(_width - 1);
+    sendCommand(0x22); sendCommand(0); sendCommand(_height / 8 - 1);
+    
+    for (int i = 0; i < (_width * _height) / 8; i += 16) {
+      Wire.beginTransmission(_address);
+      Wire.write(0x40);
+      int count = min(16, (_width * _height) / 8 - i);
+      for (int j = 0; j < count; j++) {
+        Wire.write(_buffer[i + j]);
+      }
+      Wire.endTransmission();
+    }
+  }
+  
+  void setCursor(int x, int y) { _cursorX = x; _cursorY = y; }
+  
+  void print(const char* text) {
+    _cursorX += strlen(text) * 6;
+  }
+  
+  void print(int value) {
+    char buf[12];
+    itoa(value, buf, 10);
+    print(buf);
+  }
+  
+  void drawPixel(int x, int y, bool color = true) {
+    if (!_buffer || x < 0 || x >= _width || y < 0 || y >= _height) return;
+    if (color) _buffer[x + (y / 8) * _width] |= (1 << (y & 7));
+    else _buffer[x + (y / 8) * _width] &= ~(1 << (y & 7));
+  }
+  
+  void drawLine(int x0, int y0, int x1, int y1) {
+    int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+    int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+    int err = dx + dy;
+    while (true) {
+      drawPixel(x0, y0);
+      if (x0 == x1 && y0 == y1) break;
+      int e2 = 2 * err;
+      if (e2 >= dy) { err += dy; x0 += sx; }
+      if (e2 <= dx) { err += dx; y0 += sy; }
+    }
+  }
+  
+  void drawRect(int x, int y, int w, int h) {
+    for (int i = x; i < x + w; i++) {
+      drawPixel(i, y);
+      drawPixel(i, y + h - 1);
+    }
+    for (int i = y; i < y + h; i++) {
+      drawPixel(x, i);
+      drawPixel(x + w - 1, i);
+    }
+  }
+  
+  void fillRect(int x, int y, int w, int h) {
+    for (int i = x; i < x + w; i++) {
+      for (int j = y; j < y + h; j++) {
+        drawPixel(i, j);
+      }
+    }
+  }
+  
+  void drawCircle(int x, int y, int r) {
+    int f = 1 - r;
+    int ddF_x = 1;
+    int ddF_y = -2 * r;
+    int cx = 0;
+    int cy = r;
+    drawPixel(x, y + r);
+    drawPixel(x, y - r);
+    drawPixel(x + r, y);
+    drawPixel(x - r, y);
+    while (cx < cy) {
+      if (f >= 0) { cy--; ddF_y += 2; f += ddF_y; }
+      cx++; ddF_x += 2; f += ddF_x;
+      drawPixel(x + cx, y + cy);
+      drawPixel(x - cx, y + cy);
+      drawPixel(x + cx, y - cy);
+      drawPixel(x - cx, y - cy);
+      drawPixel(x + cy, y + cx);
+      drawPixel(x - cy, y + cx);
+      drawPixel(x + cy, y - cx);
+      drawPixel(x - cy, y - cx);
+    }
+  }
 };
 
 `;
@@ -4906,18 +5170,111 @@ public:
 private:
   int _cols, _rows;
   int _rs, _en, _d4, _d5, _d6, _d7;
+  bool _initialized;
+  
+  void pulseEnable() {
+    digitalWrite(_en, LOW);
+    delayMicroseconds(1);
+    digitalWrite(_en, HIGH);
+    delayMicroseconds(1);
+    digitalWrite(_en, LOW);
+    delayMicroseconds(100);
+  }
+  
+  void write4bits(uint8_t value) {
+    digitalWrite(_d4, (value >> 0) & 0x01);
+    digitalWrite(_d5, (value >> 1) & 0x01);
+    digitalWrite(_d6, (value >> 2) & 0x01);
+    digitalWrite(_d7, (value >> 3) & 0x01);
+    pulseEnable();
+  }
+  
+  void send(uint8_t value, bool mode) {
+    digitalWrite(_rs, mode ? HIGH : LOW);
+    write4bits(value >> 4);
+    write4bits(value);
+  }
+  
+  void command(uint8_t value) {
+    send(value, false);
+  }
+  
+  void writeChar(uint8_t value) {
+    send(value, true);
+  }
   
 public:
   HD44780(int rs, int en, int d4, int d5, int d6, int d7, int cols = 16, int rows = 2) 
-    : _rs(rs), _en(en), _d4(d4), _d5(d5), _d6(d6), _d7(d7), _cols(cols), _rows(rows) {}
+    : _rs(rs), _en(en), _d4(d4), _d5(d5), _d6(d6), _d7(d7), _cols(cols), _rows(rows), _initialized(false) {
+    pinMode(_rs, OUTPUT);
+    pinMode(_en, OUTPUT);
+    pinMode(_d4, OUTPUT);
+    pinMode(_d5, OUTPUT);
+    pinMode(_d6, OUTPUT);
+    pinMode(_d7, OUTPUT);
+  }
   
-  void begin() {}
-  void clear() {}
-  void home() {}
-  void setCursor(int col, int row) {}
-  void print(const char* text) {}
-  void print(int value) {}
-  void print(float value) {}
+  void begin() {
+    if (!_initialized) {
+      delay(50);
+      digitalWrite(_rs, LOW);
+      digitalWrite(_en, LOW);
+      
+      write4bits(0x03);
+      delayMicroseconds(4500);
+      write4bits(0x03);
+      delayMicroseconds(4500);
+      write4bits(0x03);
+      delayMicroseconds(150);
+      write4bits(0x02);
+      
+      command(0x28);
+      command(0x0C);
+      clear();
+      command(0x06);
+      
+      _initialized = true;
+    }
+  }
+  
+  void clear() {
+    begin();
+    command(0x01);
+    delayMicroseconds(2000);
+  }
+  
+  void home() {
+    begin();
+    command(0x02);
+    delayMicroseconds(2000);
+  }
+  
+  void setCursor(int col, int row) {
+    begin();
+    const uint8_t row_offsets[] = {0x00, 0x40, 0x14, 0x54};
+    if (row >= _rows) row = _rows - 1;
+    command(0x80 | (col + row_offsets[row]));
+  }
+  
+  void print(const char* text) {
+    begin();
+    while (*text) {
+      writeChar(*text++);
+    }
+  }
+  
+  void print(int value) {
+    char buf[12];
+    itoa(value, buf, 10);
+    print(buf);
+  }
+  
+  void print(float value) {
+    char buf[16];
+    dtostrf(value, 1, 2, buf);
+    print(buf);
+  }
+  
   void backlight() {}
   void noBacklight() {}
 };
