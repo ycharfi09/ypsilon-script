@@ -414,7 +414,7 @@ describe('Natural Syntax - Integration', () => {
     expect(result.success).toBe(true);
     expect(result.code).toContain('Led led = Led(13)');
     expect(result.code).toContain('Digital pin = Digital(7)');
-    expect(result.code).toContain('Servo servo = Servo(9)');
+    expect(result.code).toContain('YsServo servo = YsServo(9)');
     expect(result.code).toContain('DistanceSensor sonar = DistanceSensor(10, 11)');
   });
 });

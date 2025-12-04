@@ -38,7 +38,7 @@ describe('Conditional Hardware Type Generation', () => {
     expect(result.code).not.toContain('class I2C');
     expect(result.code).not.toContain('class SPI');
     expect(result.code).not.toContain('class UART');
-    expect(result.code).not.toContain('class Servo');
+    expect(result.code).not.toContain('class YsServo');
     expect(result.code).not.toContain('class Led');
     expect(result.code).not.toContain('class Button');
   });
@@ -67,7 +67,7 @@ describe('Conditional Hardware Type Generation', () => {
     // Should not contain other hardware types
     expect(result.code).not.toContain('class Analog');
     expect(result.code).not.toContain('class PWM');
-    expect(result.code).not.toContain('class Servo');
+    expect(result.code).not.toContain('class YsServo');
     expect(result.code).not.toContain('class Led');
   });
 
@@ -154,7 +154,7 @@ describe('Conditional Hardware Type Generation', () => {
     expect(result.code).toContain('class PWM');
     
     // Should not contain unused hardware types
-    expect(result.code).not.toContain('class Servo');
+    expect(result.code).not.toContain('class YsServo');
     expect(result.code).not.toContain('class Led');
     expect(result.code).not.toContain('class Button');
   });
@@ -227,7 +227,7 @@ describe('Conditional Hardware Type Generation', () => {
     expect(result.success).toBe(true);
     
     // Should contain Servo class
-    expect(result.code).toContain('class Servo');
+    expect(result.code).toContain('class YsServo');
     
     // Should include Servo.h header
     expect(result.code).toContain('#include <Servo.h>');
@@ -422,6 +422,6 @@ describe('Combined Hardware and Collection Type Generation', () => {
     // Should not contain unused hardware types
     expect(result.code).not.toContain('class Digital');
     expect(result.code).not.toContain('class Analog');
-    expect(result.code).not.toContain('class Servo');
+    expect(result.code).not.toContain('class YsServo');
   });
 });
