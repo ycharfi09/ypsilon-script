@@ -2999,11 +2999,11 @@ public:
     
     while (Serial.available()) {
       char c = Serial.read();
-      if (c == '\\n' || idx >= 127) {
-        buffer[idx] = '\\0';
+      if (c == '\n' || idx >= 127) {
+        buffer[idx] = '\0';
         if (buffer[0] == '$') parseNMEA(buffer);
         idx = 0;
-      } else if (c != '\\r') {
+      } else if (c != '\r') {
         buffer[idx++] = c;
       }
     }
@@ -5165,11 +5165,11 @@ public:
     
     while (Serial.available()) {
       char c = Serial.read();
-      if (c == '\\n' || idx >= 127) {
-        buffer[idx] = '\\0';
+      if (c == '\n' || idx >= 127) {
+        buffer[idx] = '\0';
         if (buffer[0] == '$') parseNMEA(buffer);
         idx = 0;
-      } else if (c != '\\r') {
+      } else if (c != '\r') {
         buffer[idx++] = c;
       }
     }
