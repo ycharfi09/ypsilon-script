@@ -58,6 +58,84 @@ class CodeGenerator {
     return this.buildArduinoCode();
   }
 
+  // Helper method to get list of hardware types
+  getHardwareTypes() {
+    return [
+      'Digital', 'Analog', 'PWM', 'I2C', 'SPI', 'UART',
+      'Servo', 'Encoder', 'DCMotor', 'StepperMotor',
+      'Led', 'RgbLed', 'Button', 'Buzzer',
+      // Multiplexers
+      'Mux4', 'Mux8', 'Mux16', 'Mux32',
+      // Sensors
+      'TempSensor', 'HumiditySensor', 'PressureSensor', 'LightSensor',
+      'DistanceSensor', 'MotionSensor', 'TouchSensor', 'SoundSensor',
+      'GasSensor', 'ColorSensor', 'Accelerometer', 'Gyroscope',
+      'Magnetometer', 'IMU', 'GPS', 'LoadCell', 'Potentiometer',
+      'Joystick', 'RotaryEncoder', 'IRRemote', 'RFID',
+      // New Module-Specific Sensors
+      'LM35', 'DS18B20', 'DHT11', 'DHT22', 'HC_SR04', 'GP2Y0A21',
+      'LDR', 'BH1750', 'PIR', 'Pot', 'BMP280', 'TTP223', 'MQ2',
+      'TCS34725', 'MPU6050', 'NEO6M',
+      // Displays
+      'LCD', 'OLED', 'SevenSegment', 'Matrix', 'TFT', 'NeoPixel',
+      // New Module-Specific Displays
+      'HD44780', 'SSD1306', 'WS2812', 'TM1637',
+      // Actuators
+      'Relay', 'Solenoid', 'Fan', 'Heater', 'Pump', 'Valve',
+      // New Module-Specific Actuators
+      'Relay5V', 'FanPWM', 'DCPump', 'SolenoidValve',
+      // Communication
+      'Bluetooth', 'WiFi', 'LoRa', 'CAN', 'RS485', 'Ethernet', 'NRF24', 'ZigBee',
+      // New Module-Specific Communication
+      'HC05', 'ESP8266', 'SX1278', 'NRF24L01',
+      // Storage
+      'SDCard', 'EEPROM', 'Flash',
+      // Power
+      'Battery', 'Solar',
+      // New Module-Specific Power
+      'LiPo', 'SolarPanel',
+      // Motor Drivers
+      'HBridge', 'MotorDriver', 'ServoDriver',
+      // New Module-Specific Motor Drivers
+      'L298N', 'TB6612FNG', 'PCA9685',
+      // Timing
+      'RTC', 'Timer',
+      // New Module-Specific Timing
+      'DS3231',
+      // Audio
+      'Speaker', 'Microphone', 'DFPlayer',
+      // New Module-Specific Audio
+      'MAX4466', 'DFPlayerMini'
+    ];
+  }
+
+  // Helper method to track hardware type and check for special includes
+  trackHardwareType(typeName) {
+    if (!typeName) return;
+    
+    const hardwareTypes = this.getHardwareTypes();
+    if (hardwareTypes.includes(typeName)) {
+      this.usedHardwareTypes.add(typeName);
+    }
+    
+    // Check for hardware types that need special includes
+    if (typeName === 'Servo') {
+      this.needsServo = true;
+    } else if (typeName === 'I2C') {
+      this.needsWire = true;
+    } else if (typeName === 'SPI') {
+      this.needsSPI = true;
+    } else if (typeName === 'EEPROM') {
+      this.needsEEPROM = true;
+    }
+    
+    // Track usage of collection types
+    const collectionTypes = ['List', 'Map'];
+    if (collectionTypes.includes(typeName)) {
+      this.usedCollectionTypes.add(typeName);
+    }
+  }
+
   analyzeAST(node) {
     if (!node) return;
     
@@ -65,74 +143,50 @@ class CodeGenerator {
       this.needsSerial = true;
     }
     
-    // Check for hardware types that need special includes
+    // Track hardware types in VariableDeclaration nodes
     if (node.type === 'VariableDeclaration' && node.varType) {
-      if (node.varType === 'Servo') {
-        this.needsServo = true;
-      } else if (node.varType === 'I2C') {
-        this.needsWire = true;
-      } else if (node.varType === 'SPI') {
-        this.needsSPI = true;
-      } else if (node.varType === 'EEPROM') {
-        this.needsEEPROM = true;
+      this.trackHardwareType(node.varType);
+    }
+    
+    // Track hardware types in PropertyDeclaration nodes (class fields)
+    if (node.type === 'PropertyDeclaration' && node.propertyType) {
+      this.trackHardwareType(node.propertyType);
+    }
+    
+    // Track hardware types in NewExpression nodes (instantiation anywhere)
+    if (node.type === 'NewExpression' && node.className) {
+      this.trackHardwareType(node.className);
+    }
+    
+    // Track hardware types in MethodDeclaration parameters and return types
+    if (node.type === 'MethodDeclaration') {
+      // Check return type
+      if (node.returnType) {
+        this.trackHardwareType(node.returnType);
       }
-      
-      // Track usage of hardware types
-      const hardwareTypes = [
-        'Digital', 'Analog', 'PWM', 'I2C', 'SPI', 'UART',
-        'Servo', 'Encoder', 'DCMotor', 'StepperMotor',
-        'Led', 'RgbLed', 'Button', 'Buzzer',
-        // Multiplexers
-        'Mux4', 'Mux8', 'Mux16', 'Mux32',
-        // Sensors
-        'TempSensor', 'HumiditySensor', 'PressureSensor', 'LightSensor',
-        'DistanceSensor', 'MotionSensor', 'TouchSensor', 'SoundSensor',
-        'GasSensor', 'ColorSensor', 'Accelerometer', 'Gyroscope',
-        'Magnetometer', 'IMU', 'GPS', 'LoadCell', 'Potentiometer',
-        'Joystick', 'RotaryEncoder', 'IRRemote', 'RFID',
-        // New Module-Specific Sensors
-        'LM35', 'DS18B20', 'DHT11', 'DHT22', 'HC_SR04', 'GP2Y0A21',
-        'LDR', 'BH1750', 'PIR', 'Pot', 'BMP280', 'TTP223', 'MQ2',
-        'TCS34725', 'MPU6050', 'NEO6M',
-        // Displays
-        'LCD', 'OLED', 'SevenSegment', 'Matrix', 'TFT', 'NeoPixel',
-        // New Module-Specific Displays
-        'HD44780', 'SSD1306', 'WS2812', 'TM1637',
-        // Actuators
-        'Relay', 'Solenoid', 'Fan', 'Heater', 'Pump', 'Valve',
-        // New Module-Specific Actuators
-        'Relay5V', 'FanPWM', 'DCPump', 'SolenoidValve',
-        // Communication
-        'Bluetooth', 'WiFi', 'LoRa', 'CAN', 'RS485', 'Ethernet', 'NRF24', 'ZigBee',
-        // New Module-Specific Communication
-        'HC05', 'ESP8266', 'SX1278', 'NRF24L01',
-        // Storage
-        'SDCard', 'EEPROM', 'Flash',
-        // Power
-        'Battery', 'Solar',
-        // New Module-Specific Power
-        'LiPo', 'SolarPanel',
-        // Motor Drivers
-        'HBridge', 'MotorDriver', 'ServoDriver',
-        // New Module-Specific Motor Drivers
-        'L298N', 'TB6612FNG', 'PCA9685',
-        // Timing
-        'RTC', 'Timer',
-        // New Module-Specific Timing
-        'DS3231',
-        // Audio
-        'Speaker', 'Microphone', 'DFPlayer',
-        // New Module-Specific Audio
-        'MAX4466', 'DFPlayerMini'
-      ];
-      if (hardwareTypes.includes(node.varType)) {
-        this.usedHardwareTypes.add(node.varType);
+      // Check parameter types
+      if (node.params && Array.isArray(node.params)) {
+        node.params.forEach(param => {
+          if (param.type) {
+            this.trackHardwareType(param.type);
+          }
+        });
       }
-      
-      // Track usage of collection types
-      const collectionTypes = ['List', 'Map'];
-      if (collectionTypes.includes(node.varType)) {
-        this.usedCollectionTypes.add(node.varType);
+    }
+    
+    // Track hardware types in FunctionDeclaration parameters and return types
+    if (node.type === 'FunctionDeclaration') {
+      // Check return type
+      if (node.returnType) {
+        this.trackHardwareType(node.returnType);
+      }
+      // Check parameter types
+      if (node.params && Array.isArray(node.params)) {
+        node.params.forEach(param => {
+          if (param.type) {
+            this.trackHardwareType(param.type);
+          }
+        });
       }
     }
     
