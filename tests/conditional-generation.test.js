@@ -264,7 +264,7 @@ describe('Conditional Collection Type Generation', () => {
     const source = `
       @main
       config {
-        board: arduino_uno,
+        board: esp32,
         clock: 16MHz
       }
       
@@ -292,7 +292,7 @@ describe('Conditional Collection Type Generation', () => {
     const source = `
       @main
       config {
-        board: arduino_uno,
+        board: esp32,
         clock: 16MHz
       }
       
@@ -319,7 +319,7 @@ describe('Conditional Collection Type Generation', () => {
     const source = `
       @main
       config {
-        board: arduino_uno,
+        board: esp32,
         clock: 16MHz
       }
       
@@ -348,7 +348,7 @@ describe('Combined Hardware and Collection Type Generation', () => {
     const source = `
       @main
       config {
-        board: arduino_uno,
+        board: esp32,
         clock: 16MHz
       }
       
@@ -381,7 +381,7 @@ describe('Combined Hardware and Collection Type Generation', () => {
     const source = `
       @main
       config {
-        board: arduino_uno,
+        board: esp32,
         clock: 16MHz
       }
       

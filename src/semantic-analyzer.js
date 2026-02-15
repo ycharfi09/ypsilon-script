@@ -4,11 +4,18 @@
  * - Variable declaration tracking
  * - Undeclared variable detection
  * - Scope management
+ * - Platform-specific restrictions (e.g., List/Map on AVR)
  */
 
+const { Config } = require('./config');
+
+// Collection types that are restricted on AVR boards
+const RESTRICTED_COLLECTION_TYPES = ['List', 'Map'];
+
 class SemanticAnalyzer {
-  constructor(ast) {
+  constructor(ast, config = null) {
     this.ast = ast;
+    this.config = config; // Config object for platform-specific checks
     this.errors = [];
     this.warnings = [];
     // Stack of scopes, each scope is a Set of variable names
@@ -379,6 +386,19 @@ class SemanticAnalyzer {
   }
 
   analyzeVariableDeclaration(stmt) {
+    // Check for List/Map usage on AVR boards
+    if (this.config && this.config.isAVRBoard()) {
+      if (stmt.varType && RESTRICTED_COLLECTION_TYPES.includes(stmt.varType)) {
+        const board = this.config.options.board;
+        this.addError(
+          `Collection type '${stmt.varType}' is not supported on AVR targets (${board}) due to insufficient RAM.\n` +
+          `  AVR boards have very limited memory and cannot support std::vector and std::map.\n` +
+          `  Consider using arrays or simpler data structures, or target a board with more RAM (e.g., ESP32).`,
+          stmt.line
+        );
+      }
+    }
+
     // Important: Analyze the initialization expression BEFORE declaring the variable
     // This prevents cases like "mut int x = x + 1" from being valid
     // The right-hand side should only reference previously declared variables
