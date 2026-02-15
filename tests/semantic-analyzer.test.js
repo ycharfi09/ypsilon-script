@@ -455,4 +455,97 @@ describe('Semantic Analyzer - AVR Board Restrictions', () => {
     expect(result.error).toContain('Collection type \'List\' is not supported on AVR targets');
     expect(result.error).toContain('Collection type \'Map\' is not supported on AVR targets');
   });
+
+  test('should reject List type in class field on arduino_uno', () => {
+    const source = `
+      @main
+      config {
+        board: arduino_uno,
+        clock: 16MHz
+      }
+      
+      class DataLogger {
+        mut List data
+        
+        constructor() {
+          self.data = new List()
+        }
+        
+        fn addReading(int value) {
+          self.data.push(value)
+        }
+      }
+      
+      on start {
+        mut DataLogger logger = new DataLogger()
+      }
+    `;
+    
+    const result = compile(source);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Collection type \'List\' is not supported on AVR targets');
+    expect(result.error).toContain('arduino_uno');
+    expect(result.error).toContain('insufficient RAM');
+  });
+
+  test('should reject Map type in class field on arduino_uno', () => {
+    const source = `
+      @main
+      config {
+        board: arduino_uno,
+        clock: 16MHz
+      }
+      
+      class Configuration {
+        mut Map settings
+        
+        constructor() {
+          self.settings = new Map()
+        }
+        
+        fn setSetting(int key, int value) {
+          self.settings.set(key, value)
+        }
+      }
+      
+      on start {
+        mut Configuration cfg = new Configuration()
+      }
+    `;
+    
+    const result = compile(source);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Collection type \'Map\' is not supported on AVR targets');
+    expect(result.error).toContain('arduino_uno');
+    expect(result.error).toContain('insufficient RAM');
+  });
+
+  test('should allow List type in class field on esp32', () => {
+    const source = `
+      @main
+      config {
+        board: esp32,
+        clock: 16MHz
+      }
+      
+      class DataLogger {
+        mut List data
+        
+        constructor() {
+          self.data = new List()
+        }
+        
+        fn addReading(int value) {
+          self.data.push(value)
+        }
+      }
+      
+      on start {
+        mut DataLogger logger = new DataLogger()
+      }
+    `;
+    
+    const result = compile(source);
+    expect(result.success).toBe(true);
+  });
 });

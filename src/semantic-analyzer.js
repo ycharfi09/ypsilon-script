@@ -339,6 +339,19 @@ class SemanticAnalyzer {
     // Declare all properties
     if (stmt.properties) {
       stmt.properties.forEach(prop => {
+        // Check for List/Map usage on AVR boards
+        if (this.config && this.config.isAVRBoard()) {
+          if (prop.propertyType && RESTRICTED_COLLECTION_TYPES.includes(prop.propertyType)) {
+            const board = this.config.options.board;
+            this.addError(
+              `Collection type '${prop.propertyType}' is not supported on AVR targets (${board}) due to insufficient RAM.\n` +
+              `  AVR boards have very limited memory and cannot support std::vector and std::map.\n` +
+              `  Consider using arrays or simpler data structures, or target a board with more RAM (e.g., ESP32).`,
+              stmt.line
+            );
+          }
+        }
+        
         this.declare(prop.name);
         if (prop.init) {
           this.analyzeExpression(prop.init);
