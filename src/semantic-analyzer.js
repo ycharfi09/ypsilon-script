@@ -212,6 +212,22 @@ class SemanticAnalyzer {
       case 'StructDeclaration':
         // Declare struct name
         this.declare(stmt.name);
+        // Check struct fields for List/Map usage on AVR boards
+        if (this.config && this.config.isAVRBoard()) {
+          if (stmt.fields) {
+            stmt.fields.forEach(field => {
+              if (field.type && RESTRICTED_COLLECTION_TYPES.includes(field.type)) {
+                const board = this.config.options.board;
+                this.addError(
+                  `Collection type '${field.type}' is not supported on AVR targets (${board}) due to insufficient RAM.\n` +
+                  `  AVR boards have very limited memory and cannot support std::vector and std::map.\n` +
+                  `  Consider using arrays or simpler data structures, or target a board with more RAM (e.g., ESP32).`,
+                  stmt.line
+                );
+              }
+            });
+          }
+        }
         break;
 
       case 'FunctionDeclaration':

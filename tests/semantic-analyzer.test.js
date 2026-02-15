@@ -548,4 +548,76 @@ describe('Semantic Analyzer - AVR Board Restrictions', () => {
     const result = compile(source);
     expect(result.success).toBe(true);
   });
+
+  test('should reject List type in struct field on arduino_uno', () => {
+    const source = `
+      @main
+      config {
+        board: arduino_uno,
+        clock: 16MHz
+      }
+      
+      struct DataPoint {
+        List values
+        int timestamp
+      }
+      
+      on start {
+        print("test")
+      }
+    `;
+    
+    const result = compile(source);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Collection type \'List\' is not supported on AVR targets');
+    expect(result.error).toContain('arduino_uno');
+    expect(result.error).toContain('insufficient RAM');
+  });
+
+  test('should reject Map type in struct field on arduino_uno', () => {
+    const source = `
+      @main
+      config {
+        board: arduino_uno,
+        clock: 16MHz
+      }
+      
+      struct Config {
+        Map settings
+        int version
+      }
+      
+      on start {
+        print("test")
+      }
+    `;
+    
+    const result = compile(source);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Collection type \'Map\' is not supported on AVR targets');
+    expect(result.error).toContain('arduino_uno');
+    expect(result.error).toContain('insufficient RAM');
+  });
+
+  test('should allow List type in struct field on esp32', () => {
+    const source = `
+      @main
+      config {
+        board: esp32,
+        clock: 16MHz
+      }
+      
+      struct DataPoint {
+        List values
+        int timestamp
+      }
+      
+      on start {
+        print("test")
+      }
+    `;
+    
+    const result = compile(source);
+    expect(result.success).toBe(true);
+  });
 });
