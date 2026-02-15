@@ -28,6 +28,10 @@ const MPU_TO_FQBN = BOARD_TO_FQBN;
 const LOW_MEMORY_BOARDS = ['arduino_uno', 'arduino_nano', 'atmega328p'];
 
 // AVR boards with insufficient RAM for List and Map collections
+// Note: This list is intentionally separate from LOW_MEMORY_BOARDS because:
+// - LOW_MEMORY_BOARDS: Used for warnings about experimental features
+// - AVR_BOARDS: Used for strict bans on List/Map (includes all AVR chips)
+// While there is overlap, they serve different purposes and may diverge in the future
 const AVR_BOARDS = ['arduino_uno', 'arduino_nano', 'arduino_mega', 'arduino_leonardo', 'atmega328p', 'atmega2560', 'atmega32u4'];
 
 // Default configuration values

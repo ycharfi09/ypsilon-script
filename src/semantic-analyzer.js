@@ -9,6 +9,9 @@
 
 const { Config } = require('./config');
 
+// Collection types that are restricted on AVR boards
+const RESTRICTED_COLLECTION_TYPES = ['List', 'Map'];
+
 class SemanticAnalyzer {
   constructor(ast, config = null) {
     this.ast = ast;
@@ -385,8 +388,7 @@ class SemanticAnalyzer {
   analyzeVariableDeclaration(stmt) {
     // Check for List/Map usage on AVR boards
     if (this.config && this.config.isAVRBoard()) {
-      const restrictedTypes = ['List', 'Map'];
-      if (stmt.varType && restrictedTypes.includes(stmt.varType)) {
+      if (stmt.varType && RESTRICTED_COLLECTION_TYPES.includes(stmt.varType)) {
         const board = this.config.options.board;
         this.addError(
           `Collection type '${stmt.varType}' is not supported on AVR targets (${board}) due to insufficient RAM.\n` +
