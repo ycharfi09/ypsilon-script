@@ -51,7 +51,7 @@ describe('Hardware Types - I2C', () => {
     const source = `
       @main
       config {
-        board: arduino_uno,
+        board: esp32,
         clock: 16MHz
       }
       
@@ -606,7 +606,7 @@ describe('Hardware Types - Integration', () => {
     const source = `
       @main
       config {
-        board: arduino_uno,
+        board: esp32,
         clock: 16MHz
       }
       

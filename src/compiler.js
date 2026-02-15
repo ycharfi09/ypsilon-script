@@ -7,6 +7,7 @@ const { Lexer } = require('./lexer');
 const { Parser } = require('./parser');
 const { CodeGenerator } = require('./codegen');
 const { SemanticAnalyzer } = require('./semantic-analyzer');
+const { Config } = require('./config');
 const fs = require('fs');
 const path = require('path');
 
@@ -31,8 +32,18 @@ class Compiler {
       const parser = new Parser(tokens);
       const ast = parser.parse();
       
-      // Semantic analysis - check for undeclared variables, etc.
-      const analyzer = new SemanticAnalyzer(ast);
+      // Extract config block from AST for semantic analysis
+      let configBlock = null;
+      for (const stmt of ast.body) {
+        if (stmt.type === 'ConfigBlock') {
+          configBlock = stmt;
+          break;
+        }
+      }
+      const config = new Config(configBlock);
+      
+      // Semantic analysis - check for undeclared variables, platform restrictions, etc.
+      const analyzer = new SemanticAnalyzer(ast, config);
       const analysisResult = analyzer.analyze();
       
       // If semantic analysis found errors, return them

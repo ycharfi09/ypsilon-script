@@ -305,3 +305,154 @@ describe('Semantic Analyzer - Hex Literals', () => {
     expect(result.code).toContain('171'); // 0xAb = 171
   });
 });
+
+describe('Semantic Analyzer - AVR Board Restrictions', () => {
+  test('should reject List type on arduino_uno', () => {
+    const source = `
+      @main
+      config {
+        board: arduino_uno,
+        clock: 16MHz
+      }
+      
+      mut List numbers = new List()
+      
+      on start {
+        numbers.push(1)
+      }
+    `;
+    
+    const result = compile(source);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Collection type \'List\' is not supported on AVR targets');
+    expect(result.error).toContain('arduino_uno');
+    expect(result.error).toContain('insufficient RAM');
+  });
+
+  test('should reject Map type on arduino_nano', () => {
+    const source = `
+      @main
+      config {
+        board: arduino_nano,
+        clock: 16MHz
+      }
+      
+      mut Map settings = new Map()
+      
+      on start {
+        settings.set(1, 100)
+      }
+    `;
+    
+    const result = compile(source);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Collection type \'Map\' is not supported on AVR targets');
+    expect(result.error).toContain('arduino_nano');
+    expect(result.error).toContain('insufficient RAM');
+  });
+
+  test('should reject List type on arduino_mega', () => {
+    const source = `
+      @main
+      config {
+        board: arduino_mega,
+        clock: 16MHz
+      }
+      
+      mut List readings = new List()
+      
+      on loop {
+        readings.push(analogRead(0))
+      }
+    `;
+    
+    const result = compile(source);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Collection type \'List\' is not supported on AVR targets');
+    expect(result.error).toContain('arduino_mega');
+  });
+
+  test('should reject Map type on arduino_leonardo', () => {
+    const source = `
+      @main
+      config {
+        board: arduino_leonardo,
+        clock: 16MHz
+      }
+      
+      mut Map cache = new Map()
+      
+      on start {
+        cache.set(0, 42)
+      }
+    `;
+    
+    const result = compile(source);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Collection type \'Map\' is not supported on AVR targets');
+    expect(result.error).toContain('arduino_leonardo');
+  });
+
+  test('should allow List type on esp32', () => {
+    const source = `
+      @main
+      config {
+        board: esp32,
+        clock: 16MHz
+      }
+      
+      mut List data = new List()
+      
+      on start {
+        data.push(100)
+      }
+    `;
+    
+    const result = compile(source);
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('class List');
+  });
+
+  test('should allow Map type on esp8266', () => {
+    const source = `
+      @main
+      config {
+        board: esp8266,
+        clock: 16MHz
+      }
+      
+      mut Map lookup = new Map()
+      
+      on start {
+        lookup.set(1, 99)
+      }
+    `;
+    
+    const result = compile(source);
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('class Map');
+  });
+
+  test('should reject both List and Map on AVR boards', () => {
+    const source = `
+      @main
+      config {
+        board: arduino_uno,
+        clock: 16MHz
+      }
+      
+      mut List items = new List()
+      mut Map dictionary = new Map()
+      
+      on start {
+        items.push(1)
+        dictionary.set(1, 100)
+      }
+    `;
+    
+    const result = compile(source);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Collection type \'List\' is not supported on AVR targets');
+    expect(result.error).toContain('Collection type \'Map\' is not supported on AVR targets');
+  });
+});

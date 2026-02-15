@@ -1046,7 +1046,7 @@ describe('Collections - List', () => {
     const source = `
       @main
       config {
-        board: arduino_uno,
+        board: esp32,
         clock: 16MHz
       }
       
@@ -1070,7 +1070,7 @@ describe('Collections - List', () => {
     const source = `
       @main
       config {
-        board: arduino_uno,
+        board: esp32,
         clock: 16MHz
       }
       
@@ -1094,7 +1094,7 @@ describe('Collections - Map', () => {
     const source = `
       @main
       config {
-        board: arduino_uno,
+        board: esp32,
         clock: 16MHz
       }
       
@@ -1115,7 +1115,7 @@ describe('Collections - Map', () => {
     const source = `
       @main
       config {
-        board: arduino_uno,
+        board: esp32,
         clock: 16MHz
       }
       
